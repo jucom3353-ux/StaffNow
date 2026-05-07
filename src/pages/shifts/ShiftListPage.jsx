@@ -6,6 +6,7 @@ import StatusBadge from '../../components/ui/StatusBadge'
 import Button from '../../components/ui/Button'
 import EmptyState from '../../components/ui/EmptyState'
 import { useAppData } from '../../context/AppDataContext'
+import { useAuth } from '../../context/AuthContext'
 
 const TABS = [
   { key: 'all',        label: '전체' },
@@ -15,18 +16,23 @@ const TABS = [
 ]
 
 export default function ShiftListPage() {
-  const { shifts } = useAppData()
+  const { shifts, jobs } = useAppData()
+  const { user } = useAuth()
   const [searchParams] = useSearchParams()
   const [tab, setTab] = useState(searchParams.get('tab') || 'all')
 
-  const filtered = shifts.filter(s => tab === 'all' || s.status === tab)
+  const isAdmin = user?.role === 'ADMIN'
+  const myJobIds = isAdmin ? null : new Set(jobs.filter(j => j.createdBy === user?.name).map(j => j.id))
+  const myShifts = isAdmin ? shifts : shifts.filter(s => myJobIds.has(s.jobId))
+
+  const filtered = myShifts.filter(s => tab === 'all' || s.status === tab)
 
   return (
     <div className="space-y-5">
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-xl font-bold text-navy">Shift 관리</h1>
-          <p className="text-sm text-gray-500 mt-0.5">총 {shifts.length}건의 Shift</p>
+          <p className="text-sm text-gray-500 mt-0.5">총 {myShifts.length}건의 Shift</p>
         </div>
         <Button icon={Plus} as={Link} to="/shifts/create">Shift 생성</Button>
       </div>
@@ -34,7 +40,7 @@ export default function ShiftListPage() {
       {/* 탭 */}
       <div className="flex gap-1">
         {TABS.map(t => {
-          const count = t.key === 'all' ? shifts.length : shifts.filter(s => s.status === t.key).length
+          const count = t.key === 'all' ? myShifts.length : myShifts.filter(s => s.status === t.key).length
           return (
             <button
               key={t.key}
