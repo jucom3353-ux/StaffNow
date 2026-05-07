@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Clock, CheckCircle2, AlertCircle, Users, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Clock, CheckCircle2, AlertCircle, Users, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import EmptyState from '../../components/ui/EmptyState'
 import { useAppData } from '../../context/AppDataContext'
@@ -29,6 +29,24 @@ function StatusPill({ status }) {
     <span className={`inline-flex text-xs font-semibold px-2.5 py-1 rounded-full border ${meta.color}`}>
       {meta.label}
     </span>
+  )
+}
+
+function SortableHeader({ label, sortKey, sort, onSort, className = '' }) {
+  const active = sort.key === sortKey
+  return (
+    <th
+      className={`text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-navy transition-colors ${className}`}
+      onClick={() => onSort(sortKey)}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        <span className="inline-flex flex-col -space-y-0.5">
+          <ChevronUp  size={10} className={active && sort.dir === 'asc'  ? 'text-orange' : 'text-gray-300'} />
+          <ChevronDown size={10} className={active && sort.dir === 'desc' ? 'text-orange' : 'text-gray-300'} />
+        </span>
+      </span>
+    </th>
   )
 }
 
@@ -151,6 +169,15 @@ export default function AttendancePage() {
   const { shifts, jobs } = useAppData()
   const { user } = useAuth()
   const [tab, setTab] = useState('all')
+  const [sort, setSort] = useState({ key: null, dir: 'asc' })
+
+  function handleSort(key) {
+    setSort(prev =>
+      prev.key === key
+        ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+        : { key, dir: 'asc' }
+    )
+  }
 
   const isAdmin = user?.role === 'ADMIN'
   const myJobIds = isAdmin ? null : new Set(jobs.filter(j => j.createdBy === user?.name).map(j => j.id))
@@ -195,7 +222,31 @@ export default function AttendancePage() {
   const [selectedDate, setSelectedDate] = useState(latestDate)
 
   const dayRecords = selectedDate ? (recordsByDate[selectedDate] ?? []) : allRecords
-  const filtered = dayRecords.filter(a => tab === 'all' || a.status === tab)
+
+  const filtered = useMemo(() => {
+    const base = dayRecords.filter(a => tab === 'all' || a.status === tab)
+    if (!sort.key) return base
+
+    return [...base].sort((a, b) => {
+      let av = a[sort.key] ?? ''
+      let bv = b[sort.key] ?? ''
+
+      // 시간 문자열 → 분으로 변환해 숫자 비교
+      if (sort.key === 'checkIn' || sort.key === 'checkOut') {
+        const toMin = t => { if (!t) return sort.dir === 'asc' ? Infinity : -Infinity; const [h,m] = t.split(':').map(Number); return h*60+m }
+        av = toMin(av); bv = toMin(bv)
+      }
+      // 근무시간: workHours 대신 실제 분 계산
+      if (sort.key === 'workHours') {
+        const toMin = t => { if (!t) return sort.dir === 'asc' ? Infinity : -Infinity; const m = t.match(/(\d+)h(?:\s*(\d+)m)?/); return m ? parseInt(m[1])*60+(parseInt(m[2])||0) : 0 }
+        av = toMin(av); bv = toMin(bv)
+      }
+
+      if (av < bv) return sort.dir === 'asc' ? -1 : 1
+      if (av > bv) return sort.dir === 'asc' ?  1 : -1
+      return 0
+    })
+  }, [dayRecords, tab, sort])
 
   const counts = {
     in_progress: dayRecords.filter(a => a.status === 'in_progress').length,
@@ -290,12 +341,12 @@ export default function AttendancePage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-offwhite-200 bg-offwhite-100">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">스태프</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Shift</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">체크인</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">체크아웃</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">근무 시간</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">상태</th>
+                <SortableHeader label="스태프"   sortKey="staff"     sort={sort} onSort={handleSort} />
+                <SortableHeader label="Shift"    sortKey="shift"     sort={sort} onSort={handleSort} className="hidden md:table-cell" />
+                <SortableHeader label="체크인"   sortKey="checkIn"   sort={sort} onSort={handleSort} />
+                <SortableHeader label="체크아웃" sortKey="checkOut"  sort={sort} onSort={handleSort} />
+                <SortableHeader label="근무 시간" sortKey="workHours" sort={sort} onSort={handleSort} className="hidden md:table-cell" />
+                <SortableHeader label="상태"     sortKey="status"    sort={sort} onSort={handleSort} />
               </tr>
             </thead>
             <tbody>
