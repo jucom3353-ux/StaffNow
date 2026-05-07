@@ -1,4 +1,6 @@
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect } from 'react'
+
+const AUTH_KEY = 'staffnow_auth_user'
 
 const MOCK_USERS = {
   INDIVIDUAL: {
@@ -37,7 +39,19 @@ export const ROLE_HOME = {
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem(AUTH_KEY)
+      return saved ? JSON.parse(saved) : null
+    } catch { return null }
+  })
+
+  useEffect(() => {
+    try {
+      if (user) localStorage.setItem(AUTH_KEY, JSON.stringify(user))
+      else localStorage.removeItem(AUTH_KEY)
+    } catch {}
+  }, [user])
 
   const login = useCallback((role) => {
     const u = MOCK_USERS[role]

@@ -1,5 +1,4 @@
 import { Briefcase, Calendar, Mail, DollarSign } from 'lucide-react'
-import { DASHBOARD_STATS } from '../../data/mockDashboard'
 import StatsCard from '../../components/dashboard/StatsCard'
 import QuickActions from '../../components/dashboard/QuickActions'
 import RecentActivity from '../../components/dashboard/RecentActivity'
@@ -12,11 +11,12 @@ const today = new Date().toLocaleDateString('ko-KR', {
 })
 
 export default function DashboardPage() {
-  const { jobs, shifts } = useAppData()
-  const { pendingInvitations, unpaidPayroll } = DASHBOARD_STATS
+  const { jobs, shifts, invitations } = useAppData()
 
-  const activeJobsCount = jobs.filter(j => j.status === 'active').length
-  const scheduledShiftsCount = shifts.filter(s => s.status === 'scheduled').length
+  const activeJobsCount      = jobs.filter(j => j.status === 'active').length
+  const scheduledShiftsCount = shifts.filter(s => s.status === 'scheduled' || s.status === 'in_progress').length
+  const pendingInviteCount   = invitations.filter(i => i.status === 'pending').length
+  const unpaidCount          = shifts.filter(s => s.status === 'completed' && !s.isPaid).length
 
   return (
     <div className="space-y-6">
@@ -25,7 +25,6 @@ export default function DashboardPage() {
         <p className="text-sm text-gray-500 mt-0.5">{today} 기준 운영 현황</p>
       </div>
 
-      {/* KPI 카드 - jobs/shifts는 실시간 context 값 사용 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           icon={Briefcase}
@@ -36,7 +35,7 @@ export default function DashboardPage() {
         />
         <StatsCard
           icon={Calendar}
-          label="예정 Shift"
+          label="예정/진행 Shift"
           value={scheduledShiftsCount}
           delta={{ value: scheduledShiftsCount - 3, dir: scheduledShiftsCount > 3 ? 'up' : 'neutral', label: '초기 대비' }}
           to="/shifts"
@@ -44,30 +43,27 @@ export default function DashboardPage() {
         <StatsCard
           icon={Mail}
           label="대기 중인 초대"
-          value={pendingInvitations.value}
-          delta={pendingInvitations.delta}
+          value={pendingInviteCount}
+          delta={{ value: pendingInviteCount, dir: pendingInviteCount > 0 ? 'up' : 'neutral', label: '응답 대기' }}
           to="/invitations"
         />
         <StatsCard
           icon={DollarSign}
           label="미정산 건수"
-          value={unpaidPayroll.value}
-          delta={unpaidPayroll.delta}
+          value={unpaidCount}
+          delta={{ value: unpaidCount, dir: unpaidCount > 0 ? 'up' : 'neutral', label: '정산 필요' }}
           accentColor="orange"
           to="/payroll"
         />
       </div>
 
-      {/* 빠른 액션 */}
       <QuickActions />
 
-      {/* 공고 / Shift 요약 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ActiveJobsSummary />
         <UpcomingShifts />
       </div>
 
-      {/* 최근 활동 */}
       <RecentActivity />
     </div>
   )

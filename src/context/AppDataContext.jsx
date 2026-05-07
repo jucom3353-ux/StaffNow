@@ -76,7 +76,7 @@ export function AppDataProvider({ children }) {
       headcount: Number(formData.headcount),
       filledCount: 0,
       createdAt: new Date().toISOString().slice(0, 10),
-      createdBy: '김운영',
+      createdBy: formData.createdBy || '알 수 없음',
       shifts: [],
     }
     setJobs(prev => [newJob, ...prev])

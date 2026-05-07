@@ -3,6 +3,7 @@ import { useSidebar } from '../hooks/useSidebar'
 import Sidebar from '../components/sidebar/Sidebar'
 import TopBar from '../components/topbar/TopBar'
 import PageContainer from './PageContainer'
+import ToastContainer from '../components/ui/ToastContainer'
 
 export default function AppShell() {
   const { collapsed, toggleSidebar } = useSidebar()
@@ -18,6 +19,7 @@ export default function AppShell() {
           </PageContainer>
         </main>
       </div>
+      <ToastContainer />
     </div>
   )
 }

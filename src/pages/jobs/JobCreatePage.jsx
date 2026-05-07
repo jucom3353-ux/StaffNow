@@ -5,6 +5,7 @@ import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import WheelPicker from '../../components/ui/WheelPicker'
 import { useAppData } from '../../context/AppDataContext'
+import { useAuth } from '../../context/AuthContext'
 import { LOCATION_DATA } from '../../data/locationData'
 
 // ─── 상수 ──────────────────────────────────────────────
@@ -90,6 +91,7 @@ function Chip({ label, selected, onClick }) {
 export default function JobCreatePage() {
   const navigate = useNavigate()
   const { addJob } = useAppData()
+  const { user } = useAuth()
 
   // 위치
   const [sido, setSido]       = useState('')
@@ -235,6 +237,7 @@ export default function JobCreatePage() {
     const newJob = addJob({
       title,
       location: locationStr,
+      createdBy: user?.name,
       headcount,
       wage: wageLabel,
       wageType,
