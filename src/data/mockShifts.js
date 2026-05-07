@@ -54,7 +54,7 @@ export const MOCK_SHIFTS = [
     endTime: '19:00',
     location: '서울 코엑스 B홀',
     requiredStaff: 10,
-    confirmedStaff: 0,
+    confirmedStaff: 10,
     applicantCount: 28,
     // 대형 행사 → 신입·보통 지원자 대거 몰림 (신뢰 지표 분포 넓음)
     applicantIds: [
@@ -64,7 +64,19 @@ export const MOCK_SHIFTS = [
       'ap-21','ap-22','ap-23','ap-24','ap-25','ap-26','ap-27','ap-28',
       'ap-29','ap-30','ap-31','ap-32','ap-33','ap-34','ap-35',
     ],
-    status: 'scheduled',
+    applicantStates: [
+      { id: 'ap-01', status: 'hired', pinned: true },
+      { id: 'ap-03', status: 'hired', pinned: true },
+      { id: 'ap-05', status: 'hired', pinned: false },
+      { id: 'ap-02', status: 'hired', pinned: true },
+      { id: 'ap-06', status: 'hired', pinned: false },
+      { id: 'ap-09', status: 'hired', pinned: false },
+      { id: 'ap-10', status: 'hired', pinned: false },
+      { id: 'ap-11', status: 'hired', pinned: false },
+      { id: 'ap-13', status: 'hired', pinned: false },
+      { id: 'ap-15', status: 'hired', pinned: false },
+    ],
+    status: 'completed',
   },
   {
     id: 'shift-004',
