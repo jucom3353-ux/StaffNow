@@ -12,9 +12,7 @@ export default function SidebarLogo({ collapsed, className }) {
       )}
     >
       <div className="flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-lg bg-orange flex items-center justify-center shrink-0">
-          <img src="/favicon.png" alt="StaffNow" className="w-6 h-6 object-contain" />
-        </div>
+        <img src="/favicon.png" alt="StaffNow" className="w-8 h-8 object-contain shrink-0" />
         {!collapsed && (
           <div className="overflow-hidden">
             <span className="text-white font-bold text-base leading-tight block whitespace-nowrap">

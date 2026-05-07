@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Zap, User, Building2, ShieldCheck, Eye, EyeOff, CheckCircle2 } from 'lucide-react'
+import { User, Building2, ShieldCheck, Eye, EyeOff, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 
 const ROLES = [
@@ -44,9 +44,7 @@ export default function LoginPage() {
       <div className="hidden lg:flex flex-col justify-between w-[52%] bg-navy px-14 py-12">
         {/* 로고 */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-orange flex items-center justify-center shrink-0">
-            <Zap size={20} className="text-white fill-white" />
-          </div>
+          <img src="/favicon.png" alt="StaffNow" className="w-10 h-10 object-contain shrink-0" />
           <div>
             <span className="text-white font-bold text-xl leading-none block">StaffNow</span>
             <span className="text-navy-200 text-xs">인력 운영 플랫폼</span>
@@ -96,9 +94,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* 모바일 로고 */}
           <div className="flex items-center gap-2.5 mb-8 lg:hidden">
-            <div className="w-9 h-9 rounded-xl bg-orange flex items-center justify-center">
-              <Zap size={18} className="text-white fill-white" />
-            </div>
+            <img src="/favicon.png" alt="StaffNow" className="w-9 h-9 object-contain" />
             <span className="text-navy font-bold text-xl">StaffNow</span>
           </div>
 
