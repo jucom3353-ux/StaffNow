@@ -1,0 +1,104 @@
+// ─ 각 Shift별 지원자 구성 컨셉 ─────────────────────────────────────────────
+// shift-001 (행사 Day1, 모집5): 경험자 위주 20명 — 데모 "숙련 인력 대거 지원"
+// shift-002 (행사 Day2, 모집5): 실력자 중심 17명 — 데모 "안정적 지원 현황"
+// shift-003 (박람회, 모집10):  신입 많이 몰린 28명 — 데모 "신규 지원자 폭주"
+// shift-004 (완료, 모집5):     이미 완료된 5명
+// shift-demo (행사 데모, 모집10): 전체 35명 — 인력 선별 시연 메인 시프트
+
+export const MOCK_SHIFTS = [
+  {
+    id: 'shift-001',
+    jobId: 'job-001',
+    jobTitle: '주말 행사 스태프 모집',
+    date: '2026-05-10',
+    startTime: '09:00',
+    endTime: '18:00',
+    location: '서울 강남구 COEX',
+    requiredStaff: 5,
+    confirmedStaff: 0,
+    applicantCount: 20,
+    // 경험자·고수 위주 — 평점 분포 상위권
+    applicantIds: [
+      'ap-01','ap-02','ap-03','ap-04','ap-05','ap-06','ap-07','ap-08',
+      'ap-09','ap-10','ap-11','ap-12','ap-13','ap-14','ap-15','ap-16','ap-17',
+      'ap-21','ap-22','ap-23',
+    ],
+    status: 'scheduled',
+  },
+  {
+    id: 'shift-002',
+    jobId: 'job-001',
+    jobTitle: '주말 행사 스태프 모집',
+    date: '2026-05-11',
+    startTime: '09:00',
+    endTime: '18:00',
+    location: '서울 강남구 COEX',
+    requiredStaff: 5,
+    confirmedStaff: 0,
+    applicantCount: 17,
+    // 실력자 중심 + 소수 신입
+    applicantIds: [
+      'ap-02','ap-04','ap-06','ap-07','ap-08',
+      'ap-09','ap-10','ap-12','ap-14','ap-15','ap-17','ap-18','ap-20',
+      'ap-24','ap-25','ap-26',
+      'ap-30',
+    ],
+    status: 'scheduled',
+  },
+  {
+    id: 'shift-003',
+    jobId: 'job-002',
+    jobTitle: '6월 박람회 안내 스태프',
+    date: '2026-06-01',
+    startTime: '10:00',
+    endTime: '19:00',
+    location: '서울 코엑스 B홀',
+    requiredStaff: 10,
+    confirmedStaff: 0,
+    applicantCount: 28,
+    // 대형 행사 → 신입·보통 지원자 대거 몰림 (신뢰 지표 분포 넓음)
+    applicantIds: [
+      'ap-01','ap-03','ap-05',
+      'ap-02','ap-06','ap-10',
+      'ap-09','ap-11','ap-13','ap-15','ap-17','ap-19','ap-20',
+      'ap-21','ap-22','ap-23','ap-24','ap-25','ap-26','ap-27','ap-28',
+      'ap-29','ap-30','ap-31','ap-32','ap-33','ap-34','ap-35',
+    ],
+    status: 'scheduled',
+  },
+  {
+    id: 'shift-004',
+    jobId: 'job-003',
+    jobTitle: '강남 매장 오픈 지원',
+    date: '2026-04-25',
+    startTime: '08:00',
+    endTime: '17:00',
+    location: '서울 강남구',
+    requiredStaff: 5,
+    confirmedStaff: 5,
+    applicantCount: 5,
+    applicantIds: ['ap-01','ap-03','ap-05','ap-07','ap-08'],
+    status: 'completed',
+  },
+  // ── 데모 메인: 전체 35명, 인력 선별 시연용 ──────────────────
+  {
+    id: 'shift-demo',
+    jobId: 'job-001',
+    jobTitle: '주말 행사 스태프 모집 (데모)',
+    date: '2026-05-13',
+    startTime: '09:00',
+    endTime: '18:00',
+    location: '서울 강남구 COEX 오디토리움',
+    requiredStaff: 10,
+    confirmedStaff: 0,
+    applicantCount: 35,
+    applicantIds: [
+      'ap-01','ap-02','ap-03','ap-04','ap-05','ap-06','ap-07','ap-08',
+      'ap-09','ap-10','ap-11','ap-12','ap-13','ap-14','ap-15','ap-16',
+      'ap-17','ap-18','ap-19','ap-20','ap-21','ap-22','ap-23','ap-24',
+      'ap-25','ap-26','ap-27','ap-28','ap-29','ap-30','ap-31','ap-32',
+      'ap-33','ap-34','ap-35',
+    ],
+    status: 'scheduled',
+  },
+]
