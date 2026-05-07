@@ -1,5 +1,4 @@
 import clsx from 'clsx'
-import { Zap } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 export default function SidebarLogo({ collapsed, className }) {
@@ -14,7 +13,7 @@ export default function SidebarLogo({ collapsed, className }) {
     >
       <div className="flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-lg bg-orange flex items-center justify-center shrink-0">
-          <Zap size={18} className="text-white fill-white" />
+          <img src="/favicon.png" alt="StaffNow" className="w-6 h-6 object-contain" />
         </div>
         {!collapsed && (
           <div className="overflow-hidden">
@@ -22,7 +21,7 @@ export default function SidebarLogo({ collapsed, className }) {
               StaffNow
             </span>
             <span className="text-navy-200 text-xs leading-tight block whitespace-nowrap">
-              기업 운영 대시보드
+              인력 운영 플랫폼
             </span>
           </div>
         )}
