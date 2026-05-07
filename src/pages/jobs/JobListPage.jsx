@@ -8,6 +8,7 @@ import EmptyState from '../../components/ui/EmptyState'
 import ConfirmModal from '../../components/ui/ConfirmModal'
 import { Briefcase } from 'lucide-react'
 import { useAppData } from '../../context/AppDataContext'
+import { useAuth } from '../../context/AuthContext'
 
 const JOB_STATUS_OPTIONS = ['active', 'draft', 'closed', 'completed', 'cancelled']
 
@@ -49,6 +50,9 @@ function SortIcon({ colKey, sortKey, sortDir }) {
 
 export default function JobListPage() {
   const { jobs, deleteJob, updateJobStatus } = useAppData()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'ADMIN'
+  const myJobs = isAdmin ? jobs : jobs.filter(j => j.createdBy === user?.name)
   const [searchParams] = useSearchParams()
   const [tab, setTab] = useState('all')
   const [search, setSearch] = useState(searchParams.get('q') || '')
@@ -71,7 +75,7 @@ export default function JobListPage() {
   }
 
   const filtered = sortJobs(
-    jobs
+    myJobs
       .filter(j => tab === 'all' || j.status === tab)
       .filter(j => !search || j.title.includes(search) || j.location.includes(search)),
     sortKey,
@@ -84,7 +88,7 @@ export default function JobListPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-xl font-bold text-navy">공고 관리</h1>
-          <p className="text-sm text-gray-500 mt-0.5">총 {jobs.length}건의 공고</p>
+          <p className="text-sm text-gray-500 mt-0.5">총 {myJobs.length}건의 공고</p>
         </div>
         <Button icon={Plus} as={Link} to="/jobs/create">공고 생성</Button>
       </div>
@@ -93,7 +97,7 @@ export default function JobListPage() {
       <div className="flex items-center justify-between gap-4">
         <div className="flex gap-1">
           {TABS.map(t => {
-            const count = t.key === 'all' ? jobs.length : jobs.filter(j => j.status === t.key).length
+            const count = t.key === 'all' ? myJobs.length : myJobs.filter(j => j.status === t.key).length
             return (
               <button
                 key={t.key}
