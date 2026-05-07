@@ -49,7 +49,7 @@ function SortIcon({ colKey, sortKey, sortDir }) {
 }
 
 export default function JobListPage() {
-  const { jobs, deleteJob, updateJobStatus } = useAppData()
+  const { jobs, shifts, deleteJob, updateJobStatus } = useAppData()
   const { user } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
   const myJobs = isAdmin ? jobs : jobs.filter(j => j.createdBy === user?.name)
@@ -175,7 +175,7 @@ export default function JobListPage() {
                   </td>
                   <td className="px-5 py-3.5 text-gray-600">{job.location}</td>
                   <td className="px-5 py-3.5">
-                    <span className="font-semibold text-navy tabular-nums">{job.filledCount}</span>
+                    <span className="font-semibold text-navy tabular-nums">{shifts.filter(s => s.jobId === job.id).reduce((sum, s) => sum + (s.confirmedStaff || 0), 0)}</span>
                     <span className="text-gray-400">/{job.headcount}명</span>
                   </td>
                   <td className="px-5 py-3.5 text-gray-400 text-xs">{job.createdAt}</td>
