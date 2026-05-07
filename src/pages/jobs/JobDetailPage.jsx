@@ -95,7 +95,7 @@ export default function JobDetailPage() {
           <div>
             <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-0.5">모집 인원</dt>
             <dd className="font-semibold text-navy">
-              <span className="text-orange tabular-nums">{job.filledCount}</span>
+              <span className="text-orange tabular-nums">{jobShifts.reduce((sum, s) => sum + (s.confirmedStaff || 0), 0)}</span>
               <span className="text-gray-400 font-normal">/{job.headcount}명</span>
             </dd>
           </div>
