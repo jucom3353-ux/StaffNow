@@ -76,6 +76,18 @@ export const MOCK_SHIFTS = [
       { id: 'ap-13', status: 'hired', pinned: false },
       { id: 'ap-15', status: 'hired', pinned: false },
     ],
+    attendance: [
+      { id: 'ap-01', role: '부스 운영 보조',    checkIn: '09:58', checkOut: '19:12', attendanceStatus: 'completed' },
+      { id: 'ap-03', role: '행사 안내 스태프',  checkIn: '10:03', checkOut: '19:05', attendanceStatus: 'completed' },
+      { id: 'ap-05', role: '고객 응대',          checkIn: '09:55', checkOut: '19:20', attendanceStatus: 'completed' },
+      { id: 'ap-02', role: '행사 진행 보조',    checkIn: '10:01', checkOut: '19:08', attendanceStatus: 'completed' },
+      { id: 'ap-06', role: '안내 데스크',        checkIn: '10:07', checkOut: '19:00', attendanceStatus: 'completed' },
+      { id: 'ap-09', role: '행사 안내 스태프',  checkIn: '09:52', checkOut: '19:15', attendanceStatus: 'completed' },
+      { id: 'ap-10', role: '부스 운영 보조',    checkIn: '10:00', checkOut: '19:10', attendanceStatus: 'completed' },
+      { id: 'ap-11', role: '일반 스태프',        checkIn: null,    checkOut: null,    attendanceStatus: 'absent' },
+      { id: 'ap-13', role: '행사 안내 스태프',  checkIn: '10:10', checkOut: '19:05', attendanceStatus: 'completed' },
+      { id: 'ap-15', role: '안내 데스크',        checkIn: '09:59', checkOut: '19:18', attendanceStatus: 'completed' },
+    ],
     status: 'completed',
   },
   {
