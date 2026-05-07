@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, AlertCircle, ChevronRight, X, Info } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
+import WheelPicker from '../../components/ui/WheelPicker'
 import { useAppData } from '../../context/AppDataContext'
 import { LOCATION_DATA } from '../../data/locationData'
 
@@ -386,24 +387,22 @@ export default function JobCreatePage() {
               <label className="block text-sm font-semibold text-navy mb-1.5">
                 근무 시간 <span className="text-orange">*</span>
               </label>
-              <div className="flex items-center gap-2 flex-wrap">
-                <input
-                  type="time"
+              <div className="flex items-center gap-3 flex-wrap">
+                <WheelPicker
                   value={startTime}
-                  onChange={e => { setStartTime(e.target.value); setErrors(p => ({ ...p, startTime: '', endTime: '' })) }}
-                  className={inputCls(errors.startTime) + ' w-32'}
+                  onChange={v => { setStartTime(v); setErrors(p => ({ ...p, startTime: '', endTime: '' })) }}
+                  label="시작 시간"
                 />
-                <span className="text-gray-400 font-medium">~</span>
-                <input
-                  type="time"
+                <span className="text-gray-400 font-bold text-lg">~</span>
+                <WheelPicker
                   value={endTime}
-                  onChange={e => { setEndTime(e.target.value); setErrors(p => ({ ...p, endTime: '' })) }}
-                  className={inputCls(errors.endTime) + ' w-32'}
+                  onChange={v => { setEndTime(v); setErrors(p => ({ ...p, endTime: '' })) }}
+                  label="종료 시간"
                 />
                 <select
                   value={breakMin}
                   onChange={e => setBreakMin(e.target.value)}
-                  className="border border-offwhite-200 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-navy hover:border-navy-200 text-gray-600"
+                  className="border border-offwhite-200 rounded-xl px-3 py-2.5 text-sm bg-white outline-none focus:border-navy hover:border-navy-200 text-gray-600"
                 >
                   <option value="0">휴게 없음</option>
                   <option value="30">휴게 30분</option>
@@ -411,9 +410,7 @@ export default function JobCreatePage() {
                   <option value="90">휴게 1.5시간</option>
                 </select>
               </div>
-              {/* 에러 */}
               <FieldError msg={errors.startTime || errors.endTime} />
-              {/* 총 근무 시간 계산 결과 */}
               {totalWorkHours && (
                 <p className="text-xs text-green-600 font-semibold mt-1.5 flex items-center gap-1">
                   <span>⏱</span>

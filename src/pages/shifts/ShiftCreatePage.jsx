@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, AlertCircle } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
+import WheelPicker from '../../components/ui/WheelPicker'
 import { useAppData } from '../../context/AppDataContext'
 
 const INITIAL = {
@@ -171,23 +172,20 @@ export default function ShiftCreatePage() {
               />
             </FormField>
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField label="시작 시간" required error={errors.startTime}>
-                <input
-                  type="time"
-                  className={inputCls(errors.startTime)}
+            <div className="flex items-end gap-3">
+              <FormField label="시작 시간" required error={errors.startTime} className="flex-1">
+                <WheelPicker
                   value={form.startTime}
-                  onChange={set('startTime')}
-                  onFocus={() => setErrors(p => ({ ...p, startTime: '' }))}
+                  onChange={v => { setForm(p => ({ ...p, startTime: v })); setErrors(p => ({ ...p, startTime: '', endTime: '' })) }}
+                  label="시작 시간"
                 />
               </FormField>
-              <FormField label="종료 시간" required error={errors.endTime}>
-                <input
-                  type="time"
-                  className={inputCls(errors.endTime)}
+              <span className="text-gray-400 font-bold text-lg pb-2">~</span>
+              <FormField label="종료 시간" required error={errors.endTime} className="flex-1">
+                <WheelPicker
                   value={form.endTime}
-                  onChange={set('endTime')}
-                  onFocus={() => setErrors(p => ({ ...p, endTime: '' }))}
+                  onChange={v => { setForm(p => ({ ...p, endTime: v })); setErrors(p => ({ ...p, endTime: '' })) }}
+                  label="종료 시간"
                 />
               </FormField>
             </div>

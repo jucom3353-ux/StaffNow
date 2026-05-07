@@ -6,8 +6,9 @@ import EmptyState from '../../components/ui/EmptyState'
 import Button from '../../components/ui/Button'
 import ConfirmModal from '../../components/ui/ConfirmModal'
 import StatusSelector from '../../components/ui/StatusSelector'
-import { Briefcase, CalendarPlus, Users, ChevronLeft, Trash2, Pencil } from 'lucide-react'
+import { Briefcase, CalendarPlus, Users, ChevronLeft, Trash2, Pencil, ShieldCheck } from 'lucide-react'
 import { useAppData } from '../../context/AppDataContext'
+import { useAuth } from '../../context/AuthContext'
 
 const JOB_STATUS_OPTIONS = ['active', 'draft', 'closed', 'completed', 'cancelled']
 
@@ -15,13 +16,15 @@ export default function JobDetailPage() {
   const { id } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
-  const CURRENT_USER = '김운영'
+  const { user } = useAuth()
   const { jobs, shifts, addToast, deleteJob, updateJobStatus } = useAppData()
   const [showDeleteModal, setShowDeleteModal] = useState(false)
 
   const job = jobs.find(j => j.id === id)
   const jobShifts = shifts.filter(s => s.jobId === id)
-  const isAuthor = job?.createdBy === CURRENT_USER
+  const isAuthor = job?.createdBy === user?.name
+  const isAdmin = user?.role === 'ADMIN'
+  const canManage = isAuthor || isAdmin
 
   useEffect(() => {
     if (location.state?.created) {
@@ -61,12 +64,17 @@ export default function JobDetailPage() {
           <p className="text-sm text-gray-500 mt-0.5">{job.location} · {job.createdAt} 생성</p>
         </div>
         <div className="flex items-center gap-2">
-          {isAuthor && (
+          {isAdmin && !isAuthor && (
+            <span className="flex items-center gap-1 text-xs font-bold text-purple-600 bg-purple-50 border border-purple-200 px-2 py-1 rounded-full">
+              <ShieldCheck size={11} />관리자 권한
+            </span>
+          )}
+          {canManage && (
             <Button icon={Pencil} size="sm" variant="secondary" as={Link} to={`/jobs/${id}/edit`}>
               수정
             </Button>
           )}
-          {isAuthor && (
+          {canManage && (
             <Button icon={Trash2} size="sm" variant="danger-ghost" onClick={() => setShowDeleteModal(true)}>
               삭제
             </Button>
