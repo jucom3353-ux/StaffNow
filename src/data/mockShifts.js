@@ -137,7 +137,7 @@ export const MOCK_SHIFTS = [
       'ap-25','ap-26','ap-27','ap-28','ap-29','ap-30','ap-31','ap-32',
       'ap-33','ap-34','ap-35',
     ],
-    status: 'scheduled',
+    status: 'in_progress',
   },
 
   // ── 4·5월 근태 데모용 완료 Shift ─────────────────────────

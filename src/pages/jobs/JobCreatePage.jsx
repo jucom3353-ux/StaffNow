@@ -95,6 +95,7 @@ export default function JobCreatePage() {
   const [sido, setSido]       = useState('')
   const [sigungu, setSigungu] = useState('')
   const [dong, setDong]       = useState('')
+  const [detailAddr, setDetailAddr] = useState('')
 
   // 기본
   const [title, setTitle]         = useState('')
@@ -126,11 +127,11 @@ export default function JobCreatePage() {
   const [submitting, setSubmitting] = useState(false)
 
   // ── 위치 핸들러 ──
-  function selectSido(v)    { setSido(v); setSigungu(''); setDong('') }
-  function selectSigungu(v) { setSigungu(v); setDong('') }
+  function selectSido(v)    { setSido(v); setSigungu(''); setDong(''); setDetailAddr('') }
+  function selectSigungu(v) { setSigungu(v); setDong(''); setDetailAddr('') }
   function selectDong(v)    { setDong(v) }
 
-  const locationStr = [sido, sigungu, dong].filter(Boolean).join(' ')
+  const locationStr = [sido, sigungu, dong, detailAddr].filter(Boolean).join(' ')
 
   // 근무 시간 계산
   const totalWorkHours = (() => {
@@ -299,7 +300,7 @@ export default function JobCreatePage() {
               {/* 선택 경로 표시 */}
               {(sido || sigungu || dong) && (
                 <div className="flex items-center gap-1.5 mb-3 flex-wrap">
-                  {[sido, sigungu, dong].filter(Boolean).map((v, i, arr) => (
+                  {[sido, sigungu, dong, detailAddr].filter(Boolean).map((v, i, arr) => (
                     <span key={v} className="flex items-center gap-1 text-sm">
                       <span className={`font-semibold ${i === arr.length - 1 ? 'text-orange' : 'text-navy'}`}>{v}</span>
                       {i < arr.length - 1 && <ChevronRight size={13} className="text-gray-400" />}
@@ -307,7 +308,7 @@ export default function JobCreatePage() {
                   ))}
                   <button
                     type="button"
-                    onClick={() => { setSido(''); setSigungu(''); setDong('') }}
+                    onClick={() => { setSido(''); setSigungu(''); setDong(''); setDetailAddr('') }}
                     className="ml-1 p-0.5 rounded text-gray-400 hover:text-red-400"
                   >
                     <X size={13} />
@@ -376,6 +377,20 @@ export default function JobCreatePage() {
                       </button>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* 세부 주소 */}
+              {dong && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs font-medium text-gray-400">상세 주소 <span className="text-gray-300">(선택)</span></p>
+                  <input
+                    type="text"
+                    className={inputCls('')}
+                    placeholder="건물명, 층수, 상세 위치 등을 입력하세요"
+                    value={detailAddr}
+                    onChange={e => setDetailAddr(e.target.value)}
+                  />
                 </div>
               )}
 
