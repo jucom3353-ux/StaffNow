@@ -102,6 +102,20 @@ export const MOCK_SHIFTS = [
     confirmedStaff: 5,
     applicantCount: 5,
     applicantIds: ['ap-01','ap-03','ap-05','ap-07','ap-08'],
+    applicantStates: [
+      { id: 'ap-01', status: 'hired', pinned: true },
+      { id: 'ap-03', status: 'hired', pinned: true },
+      { id: 'ap-05', status: 'hired', pinned: false },
+      { id: 'ap-07', status: 'hired', pinned: false },
+      { id: 'ap-08', status: 'hired', pinned: false },
+    ],
+    attendance: [
+      { id: 'ap-01', role: '행사 안내 스태프',  checkIn: '07:55', checkOut: '17:08', attendanceStatus: 'completed' },
+      { id: 'ap-03', role: '고객 응대',          checkIn: '08:02', checkOut: '17:05', attendanceStatus: 'completed' },
+      { id: 'ap-05', role: '부스 운영 보조',    checkIn: '07:58', checkOut: '17:10', attendanceStatus: 'completed' },
+      { id: 'ap-07', role: '안내 데스크',        checkIn: null,    checkOut: null,    attendanceStatus: 'absent' },
+      { id: 'ap-08', role: '행사 진행 보조',    checkIn: '08:05', checkOut: '17:15', attendanceStatus: 'completed' },
+    ],
     status: 'completed',
   },
   // ── 데모 메인: 전체 35명, 인력 선별 시연용 ──────────────────

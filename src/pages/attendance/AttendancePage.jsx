@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Clock, CheckCircle2, AlertCircle, Users } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Clock, CheckCircle2, AlertCircle, Users, ChevronLeft, ChevronRight } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import EmptyState from '../../components/ui/EmptyState'
 import { useAppData } from '../../context/AppDataContext'
@@ -43,6 +43,110 @@ function calcWorkHours(checkIn, checkOut) {
   return m > 0 ? `${h}h ${m}m` : `${h}h`
 }
 
+// ── 달력 컴포넌트 ─────────────────────────────────────────
+const KO_DAYS = ['일', '월', '화', '수', '목', '금', '토']
+
+function AttendanceCalendar({ recordsByDate, selectedDate, onSelect }) {
+  const initial = selectedDate
+    ? new Date(selectedDate + 'T00:00:00')
+    : new Date()
+  const [viewYear, setViewYear] = useState(initial.getFullYear())
+  const [viewMonth, setViewMonth] = useState(initial.getMonth()) // 0-indexed
+
+  const datesWithData = new Set(Object.keys(recordsByDate))
+
+  function prevMonth() {
+    if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11) }
+    else setViewMonth(m => m - 1)
+  }
+  function nextMonth() {
+    if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0) }
+    else setViewMonth(m => m + 1)
+  }
+
+  // 이번 달 날짜 그리드 계산
+  const firstDay = new Date(viewYear, viewMonth, 1).getDay()   // 0=일
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
+  const cells = []
+  for (let i = 0; i < firstDay; i++) cells.push(null)
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d)
+  // 6행 맞추기
+  while (cells.length % 7 !== 0) cells.push(null)
+
+  return (
+    <Card>
+      {/* 월 헤더 */}
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={prevMonth} className="w-8 h-8 rounded-lg hover:bg-offwhite-100 flex items-center justify-center text-gray-500 hover:text-navy transition-colors">
+          <ChevronLeft size={16} />
+        </button>
+        <span className="text-sm font-bold text-navy">
+          {viewYear}년 {viewMonth + 1}월
+        </span>
+        <button onClick={nextMonth} className="w-8 h-8 rounded-lg hover:bg-offwhite-100 flex items-center justify-center text-gray-500 hover:text-navy transition-colors">
+          <ChevronRight size={16} />
+        </button>
+      </div>
+
+      {/* 요일 헤더 */}
+      <div className="grid grid-cols-7 mb-1">
+        {KO_DAYS.map((d, i) => (
+          <div key={d} className={`text-center text-xs font-semibold py-1
+            ${i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-gray-400'}`}>
+            {d}
+          </div>
+        ))}
+      </div>
+
+      {/* 날짜 셀 */}
+      <div className="grid grid-cols-7 gap-y-1">
+        {cells.map((day, idx) => {
+          if (!day) return <div key={`e-${idx}`} />
+          const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+          const hasData = datesWithData.has(dateStr)
+          const isSelected = selectedDate === dateStr
+          const dayOfWeek = (firstDay + day - 1) % 7
+
+          return (
+            <button
+              key={dateStr}
+              onClick={() => hasData && onSelect(isSelected ? null : dateStr)}
+              disabled={!hasData}
+              className={`relative flex flex-col items-center justify-center h-9 rounded-lg text-sm font-medium transition-all
+                ${isSelected
+                  ? 'bg-navy text-white'
+                  : hasData
+                    ? 'hover:bg-navy-50 text-navy cursor-pointer'
+                    : 'text-gray-300 cursor-default'}
+                ${dayOfWeek === 0 && !isSelected ? 'text-red-400' : ''}
+                ${dayOfWeek === 6 && !isSelected ? 'text-blue-400' : ''}
+              `}
+            >
+              {day}
+              {hasData && !isSelected && (
+                <span className="absolute bottom-1 w-1 h-1 rounded-full bg-orange" />
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* 범례 */}
+      <div className="flex items-center gap-4 mt-3 pt-3 border-t border-offwhite-100">
+        <span className="flex items-center gap-1.5 text-xs text-gray-400">
+          <span className="w-2 h-2 rounded-full bg-orange inline-block" />
+          근태 기록 있음
+        </span>
+        <span className="flex items-center gap-1.5 text-xs text-gray-400">
+          <span className="w-6 h-5 rounded-md bg-navy inline-block" />
+          선택된 날짜
+        </span>
+      </div>
+    </Card>
+  )
+}
+
+// ── 메인 페이지 ───────────────────────────────────────────
 export default function AttendancePage() {
   const { shifts, jobs } = useAppData()
   const { user } = useAuth()
@@ -52,32 +156,57 @@ export default function AttendancePage() {
   const myJobIds = isAdmin ? null : new Set(jobs.filter(j => j.createdBy === user?.name).map(j => j.id))
   const myShifts = isAdmin ? shifts : shifts.filter(s => myJobIds.has(s.jobId))
 
-  // 완료된 Shift → attendance 배열 파생
-  const records = myShifts
-    .filter(s => s.status === 'completed' && s.attendance?.length)
-    .flatMap(s => {
-      const d = new Date(s.date + 'T00:00:00')
-      const shiftLabel = `${s.jobTitle} · ${d.getMonth() + 1}월 ${d.getDate()}일`
-      return s.attendance.map(a => ({
-        id: `${s.id}-${a.id}`,
-        staff: applicantMap[a.id]?.name ?? a.id,
-        role: a.role,
-        shift: shiftLabel,
-        checkIn: a.checkIn,
-        checkOut: a.checkOut,
-        workHours: calcWorkHours(a.checkIn, a.checkOut),
-        status: a.attendanceStatus,
-      }))
-    })
+  // 완료된 Shift → attendance 파생
+  const allRecords = useMemo(() =>
+    myShifts
+      .filter(s => s.status === 'completed' && s.attendance?.length)
+      .flatMap(s => {
+        const d = new Date(s.date + 'T00:00:00')
+        const shiftLabel = `${s.jobTitle} · ${d.getMonth() + 1}월 ${d.getDate()}일`
+        return s.attendance.map(a => ({
+          id: `${s.id}-${a.id}`,
+          staff: applicantMap[a.id]?.name ?? a.id,
+          role: a.role,
+          shift: shiftLabel,
+          shiftDate: s.date,
+          checkIn: a.checkIn,
+          checkOut: a.checkOut,
+          workHours: calcWorkHours(a.checkIn, a.checkOut),
+          status: a.attendanceStatus,
+        }))
+      })
+  , [myShifts])
 
-  const filtered = records.filter(a => tab === 'all' || a.status === tab)
+  // 날짜별 그룹
+  const recordsByDate = useMemo(() => {
+    const map = {}
+    allRecords.forEach(r => {
+      if (!map[r.shiftDate]) map[r.shiftDate] = []
+      map[r.shiftDate].push(r)
+    })
+    return map
+  }, [allRecords])
+
+  // 기본 선택 날짜: 데이터 있는 날 중 가장 최근
+  const latestDate = useMemo(() =>
+    Object.keys(recordsByDate).sort().at(-1) ?? null
+  , [recordsByDate])
+
+  const [selectedDate, setSelectedDate] = useState(latestDate)
+
+  const dayRecords = selectedDate ? (recordsByDate[selectedDate] ?? []) : allRecords
+  const filtered = dayRecords.filter(a => tab === 'all' || a.status === tab)
 
   const counts = {
-    in_progress: records.filter(a => a.status === 'in_progress').length,
-    completed:   records.filter(a => a.status === 'completed').length,
-    absent:      records.filter(a => a.status === 'absent').length,
-    scheduled:   records.filter(a => a.status === 'scheduled').length,
+    in_progress: dayRecords.filter(a => a.status === 'in_progress').length,
+    completed:   dayRecords.filter(a => a.status === 'completed').length,
+    absent:      dayRecords.filter(a => a.status === 'absent').length,
+    scheduled:   dayRecords.filter(a => a.status === 'scheduled').length,
   }
+
+  const selectedLabel = selectedDate
+    ? (() => { const d = new Date(selectedDate + 'T00:00:00'); return `${d.getMonth() + 1}월 ${d.getDate()}일` })()
+    : '전체'
 
   return (
     <div className="space-y-5">
@@ -86,32 +215,48 @@ export default function AttendancePage() {
         <p className="text-sm text-gray-500 mt-0.5">스태프 출퇴근 기록 및 현황</p>
       </div>
 
-      {/* 요약 카드 */}
-      <div className="grid grid-cols-4 gap-3">
-        {[
-          { label: '출근 중', value: counts.in_progress, icon: Clock,        color: 'text-blue-500',  bg: 'bg-blue-50' },
-          { label: '완료',    value: counts.completed,   icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
-          { label: '결근',    value: counts.absent,      icon: AlertCircle,  color: 'text-red-500',   bg: 'bg-red-50' },
-          { label: '예정',    value: counts.scheduled,   icon: Users,        color: 'text-gray-500',  bg: 'bg-gray-50' },
-        ].map(({ label, value, icon: Icon, color, bg }) => (
-          <Card key={label}>
-            <div className="flex items-center gap-3">
-              <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center shrink-0`}>
-                <Icon size={16} className={color} />
-              </div>
-              <div>
-                <p className="text-xl font-bold text-navy tabular-nums">{value}</p>
-                <p className="text-xs text-gray-500">{label}</p>
-              </div>
-            </div>
-          </Card>
-        ))}
+      {/* 달력 + 요약 카드 2단 레이아웃 */}
+      <div className="grid grid-cols-[320px_1fr] gap-5 items-start">
+        <AttendanceCalendar
+          recordsByDate={recordsByDate}
+          selectedDate={selectedDate}
+          onSelect={setSelectedDate}
+        />
+
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-navy">
+            {selectedDate ? `${selectedLabel} 근태 현황` : '전체 근태 현황'}
+            <span className="ml-2 text-gray-400 font-normal text-xs">
+              {dayRecords.length}명
+            </span>
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { label: '출근 중', value: counts.in_progress, icon: Clock,        color: 'text-blue-500',  bg: 'bg-blue-50' },
+              { label: '완료',    value: counts.completed,   icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
+              { label: '결근',    value: counts.absent,      icon: AlertCircle,  color: 'text-red-500',   bg: 'bg-red-50' },
+              { label: '예정',    value: counts.scheduled,   icon: Users,        color: 'text-gray-500',  bg: 'bg-gray-50' },
+            ].map(({ label, value, icon: Icon, color, bg }) => (
+              <Card key={label}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center shrink-0`}>
+                    <Icon size={16} className={color} />
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold text-navy tabular-nums">{value}</p>
+                    <p className="text-xs text-gray-500">{label}</p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* 탭 */}
       <div className="flex gap-1 border-b border-offwhite-200">
         {TABS.map(t => {
-          const cnt = t.key === 'all' ? records.length : records.filter(a => a.status === t.key).length
+          const cnt = t.key === 'all' ? dayRecords.length : (counts[t.key] ?? 0)
           return (
             <button
               key={t.key}
@@ -136,7 +281,7 @@ export default function AttendancePage() {
         <Card>
           <EmptyState
             icon={Clock}
-            title="근태 기록이 없습니다"
+            title={selectedDate ? `${selectedLabel}에 근태 기록이 없습니다` : '근태 기록이 없습니다'}
             description="Shift를 완료·확정하면 근태 기록이 표시됩니다"
           />
         </Card>
