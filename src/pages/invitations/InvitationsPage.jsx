@@ -1,16 +1,10 @@
 import { useState } from 'react'
-import { Mail, Check, X, Clock, UserCheck, Send } from 'lucide-react'
+import { Mail, Check, X, Clock, UserCheck, Send, Search } from 'lucide-react'
 import Card from '../../components/ui/Card'
-import StatusBadge from '../../components/ui/StatusBadge'
 import Button from '../../components/ui/Button'
-
-const INITIAL = [
-  { id: 1, staff: '홍길동', role: '행사 안내 스태프', shift: '주말 행사 스태프 · 5월 10일 09:00–18:00', wage: '시급 13,000원', status: 'pending', sentAt: '2026-05-06' },
-  { id: 2, staff: '이영희', role: '부스 운영 보조', shift: '주말 행사 스태프 · 5월 11일 09:00–18:00', wage: '시급 13,000원', status: 'accepted', sentAt: '2026-05-05' },
-  { id: 3, staff: '김철수', role: '행사 진행 보조', shift: '6월 박람회 안내 · 6월 1일 10:00–19:00', wage: '시급 12,500원', status: 'confirmed', sentAt: '2026-05-04' },
-  { id: 4, staff: '박지수', role: '안내 데스크', shift: '6월 박람회 안내 · 6월 2일 10:00–19:00', wage: '시급 12,500원', status: 'pending', sentAt: '2026-05-06' },
-  { id: 5, staff: '최민준', role: '행사 안내 스태프', shift: '주말 행사 스태프 · 5월 10일 09:00–18:00', wage: '시급 13,000원', status: 'rejected', sentAt: '2026-05-03' },
-]
+import { useAppData } from '../../context/AppDataContext'
+import { useAuth } from '../../context/AuthContext'
+import { MOCK_APPLICANTS } from '../../data/mockApplicants'
 
 const TABS = [
   { key: 'all',       label: '전체' },
@@ -28,7 +22,7 @@ const STATUS_META = {
 }
 
 function StatusPill({ status }) {
-  const meta = STATUS_META[status] || { label: status, color: 'text-gray-500 bg-gray-50 border-gray-200' }
+  const meta = STATUS_META[status] ?? { label: status, color: 'text-gray-500 bg-gray-50 border-gray-200' }
   return (
     <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full border ${meta.color}`}>
       {meta.label}
@@ -36,31 +30,178 @@ function StatusPill({ status }) {
   )
 }
 
+// ── 초대 발송 모달 ────────────────────────────────────────
+function SendModal({ myShifts, onSend, onClose }) {
+  const [staffSearch, setStaffSearch] = useState('')
+  const [selectedStaff, setSelectedStaff] = useState(null)
+  const [shiftId, setShiftId] = useState('')
+  const [role, setRole] = useState('')
+  const [wage, setWage] = useState('시급 13,000원')
+
+  const staffList = MOCK_APPLICANTS.filter(a =>
+    !staffSearch || a.name.includes(staffSearch) || a.region.includes(staffSearch)
+  ).slice(0, 8)
+
+  const selectedShift = myShifts.find(s => s.id === shiftId)
+
+  function handleSend() {
+    if (!selectedStaff || !shiftId || !role) return
+    const d = new Date(selectedShift.date + 'T00:00:00')
+    onSend({
+      staffId: selectedStaff.id,
+      staffName: selectedStaff.name,
+      role,
+      shiftId,
+      shiftLabel: `${selectedShift.jobTitle} · ${d.getMonth() + 1}월 ${d.getDate()}일 ${selectedShift.startTime}–${selectedShift.endTime}`,
+      jobId: selectedShift.jobId,
+      wage,
+    })
+  }
+
+  const canSend = selectedStaff && shiftId && role.trim()
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 space-y-5" onClick={e => e.stopPropagation()}>
+        <h2 className="text-base font-bold text-navy">초대 발송</h2>
+
+        {/* 스태프 선택 */}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">스태프 선택 *</label>
+          <div className="flex items-center gap-2 border border-offwhite-200 rounded-lg px-3 py-2">
+            <Search size={13} className="text-gray-400 shrink-0" />
+            <input
+              type="text"
+              placeholder="이름, 지역 검색"
+              value={staffSearch}
+              onChange={e => { setStaffSearch(e.target.value); setSelectedStaff(null) }}
+              className="flex-1 text-sm outline-none text-navy placeholder-gray-400"
+            />
+          </div>
+          {selectedStaff ? (
+            <div className="flex items-center justify-between bg-navy-50 border border-navy-100 rounded-lg px-3 py-2">
+              <span className="text-sm font-semibold text-navy">
+                {selectedStaff.name} <span className="font-normal text-gray-500">· {selectedStaff.region}</span>
+              </span>
+              <button onClick={() => setSelectedStaff(null)} className="text-gray-400 hover:text-navy">
+                <X size={14} />
+              </button>
+            </div>
+          ) : (
+            <div className="border border-offwhite-200 rounded-lg overflow-hidden max-h-40 overflow-y-auto">
+              {staffList.map(a => (
+                <button
+                  key={a.id}
+                  onClick={() => { setSelectedStaff(a); setStaffSearch('') }}
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-offwhite-100 transition-colors flex items-center justify-between"
+                >
+                  <span className="font-medium text-navy">{a.name}</span>
+                  <span className="text-xs text-gray-400">{a.age}세 · {a.region}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Shift 선택 */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Shift 선택 *</label>
+          <select
+            value={shiftId}
+            onChange={e => setShiftId(e.target.value)}
+            className="w-full border border-offwhite-200 rounded-lg px-3 py-2 text-sm text-navy outline-none focus:border-navy bg-white"
+          >
+            <option value="">Shift를 선택하세요</option>
+            {myShifts.map(s => {
+              const d = new Date(s.date + 'T00:00:00')
+              return (
+                <option key={s.id} value={s.id}>
+                  {s.jobTitle} · {d.getMonth() + 1}월 {d.getDate()}일 {s.startTime}–{s.endTime}
+                </option>
+              )
+            })}
+          </select>
+        </div>
+
+        {/* 역할 */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">역할 *</label>
+          <input
+            type="text"
+            placeholder="예: 행사 안내 스태프"
+            value={role}
+            onChange={e => setRole(e.target.value)}
+            className="w-full border border-offwhite-200 rounded-lg px-3 py-2 text-sm text-navy outline-none focus:border-navy"
+          />
+        </div>
+
+        {/* 급여 */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">급여</label>
+          <input
+            type="text"
+            value={wage}
+            onChange={e => setWage(e.target.value)}
+            className="w-full border border-offwhite-200 rounded-lg px-3 py-2 text-sm text-navy outline-none focus:border-navy"
+          />
+        </div>
+
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl border border-offwhite-200 text-sm font-semibold text-gray-500 hover:bg-offwhite transition-colors"
+          >
+            취소
+          </button>
+          <button
+            onClick={handleSend}
+            disabled={!canSend}
+            className="flex-1 py-2.5 rounded-xl bg-orange text-white text-sm font-bold hover:bg-orange-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            <Send size={14} />발송
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── 메인 페이지 ───────────────────────────────────────────
 export default function InvitationsPage() {
-  const [invitations, setInvitations] = useState(INITIAL)
+  const { invitations, addInvitation, updateInvitationStatus, jobs, shifts } = useAppData()
+  const { user } = useAuth()
   const [tab, setTab] = useState('all')
+  const [showModal, setShowModal] = useState(false)
 
-  const filtered = invitations.filter(inv => tab === 'all' || inv.status === tab)
+  const isAdmin = user?.role === 'ADMIN'
+  const myJobIds = isAdmin ? null : new Set(jobs.filter(j => j.createdBy === user?.name).map(j => j.id))
+  const myShifts = isAdmin ? shifts : shifts.filter(s => myJobIds.has(s.jobId))
+  const myInvitations = isAdmin ? invitations : invitations.filter(i => myJobIds.has(i.jobId))
 
-  function confirm(id) {
-    setInvitations(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'confirmed' } : inv))
-  }
-  function reject(id) {
-    setInvitations(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'rejected' } : inv))
-  }
-  function resend(id) {
-    setInvitations(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'pending', sentAt: '2026-05-07' } : inv))
-  }
+  const filtered = myInvitations.filter(i => tab === 'all' || i.status === tab)
 
   const counts = {
-    pending:   invitations.filter(i => i.status === 'pending').length,
-    accepted:  invitations.filter(i => i.status === 'accepted').length,
-    confirmed: invitations.filter(i => i.status === 'confirmed').length,
-    rejected:  invitations.filter(i => i.status === 'rejected').length,
+    pending:   myInvitations.filter(i => i.status === 'pending').length,
+    accepted:  myInvitations.filter(i => i.status === 'accepted').length,
+    confirmed: myInvitations.filter(i => i.status === 'confirmed').length,
+    rejected:  myInvitations.filter(i => i.status === 'rejected').length,
+  }
+
+  function handleSend(data) {
+    addInvitation(data)
+    setShowModal(false)
   }
 
   return (
     <div className="space-y-5">
+      {showModal && (
+        <SendModal
+          myShifts={myShifts}
+          onSend={handleSend}
+          onClose={() => setShowModal(false)}
+        />
+      )}
+
       {/* 헤더 */}
       <div className="flex items-start justify-between">
         <div>
@@ -71,7 +212,7 @@ export default function InvitationsPage() {
             확정 <strong className="text-green-600">{counts.confirmed}건</strong>
           </p>
         </div>
-        <Button icon={Send}>초대 발송</Button>
+        <Button icon={Send} onClick={() => setShowModal(true)}>초대 발송</Button>
       </div>
 
       {/* 요약 카드 */}
@@ -98,24 +239,25 @@ export default function InvitationsPage() {
 
       {/* 탭 */}
       <div className="flex gap-1 border-b border-offwhite-200">
-        {TABS.map(t => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`px-4 py-2.5 text-sm font-semibold transition-colors border-b-2 -mb-px ${
-              tab === t.key
-                ? 'border-orange text-orange'
-                : 'border-transparent text-gray-500 hover:text-navy'
-            }`}
-          >
-            {t.label}
-            {t.key !== 'all' && counts[t.key] > 0 && (
-              <span className="ml-1.5 text-xs bg-offwhite-200 text-gray-600 px-1.5 py-0.5 rounded-full">
-                {counts[t.key]}
-              </span>
-            )}
-          </button>
-        ))}
+        {TABS.map(t => {
+          const cnt = t.key === 'all' ? myInvitations.length : (counts[t.key] ?? 0)
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`px-4 py-2.5 text-sm font-semibold transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
+                tab === t.key ? 'border-orange text-orange' : 'border-transparent text-gray-500 hover:text-navy'
+              }`}
+            >
+              {t.label}
+              {cnt > 0 && (
+                <span className={`text-xs tabular-nums px-1.5 rounded-md ${tab === t.key ? 'bg-orange/10 text-orange' : 'bg-offwhite-200 text-gray-500'}`}>
+                  {cnt}
+                </span>
+              )}
+            </button>
+          )
+        })}
       </div>
 
       {/* 목록 */}
@@ -125,7 +267,7 @@ export default function InvitationsPage() {
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-offwhite-200">
+              <tr className="border-b border-offwhite-200 bg-offwhite-100">
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">스태프</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Shift · 급여</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">상태</th>
@@ -135,31 +277,29 @@ export default function InvitationsPage() {
             </thead>
             <tbody>
               {filtered.map(inv => (
-                <tr key={inv.id} className="border-b border-offwhite-100 hover:bg-offwhite-100 transition-colors">
+                <tr key={inv.id} className="border-b border-offwhite-100 last:border-0 hover:bg-offwhite-100 transition-colors">
                   <td className="px-5 py-3.5">
-                    <p className="font-semibold text-navy">{inv.staff}</p>
+                    <p className="font-semibold text-navy">{inv.staffName}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{inv.role}</p>
                   </td>
                   <td className="px-5 py-3.5 hidden md:table-cell">
-                    <p className="text-gray-700">{inv.shift}</p>
+                    <p className="text-gray-700">{inv.shiftLabel}</p>
                     <p className="text-xs text-orange font-medium mt-0.5">{inv.wage}</p>
                   </td>
-                  <td className="px-5 py-3.5">
-                    <StatusPill status={inv.status} />
-                  </td>
-                  <td className="px-5 py-3.5 text-gray-500">{inv.sentAt}</td>
+                  <td className="px-5 py-3.5"><StatusPill status={inv.status} /></td>
+                  <td className="px-5 py-3.5 text-gray-500 tabular-nums">{inv.sentAt}</td>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2 justify-end">
                       {inv.status === 'accepted' && (
                         <>
                           <button
-                            onClick={() => confirm(inv.id)}
+                            onClick={() => updateInvitationStatus(inv.id, 'confirmed')}
                             className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 hover:bg-green-100 border border-green-200 px-2.5 py-1.5 rounded-lg transition-colors"
                           >
                             <Check size={12} />확정
                           </button>
                           <button
-                            onClick={() => reject(inv.id)}
+                            onClick={() => updateInvitationStatus(inv.id, 'rejected')}
                             className="flex items-center gap-1 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-1.5 rounded-lg transition-colors"
                           >
                             <X size={12} />거절
@@ -168,7 +308,7 @@ export default function InvitationsPage() {
                       )}
                       {inv.status === 'rejected' && (
                         <button
-                          onClick={() => resend(inv.id)}
+                          onClick={() => updateInvitationStatus(inv.id, 'pending')}
                           className="flex items-center gap-1 text-xs font-semibold text-navy bg-offwhite hover:bg-offwhite-200 border border-offwhite-200 px-2.5 py-1.5 rounded-lg transition-colors"
                         >
                           <Send size={12} />재발송

@@ -2,31 +2,43 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 import { MOCK_JOBS } from '../data/mockJobs'
 import { MOCK_SHIFTS } from '../data/mockShifts'
 import { RECENT_ACTIVITIES } from '../data/mockDashboard'
+import { MOCK_INVITATIONS } from '../data/mockInvitations'
 
 const AppDataContext = createContext(null)
 
 // ── localStorage 키 ───────────────────────────────────────
 const SHIFTS_KEY = 'staffnow_shifts_v1'
+const INVITATIONS_KEY = 'staffnow_invitations_v1'
 
-function loadShiftsFromStorage() {
+function loadFromStorage(key) {
   try {
-    const raw = localStorage.getItem(SHIFTS_KEY)
+    const raw = localStorage.getItem(key)
     if (!raw) return null
     return JSON.parse(raw)
   } catch { return null }
 }
 
 function buildInitialShifts() {
-  const saved = loadShiftsFromStorage()
+  const saved = loadFromStorage(SHIFTS_KEY)
   if (!saved?.length) return MOCK_SHIFTS
   const savedMap = new Map(saved.map(s => [s.id, s]))
-  // MOCK shifts + saved overrides
   const merged = MOCK_SHIFTS.map(s =>
     savedMap.has(s.id) ? { ...s, ...savedMap.get(s.id) } : s
   )
-  // Dynamically created shifts (not in MOCK)
   const mockIds = new Set(MOCK_SHIFTS.map(s => s.id))
   saved.forEach(s => { if (!mockIds.has(s.id)) merged.push(s) })
+  return merged
+}
+
+function buildInitialInvitations() {
+  const saved = loadFromStorage(INVITATIONS_KEY)
+  if (!saved?.length) return MOCK_INVITATIONS
+  const savedMap = new Map(saved.map(i => [i.id, i]))
+  const merged = MOCK_INVITATIONS.map(i =>
+    savedMap.has(i.id) ? { ...i, ...savedMap.get(i.id) } : i
+  )
+  const mockIds = new Set(MOCK_INVITATIONS.map(i => i.id))
+  saved.forEach(i => { if (!mockIds.has(i.id)) merged.push(i) })
   return merged
 }
 
@@ -34,14 +46,16 @@ export function AppDataProvider({ children }) {
   const [jobs, setJobs] = useState(MOCK_JOBS)
   const [shifts, setShifts] = useState(buildInitialShifts)
   const [activities, setActivities] = useState(RECENT_ACTIVITIES)
+  const [invitations, setInvitations] = useState(buildInitialInvitations)
   const [toasts, setToasts] = useState([])
 
-  // shifts 변경 시 localStorage에 즉시 저장
   useEffect(() => {
-    try {
-      localStorage.setItem(SHIFTS_KEY, JSON.stringify(shifts))
-    } catch {}
+    try { localStorage.setItem(SHIFTS_KEY, JSON.stringify(shifts)) } catch {}
   }, [shifts])
+
+  useEffect(() => {
+    try { localStorage.setItem(INVITATIONS_KEY, JSON.stringify(invitations)) } catch {}
+  }, [invitations])
 
   const removeToast = useCallback((id) => {
     setToasts(prev => prev.filter(t => t.id !== id))
@@ -144,6 +158,22 @@ export function AppDataProvider({ children }) {
     addToast({ type: 'success', message: `${hiredCount}명 채용 확정 완료!` })
   }, [addToast])
 
+  const addInvitation = useCallback((data) => {
+    const newInv = {
+      id: `inv-${Date.now()}`,
+      status: 'pending',
+      sentAt: new Date().toISOString().slice(0, 10),
+      ...data,
+    }
+    setInvitations(prev => [newInv, ...prev])
+    addToast({ type: 'success', message: `${data.staffName}님께 초대를 발송했습니다` })
+    return newInv
+  }, [addToast])
+
+  const updateInvitationStatus = useCallback((invId, status) => {
+    setInvitations(prev => prev.map(i => i.id === invId ? { ...i, status } : i))
+  }, [])
+
   // 데모 초기화: 모든 staffnow_ localStorage 키 삭제 + state 리셋
   const resetDemoData = useCallback(() => {
     Object.keys(localStorage)
@@ -152,14 +182,16 @@ export function AppDataProvider({ children }) {
     setShifts(MOCK_SHIFTS)
     setJobs(MOCK_JOBS)
     setActivities(RECENT_ACTIVITIES)
+    setInvitations(MOCK_INVITATIONS)
     addToast({ type: 'info', message: '데모 데이터가 초기화되었습니다' })
   }, [addToast])
 
   return (
     <AppDataContext.Provider value={{
-      jobs, shifts, activities,
+      jobs, shifts, activities, invitations,
       addJob, addShift, updateJob, updateJobStatus, deleteJob,
       updateShiftConfirmed, finalizeShift, resetDemoData,
+      addInvitation, updateInvitationStatus,
       toasts, addToast, removeToast,
     }}>
       {children}
