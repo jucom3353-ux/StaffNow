@@ -101,7 +101,7 @@ function ConfirmModal({ type, hiredCount, requiredStaff, onConfirm, onCancel }) 
         )}
         {!isReset && !isUnder && !isOver && (
           <p className="text-sm text-gray-600">
-            <strong>{hiredCount}명</strong>을 최종 채용 확정합니다. 확정 후 Shift 목록으로 이동합니다.
+            <strong>{hiredCount}명</strong>을 최종 채용 확정합니다. 확정 후 계약 현황 페이지로 이동합니다.
           </p>
         )}
 
@@ -409,9 +409,9 @@ export default function ShiftDetailPage() {
   function handleFinalize() {
     const applicantStates = applicants.map(a => ({ id: a.id, pinned: a.pinned, status: a.status }))
     finalizeShift(shift.id, { hiredCount, applicantStates })
-    localStorage.removeItem(STORAGE_KEY)  // 임시 저장 데이터 삭제
+    localStorage.removeItem(STORAGE_KEY)
     setModal(null)
-    navigate('/shifts?tab=completed')
+    navigate('/contracts')
   }
 
   return (

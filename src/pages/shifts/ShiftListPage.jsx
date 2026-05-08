@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Plus, Calendar, ChevronRight } from 'lucide-react'
+import { Plus, Calendar, ChevronRight, ClipboardList, FileCheck } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import StatusBadge from '../../components/ui/StatusBadge'
 import Button from '../../components/ui/Button'
@@ -77,11 +77,13 @@ export default function ShiftListPage() {
             const d = new Date(shift.date + 'T00:00:00')
             const displayCount = shift.applicantCount ?? shift.confirmedStaff
             const isOver = displayCount > shift.requiredStaff
+            const isCompleted = shift.status === 'completed'
             const fillRatio = shift.requiredStaff > 0
               ? Math.min(shift.confirmedStaff / shift.requiredStaff, 1)
               : 0
             return (
-              <Link key={shift.id} to={`/shifts/${shift.id}`}>
+              <div key={shift.id} className="space-y-0">
+                <Link to={`/shifts/${shift.id}`}>
                 <Card className="hover:border-navy-100 hover:shadow-[0_2px_8px_rgba(27,43,72,0.1)] transition-all cursor-pointer group">
                   <div className="flex items-center gap-4">
                     {/* 날짜 뱃지 */}
@@ -133,7 +135,26 @@ export default function ShiftListPage() {
                     <ChevronRight size={16} className="text-gray-300 group-hover:text-navy transition-colors shrink-0" />
                   </div>
                 </Card>
-              </Link>
+                </Link>
+                {isCompleted && (
+                  <div className="flex gap-2 px-1 pb-1 -mt-1">
+                    <Link
+                      to="/attendance"
+                      onClick={e => e.stopPropagation()}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 rounded-b-lg transition-colors"
+                    >
+                      <ClipboardList size={11} />근태 관리
+                    </Link>
+                    <Link
+                      to="/contracts"
+                      onClick={e => e.stopPropagation()}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-green-600 bg-green-50 hover:bg-green-100 border border-green-200 px-3 py-1.5 rounded-b-lg transition-colors"
+                    >
+                      <FileCheck size={11} />계약 보기
+                    </Link>
+                  </div>
+                )}
+              </div>
             )
           })}
         </div>

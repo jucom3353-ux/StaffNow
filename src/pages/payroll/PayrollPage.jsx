@@ -60,11 +60,10 @@ function OvertimePill({ overtimeStatus, cappedMins }) {
 }
 
 export default function PayrollPage() {
-  const { shifts, jobs } = useAppData()
+  const { shifts, jobs, markAsPaid } = useAppData()
   const { user } = useAuth()
 
   const [paidIds, setPaidIds] = useState(new Set())
-  // 관리자가 현장에서 연장 승인한 ID 세트 (로컬)
   const [approvedOtIds, setApprovedOtIds] = useState(new Set())
   const [tab, setTab] = useState('all')
 
@@ -116,6 +115,7 @@ export default function PayrollPage() {
 
           rows.push({
             id: rowId,
+            shiftId: s.id,
             staff: applicantMap[a.id]?.name ?? a.id,
             role: a.role,
             shift: shiftLabel,
@@ -126,7 +126,7 @@ export default function PayrollPage() {
             cappedMins: result.cappedMins,
             overtimeStatus: result.overtimeStatus,
             amount: Math.round(result.hours * HOURLY_RATE),
-            status: 'unpaid',
+            status: s.isPaid ? 'paid' : 'unpaid',
           })
         })
       })
@@ -146,10 +146,28 @@ export default function PayrollPage() {
   })
 
   const approveOt = useCallback((id) => setApprovedOtIds(prev => new Set([...prev, id])), [])
-  const approveOne = useCallback((id) => setPaidIds(prev => new Set([...prev, id])), [])
+
+  const approveOne = useCallback((id) => {
+    setPaidIds(prev => {
+      const next = new Set([...prev, id])
+      // 해당 row의 shift에 속한 모든 row가 paid되면 shift를 markAsPaid
+      const row = payroll.find(p => p.id === id)
+      if (row) {
+        const siblingIds = payroll.filter(p => p.shiftId === row.shiftId).map(p => p.id)
+        const allPaid = siblingIds.every(sid => next.has(sid) || sid === id)
+        if (allPaid) markAsPaid(row.shiftId)
+      }
+      return next
+    })
+  }, [payroll, markAsPaid])
+
   const approveAll = useCallback(() => {
-    setPaidIds(prev => new Set([...prev, ...unpaid.map(p => p.id)]))
-  }, [unpaid])
+    const newIds = unpaid.map(p => p.id)
+    setPaidIds(prev => new Set([...prev, ...newIds]))
+    // 미정산 row가 있는 모든 shift를 markAsPaid
+    const shiftIds = [...new Set(unpaid.map(p => p.shiftId))]
+    shiftIds.forEach(sid => markAsPaid(sid))
+  }, [unpaid, markAsPaid])
 
   const totalUnpaid = unpaid.reduce((s, p) => s + p.amount, 0)
   const totalPaid   = resolvedPayroll.filter(p => p.status === 'paid').reduce((s, p) => s + p.amount, 0)

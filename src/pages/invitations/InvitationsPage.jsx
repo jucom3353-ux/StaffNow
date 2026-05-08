@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Mail, Check, X, Clock, UserCheck, Send, Search } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Mail, Check, X, Clock, UserCheck, Send, Search, ExternalLink } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import { useAppData } from '../../context/AppDataContext'
@@ -320,9 +321,19 @@ export default function InvitationsPage() {
                         </span>
                       )}
                       {inv.status === 'confirmed' && (
-                        <span className="text-xs text-green-600 flex items-center gap-1 font-medium">
-                          <UserCheck size={11} />확정 완료
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-green-600 flex items-center gap-1 font-medium">
+                            <UserCheck size={11} />확정 완료
+                          </span>
+                          {inv.shiftId && (
+                            <Link
+                              to={`/shifts/${inv.shiftId}`}
+                              className="flex items-center gap-1 text-xs font-semibold text-navy bg-offwhite-100 hover:bg-navy hover:text-white border border-offwhite-200 hover:border-navy px-2.5 py-1.5 rounded-lg transition-colors"
+                            >
+                              <ExternalLink size={10} />Shift 보기
+                            </Link>
+                          )}
+                        </div>
                       )}
                     </div>
                   </td>

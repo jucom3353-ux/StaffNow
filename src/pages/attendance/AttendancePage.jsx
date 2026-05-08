@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
-import { Clock, CheckCircle2, AlertCircle, Users, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Clock, CheckCircle2, AlertCircle, Users, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, DollarSign } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import EmptyState from '../../components/ui/EmptyState'
 import { useAppData } from '../../context/AppDataContext'
@@ -261,9 +262,17 @@ export default function AttendancePage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-navy">근태 관리</h1>
-        <p className="text-sm text-gray-500 mt-0.5">스태프 출퇴근 기록 및 현황</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-navy">근태 관리</h1>
+          <p className="text-sm text-gray-500 mt-0.5">스태프 출퇴근 기록 및 현황</p>
+        </div>
+        <Link
+          to="/payroll"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-orange text-white text-sm font-semibold hover:bg-orange-600 transition-colors"
+        >
+          <DollarSign size={14} />정산 관리
+        </Link>
       </div>
 
       {/* 달력 + 요약 카드 2단 레이아웃 */}

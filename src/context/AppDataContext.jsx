@@ -249,6 +249,13 @@ export function AppDataProvider({ children }) {
     addToast({ type: 'info', message: '대화방을 나갔습니다' })
   }, [addToast])
 
+  const markAsPaid = useCallback((shiftId) => {
+    setShifts(prev => prev.map(s =>
+      s.id === shiftId ? { ...s, isPaid: true } : s
+    ))
+    addToast({ type: 'success', message: '정산 완료 처리되었습니다' })
+  }, [addToast])
+
   const resetDemoData = useCallback(() => {
     Object.keys(localStorage)
       .filter(k => k.startsWith('staffnow_'))
@@ -268,7 +275,7 @@ export function AppDataProvider({ children }) {
       updateShiftConfirmed, finalizeShift, resetDemoData,
       addInvitation, updateInvitationStatus,
       sendMessage, editMessage, deleteMessage, markAsRead,
-      blockConversation, leaveConversation,
+      blockConversation, leaveConversation, markAsPaid,
       toasts, addToast, removeToast,
     }}>
       {children}
