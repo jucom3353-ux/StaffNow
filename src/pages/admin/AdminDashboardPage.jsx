@@ -24,9 +24,14 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-6">
       {/* 헤더 */}
-      <div>
-        <h1 className="text-2xl font-bold text-navy">플랫폼 현황</h1>
-        <p className="text-gray-500 text-sm mt-1">실시간 운영 현황을 확인하세요.</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-navy">플랫폼 현황</h1>
+          <p className="text-gray-500 text-sm mt-1">실시간 운영 현황을 확인하세요.</p>
+        </div>
+        <span className="flex items-center gap-1.5 text-xs font-semibold text-purple-600 bg-purple-50 border border-purple-200 px-3 py-1.5 rounded-full">
+          <Users size={12} />플랫폼 전체 데이터
+        </span>
       </div>
 
       {/* KPI 카드 */}

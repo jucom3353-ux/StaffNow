@@ -5,6 +5,7 @@ import RecentActivity from '../../components/dashboard/RecentActivity'
 import ActiveJobsSummary from '../../components/dashboard/ActiveJobsSummary'
 import UpcomingShifts from '../../components/dashboard/UpcomingShifts'
 import { useAppData } from '../../context/AppDataContext'
+import { useAuth } from '../../context/AuthContext'
 
 const today = new Date().toLocaleDateString('ko-KR', {
   year: 'numeric', month: 'long', day: 'numeric', weekday: 'short',
@@ -12,11 +13,18 @@ const today = new Date().toLocaleDateString('ko-KR', {
 
 export default function DashboardPage() {
   const { jobs, shifts, invitations } = useAppData()
+  const { user } = useAuth()
 
-  const activeJobsCount      = jobs.filter(j => j.status === 'active').length
-  const scheduledShiftsCount = shifts.filter(s => s.status === 'scheduled' || s.status === 'in_progress').length
-  const pendingInviteCount   = invitations.filter(i => i.status === 'pending').length
-  const unpaidCount          = shifts.filter(s => s.status === 'completed' && !s.isPaid).length
+  const isAdmin   = user?.role === 'ADMIN'
+  const myJobs    = isAdmin ? jobs    : jobs.filter(j => j.createdBy === user?.name)
+  const myJobIds  = new Set(myJobs.map(j => j.id))
+  const myShifts  = isAdmin ? shifts  : shifts.filter(s => myJobIds.has(s.jobId))
+  const myInvites = isAdmin ? invitations : invitations.filter(i => myJobIds.has(i.jobId) || i.sentBy === user?.name)
+
+  const activeJobsCount      = myJobs.filter(j => j.status === 'active').length
+  const scheduledShiftsCount = myShifts.filter(s => s.status === 'scheduled' || s.status === 'in_progress').length
+  const pendingInviteCount   = myInvites.filter(i => i.status === 'pending').length
+  const unpaidCount          = myShifts.filter(s => s.status === 'completed' && !s.isPaid).length
 
   return (
     <div className="space-y-6">
@@ -30,28 +38,28 @@ export default function DashboardPage() {
           icon={Briefcase}
           label="진행 중인 공고"
           value={activeJobsCount}
-          delta={{ value: activeJobsCount - 4, dir: activeJobsCount > 4 ? 'up' : activeJobsCount < 4 ? 'down' : 'neutral', label: '초기 대비' }}
+          delta={activeJobsCount > 0 ? { value: activeJobsCount, dir: 'up', label: '진행 중' } : null}
           to="/jobs"
         />
         <StatsCard
           icon={Calendar}
           label="예정/진행 Shift"
           value={scheduledShiftsCount}
-          delta={{ value: scheduledShiftsCount - 3, dir: scheduledShiftsCount > 3 ? 'up' : 'neutral', label: '초기 대비' }}
+          delta={scheduledShiftsCount > 0 ? { value: scheduledShiftsCount, dir: 'up', label: '예정됨' } : null}
           to="/shifts"
         />
         <StatsCard
           icon={Mail}
           label="대기 중인 초대"
           value={pendingInviteCount}
-          delta={{ value: pendingInviteCount, dir: pendingInviteCount > 0 ? 'up' : 'neutral', label: '응답 대기' }}
+          delta={pendingInviteCount > 0 ? { value: pendingInviteCount, dir: 'up', label: '응답 대기' } : null}
           to="/invitations"
         />
         <StatsCard
           icon={DollarSign}
           label="미정산 건수"
           value={unpaidCount}
-          delta={{ value: unpaidCount, dir: unpaidCount > 0 ? 'up' : 'neutral', label: '정산 필요' }}
+          delta={unpaidCount > 0 ? { value: unpaidCount, dir: 'up', label: '정산 필요' } : null}
           accentColor="orange"
           to="/payroll"
         />

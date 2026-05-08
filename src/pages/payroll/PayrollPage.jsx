@@ -6,7 +6,7 @@ import EmptyState from '../../components/ui/EmptyState'
 import { useAppData } from '../../context/AppDataContext'
 import { useAuth } from '../../context/AuthContext'
 import { MOCK_APPLICANTS } from '../../data/mockApplicants'
-import { calcBillableHours, hoursLabel } from '../../utils/payrollUtils'
+import { calcPayoutWithBonus, hoursLabel } from '../../utils/payrollUtils'
 
 const HOURLY_RATE = 13000
 
@@ -44,19 +44,42 @@ function StatusPill({ status }) {
   )
 }
 
-function OvertimePill({ overtimeStatus, cappedMins }) {
-  if (!overtimeStatus || overtimeStatus === 'normal' || overtimeStatus === 'absent') return null
-  const meta = OT_META[overtimeStatus]
-  if (!meta) return null
-  return (
-    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${meta.color}`}>
-      {overtimeStatus === 'capped' && <ShieldAlert size={10} />}
-      {meta.label}
-      {cappedMins > 0 && overtimeStatus !== 'approved' && (
-        <span className="opacity-70">({cappedMins}분)</span>
-      )}
-    </span>
-  )
+function OvertimePill({ overtimeStatus, cappedMins, isLate, lateMins }) {
+  const pills = []
+
+  if (isLate && lateMins > 0) {
+    pills.push(
+      <span key="late" className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border text-orange bg-orange-50 border-orange/30">
+        지각 {lateMins}분
+      </span>
+    )
+  }
+
+  if (overtimeStatus && overtimeStatus !== 'normal' && overtimeStatus !== 'absent' && overtimeStatus !== 'early_leave') {
+    const meta = OT_META[overtimeStatus]
+    if (meta) {
+      pills.push(
+        <span key="ot" className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${meta.color}`}>
+          {overtimeStatus === 'capped' && <ShieldAlert size={10} />}
+          {meta.label}
+          {cappedMins > 0 && overtimeStatus !== 'approved' && (
+            <span className="opacity-70">({cappedMins}분)</span>
+          )}
+        </span>
+      )
+    }
+  }
+
+  if (overtimeStatus === 'early_leave') {
+    pills.push(
+      <span key="early" className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border text-purple-600 bg-purple-50 border-purple-200">
+        조기 퇴근
+      </span>
+    )
+  }
+
+  if (pills.length === 0) return null
+  return <div className="flex flex-wrap gap-1 mt-0.5">{pills}</div>
 }
 
 export default function PayrollPage() {
@@ -111,7 +134,21 @@ export default function PayrollPage() {
             return
           }
 
-          const result = calcBillableHours(a.checkIn, a.checkOut, scheduledEnd, isOtApproved)
+          const scheduledMins =
+            (() => {
+              const [sh, sm] = (s.startTime ?? '09:00').split(':').map(Number)
+              const [eh, em] = (s.endTime ?? '18:00').split(':').map(Number)
+              return Math.max(0, (eh * 60 + em) - (sh * 60 + sm))
+            })()
+          const totalBudget = scheduledMins > 0 ? Math.round((scheduledMins / 60) * HOURLY_RATE) : 0
+          const payConfig = {
+            basePay:  Math.round(totalBudget * 11 / 12),
+            bonusPay: totalBudget - Math.round(totalBudget * 11 / 12),
+          }
+
+          const result = calcPayoutWithBonus(
+            a.checkIn, a.checkOut, s.startTime ?? '09:00', scheduledEnd, isOtApproved, payConfig
+          )
 
           rows.push({
             id: rowId,
@@ -125,7 +162,11 @@ export default function PayrollPage() {
             billableCheckout: result.billableCheckout,
             cappedMins: result.cappedMins,
             overtimeStatus: result.overtimeStatus,
-            amount: Math.round(result.hours * HOURLY_RATE),
+            basePay: result.basePay,
+            bonusPay: result.bonusPay,
+            amount: result.totalPay,
+            isLate: result.isLate,
+            lateMins: result.lateMins,
             status: s.isPaid ? 'paid' : 'unpaid',
           })
         })
@@ -279,7 +320,8 @@ export default function PayrollPage() {
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Shift</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">근무 시간</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">실제 퇴근</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">금액</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden xl:table-cell">기본급+보너스</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">합계</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">상태</th>
                 <th className="px-5 py-3" />
               </tr>
@@ -299,7 +341,7 @@ export default function PayrollPage() {
                   <td className="px-5 py-3.5 text-gray-600 hidden md:table-cell">{p.shift}</td>
                   <td className="px-5 py-3.5">
                     <p className="text-gray-700 tabular-nums font-medium">{p.hoursLabel}</p>
-                    <OvertimePill overtimeStatus={p.overtimeStatus} cappedMins={p.cappedMins} />
+                    <OvertimePill overtimeStatus={p.overtimeStatus} cappedMins={p.cappedMins} isLate={p.isLate} lateMins={p.lateMins} />
                   </td>
                   <td className="px-5 py-3.5 hidden lg:table-cell">
                     {p.actualCheckout ? (
@@ -313,6 +355,17 @@ export default function PayrollPage() {
                         {p.billableCheckout && p.billableCheckout !== p.actualCheckout && (
                           <span className="text-navy font-semibold">{p.billableCheckout}</span>
                         )}
+                      </div>
+                    ) : '—'}
+                  </td>
+                  <td className="px-5 py-3.5 hidden xl:table-cell">
+                    {p.basePay > 0 || p.bonusPay > 0 ? (
+                      <div className="text-xs tabular-nums">
+                        <span className="text-navy font-semibold">₩{fmt(p.basePay)}</span>
+                        <span className="text-gray-300 mx-1">+</span>
+                        <span className={`font-semibold ${p.bonusPay > 0 ? 'text-orange' : 'text-gray-300'}`}>
+                          ₩{fmt(p.bonusPay)}
+                        </span>
                       </div>
                     ) : '—'}
                   </td>

@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { Zap, Home, Search, ClipboardList, Heart, MessageSquare, User, ChevronLeft, LogOut, Bell } from 'lucide-react'
+import { Zap, Home, Search, ClipboardList, Heart, MessageSquare, User, ChevronLeft } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuth } from '../context/AuthContext'
+import NotificationBell from '../components/topbar/NotificationBell'
+import UserMenu from '../components/topbar/UserMenu'
 
 const NAV = [
   { to: '/individual',              icon: Home,          label: '홈',        end: true },
@@ -15,12 +17,14 @@ const NAV = [
 
 export default function IndividualLayout() {
   const [collapsed, setCollapsed] = useState(false)
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const navigate = useNavigate()
+  const [searchQuery, setSearchQuery] = useState('')
 
-  function handleLogout() {
-    logout()
-    navigate('/login')
+  function handleSearch(e) {
+    e.preventDefault()
+    navigate(`/individual/jobs${searchQuery.trim() ? `?q=${encodeURIComponent(searchQuery.trim())}` : ''}`)
+    setSearchQuery('')
   }
 
   return (
@@ -82,22 +86,12 @@ export default function IndividualLayout() {
           })}
         </nav>
 
-        {/* 하단 */}
+        {/* 하단: 접기 버튼만 */}
         <div className="p-2 border-t border-navy-700">
-          <button
-            onClick={handleLogout}
-            className={clsx(
-              'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-navy-200 hover:bg-navy-700 hover:text-white text-sm transition-all',
-              collapsed && 'justify-center'
-            )}
-          >
-            <LogOut size={18} className="shrink-0" />
-            {!collapsed && <span>로그아웃</span>}
-          </button>
           <button
             onClick={() => setCollapsed(v => !v)}
             className={clsx(
-              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-navy-200 hover:text-white text-xs transition-all mt-0.5',
+              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-navy-200 hover:text-white text-xs transition-all',
               collapsed ? 'justify-center' : ''
             )}
           >
@@ -111,26 +105,20 @@ export default function IndividualLayout() {
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         {/* 탑바 */}
         <header className="h-16 flex items-center px-6 gap-4 bg-white border-b border-offwhite-200 shrink-0">
-          <div className="flex-1" />
-          <div className="flex items-center gap-2 bg-offwhite rounded-lg px-3 py-1.5 w-56">
+          <form onSubmit={handleSearch} className="flex items-center gap-2 bg-offwhite rounded-lg px-3 py-1.5 w-56">
             <Search size={15} className="text-gray-400 shrink-0" />
             <input
               type="text"
               placeholder="공고 검색..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
               className="bg-transparent text-sm text-navy placeholder-gray-400 outline-none w-full"
             />
-          </div>
-          <button className="relative p-2 rounded-lg hover:bg-offwhite-100 transition-colors">
-            <Bell size={18} className="text-gray-500" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-orange rounded-full" />
-          </button>
+          </form>
+          <div className="flex-1" />
+          <NotificationBell />
           <div className="w-px h-6 bg-offwhite-200" />
-          <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-offwhite-100 transition-colors cursor-pointer">
-            <div className="w-7 h-7 rounded-full bg-orange flex items-center justify-center">
-              <span className="text-white text-xs font-bold">{user?.avatar}</span>
-            </div>
-            <span className="text-sm font-semibold text-navy hidden sm:block">{user?.name}</span>
-          </div>
+          <UserMenu />
         </header>
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />

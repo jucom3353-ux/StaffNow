@@ -1,13 +1,12 @@
-import { ArrowLeft, MapPin, Clock, Bookmark, Send, Building2, Banknote, Calendar } from 'lucide-react'
-import { useState } from 'react'
+import { ArrowLeft, MapPin, Clock, Bookmark, Send, Building2, Banknote, Calendar, CheckCircle2 } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { RECOMMENDED_JOBS } from '../../data/mockIndividual'
+import { useIndividualData } from '../../hooks/useIndividualData'
 
 export default function IndividualJobDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const [saved, setSaved] = useState(false)
-  const [applied, setApplied] = useState(false)
+  const { isSaved, toggleSave, isApplied, applyJob } = useIndividualData()
 
   const job = RECOMMENDED_JOBS.find(j => j.id === id) ?? {
     id,
@@ -18,16 +17,17 @@ export default function IndividualJobDetailPage() {
     deadline: '2026-06-01',
     tags: ['단기'],
     isNew: false,
-    isSaved: false,
   }
 
+  const applied = isApplied(id)
+  const saved   = isSaved(id)
+
   function handleApply() {
-    setApplied(true)
+    applyJob({ jobId: job.id, jobTitle: job.title, company: job.company, wage: job.wage, location: job.location })
   }
 
   return (
     <div className="max-w-2xl mx-auto space-y-5">
-      {/* 뒤로가기 */}
       <button
         onClick={() => navigate(-1)}
         className="flex items-center gap-2 text-sm text-gray-500 hover:text-navy transition-colors"
@@ -36,7 +36,6 @@ export default function IndividualJobDetailPage() {
         목록으로
       </button>
 
-      {/* 헤더 카드 */}
       <div className="bg-white rounded-2xl border border-offwhite-200 p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
@@ -54,20 +53,19 @@ export default function IndividualJobDetailPage() {
             <p className="text-gray-500 text-sm">{job.company}</p>
           </div>
           <button
-            onClick={() => setSaved(v => !v)}
-            className={`p-2 rounded-xl border-2 transition-colors ${saved || job.isSaved ? 'border-orange text-orange bg-orange-50' : 'border-offwhite-200 text-gray-400 hover:border-orange hover:text-orange'}`}
+            onClick={() => toggleSave(job.id)}
+            className={`p-2 rounded-xl border-2 transition-colors ${saved ? 'border-orange text-orange bg-orange-50' : 'border-offwhite-200 text-gray-400 hover:border-orange hover:text-orange'}`}
           >
-            <Bookmark size={20} fill={saved || job.isSaved ? 'currentColor' : 'none'} />
+            <Bookmark size={20} fill={saved ? 'currentColor' : 'none'} />
           </button>
         </div>
 
-        {/* 상세 정보 */}
         <div className="mt-5 grid grid-cols-2 gap-4">
           {[
-            { icon: Banknote,   label: '급여',   value: job.wage },
-            { icon: MapPin,     label: '위치',   value: job.location },
-            { icon: Calendar,   label: '마감일', value: job.deadline },
-            { icon: Building2,  label: '회사',   value: job.company },
+            { icon: Banknote,  label: '급여',   value: job.wage },
+            { icon: MapPin,    label: '위치',   value: job.location },
+            { icon: Calendar,  label: '마감일', value: job.deadline },
+            { icon: Building2, label: '회사',   value: job.company },
           ].map(item => (
             <div key={item.label} className="flex items-center gap-3 p-3 bg-offwhite rounded-xl">
               <item.icon size={16} className="text-orange shrink-0" />
@@ -79,10 +77,10 @@ export default function IndividualJobDetailPage() {
           ))}
         </div>
 
-        {/* 지원 버튼 */}
         <div className="mt-5">
           {applied ? (
-            <div className="w-full py-3 rounded-xl bg-green-50 border border-green-200 text-green-700 font-semibold text-sm text-center">
+            <div className="w-full py-3 rounded-xl bg-green-50 border border-green-200 text-green-700 font-semibold text-sm text-center flex items-center justify-center gap-2">
+              <CheckCircle2 size={16} />
               지원 완료! 결과를 기다려주세요.
             </div>
           ) : (
@@ -97,7 +95,6 @@ export default function IndividualJobDetailPage() {
         </div>
       </div>
 
-      {/* 공고 내용 */}
       <div className="bg-white rounded-2xl border border-offwhite-200 p-6">
         <h2 className="font-bold text-navy mb-4">공고 내용</h2>
         <div className="space-y-3 text-sm text-gray-600 leading-relaxed">

@@ -1,21 +1,63 @@
-import { Search, Users, MoreVertical } from 'lucide-react'
+import { useState } from 'react'
+import { Search, MoreVertical } from 'lucide-react'
 import { RECENT_USERS } from '../../data/mockAdmin'
 
-const ROLE_LABEL = { INDIVIDUAL: '개인', BUSINESS: '기업' }
+const ROLE_LABEL = { INDIVIDUAL: '개인', BUSINESS: '기업', ADMIN: '관리자' }
+const ROLE_COLOR = {
+  INDIVIDUAL: 'bg-blue-100 text-blue-700',
+  BUSINESS:   'bg-purple-100 text-purple-700',
+  ADMIN:      'bg-orange-100 text-orange-700',
+}
+
+function loadRegisteredUsers() {
+  try {
+    const arr = JSON.parse(localStorage.getItem('staffnow_users') || '[]')
+    return arr.map(u => ({
+      id:       u.id,
+      name:     u.name,
+      role:     u.role,
+      email:    u.email,
+      joinedAt: u.id?.startsWith('u-reg-')
+        ? new Date(Number(u.id.replace('u-reg-', ''))).toISOString().slice(0, 10)
+        : '-',
+      isActive: true,
+    }))
+  } catch { return [] }
+}
 
 export default function AdminUsersPage() {
+  const [query, setQuery] = useState('')
+
+  const registered = loadRegisteredUsers()
+  // 실제 가입자 + 데모 목업 합치기 (중복 이메일 제거)
+  const registeredEmails = new Set(registered.map(u => u.email))
+  const mockOnly = RECENT_USERS.filter(u => !registeredEmails.has(u.email))
+  const allUsers = [...registered, ...mockOnly]
+
+  const filtered = allUsers.filter(u =>
+    query === '' ||
+    u.name?.includes(query) ||
+    u.email?.includes(query)
+  )
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-navy">유저 관리</h1>
-          <p className="text-sm text-gray-500 mt-1">전체 회원 현황</p>
+          <p className="text-sm text-gray-500 mt-1">전체 회원 {allUsers.length}명</p>
         </div>
       </div>
 
       <div className="flex items-center gap-2 bg-white border border-offwhite-200 rounded-xl px-4 py-2.5 max-w-sm">
         <Search size={15} className="text-gray-400" />
-        <input type="text" placeholder="이름, 이메일 검색..." className="bg-transparent text-sm outline-none w-full placeholder-gray-400 text-navy" />
+        <input
+          type="text"
+          placeholder="이름, 이메일 검색..."
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          className="bg-transparent text-sm outline-none w-full placeholder-gray-400 text-navy"
+        />
       </div>
 
       <div className="bg-white rounded-2xl border border-offwhite-200 overflow-hidden">
@@ -31,12 +73,18 @@ export default function AdminUsersPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-offwhite-200">
-            {RECENT_USERS.map(u => (
-              <tr key={u.id} className="hover:bg-offwhite-100 transition-colors">
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-5 py-10 text-center text-sm text-gray-400">
+                  검색 결과가 없습니다.
+                </td>
+              </tr>
+            ) : filtered.map(u => (
+              <tr key={u.id} className="hover:bg-offwhite transition-colors">
                 <td className="px-5 py-3.5 font-semibold text-navy">{u.name}</td>
                 <td className="px-5 py-3.5">
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${u.role === 'INDIVIDUAL' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
-                    {ROLE_LABEL[u.role]}
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${ROLE_COLOR[u.role] ?? 'bg-gray-100 text-gray-600'}`}>
+                    {ROLE_LABEL[u.role] ?? u.role}
                   </span>
                 </td>
                 <td className="px-5 py-3.5 text-gray-500">{u.email}</td>

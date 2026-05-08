@@ -4,10 +4,18 @@ import Card from '../ui/Card'
 import StatusBadge from '../ui/StatusBadge'
 import EmptyState from '../ui/EmptyState'
 import { useAppData } from '../../context/AppDataContext'
+import { useAuth } from '../../context/AuthContext'
 
 export default function UpcomingShifts() {
-  const { shifts } = useAppData()
-  const upcoming = shifts.filter(s => s.status === 'scheduled').slice(0, 3)
+  const { jobs, shifts } = useAppData()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'ADMIN'
+  const myJobIds = isAdmin ? null : new Set(
+    jobs.filter(j => j.createdBy === user?.name).map(j => j.id)
+  )
+  const myScheduled = (isAdmin ? shifts : shifts.filter(s => myJobIds.has(s.jobId)))
+    .filter(s => s.status === 'scheduled')
+  const upcoming = myScheduled.slice(0, 3)
 
   return (
     <Card

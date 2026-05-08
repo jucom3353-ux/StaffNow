@@ -284,7 +284,7 @@ const FILTER_OPTIONS = [
 export default function ShiftDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { shifts, finalizeShift } = useAppData()
+  const { shifts, finalizeShift, addToast } = useAppData()
   const shift = shifts.find(s => s.id === id)
 
   const STORAGE_KEY = `staffnow_shift_${id}`

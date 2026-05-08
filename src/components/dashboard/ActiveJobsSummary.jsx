@@ -1,13 +1,18 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, Briefcase, Plus } from 'lucide-react'
+import { ArrowRight, Briefcase } from 'lucide-react'
 import Card from '../ui/Card'
 import StatusBadge from '../ui/StatusBadge'
 import EmptyState from '../ui/EmptyState'
 import { useAppData } from '../../context/AppDataContext'
+import { useAuth } from '../../context/AuthContext'
 
 export default function ActiveJobsSummary() {
   const { jobs } = useAppData()
-  const active = jobs.filter(j => j.status === 'active').slice(0, 3)
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'ADMIN'
+  const myActiveJobs = (isAdmin ? jobs : jobs.filter(j => j.createdBy === user?.name))
+    .filter(j => j.status === 'active')
+  const active = myActiveJobs.slice(0, 3)
 
   return (
     <Card
@@ -62,9 +67,9 @@ export default function ActiveJobsSummary() {
               </div>
             </Link>
           ))}
-          {jobs.filter(j => j.status === 'active').length > 3 && (
+          {myActiveJobs.length > 3 && (
             <Link to="/jobs" className="flex items-center justify-center py-2.5 text-xs text-gray-400 hover:text-orange transition-colors border-t border-offwhite-100">
-              +{jobs.filter(j => j.status === 'active').length - 3}건 더 보기
+              +{myActiveJobs.length - 3}건 더 보기
             </Link>
           )}
         </div>

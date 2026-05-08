@@ -44,16 +44,42 @@ function buildInitialInvitations() {
   return merged
 }
 
+const DEMO_BIZ_EMAIL = 'biz@staffnow.kr'
+
+function getCurrentUserEmail() {
+  try {
+    const u = JSON.parse(localStorage.getItem('staffnow_auth_user') || 'null')
+    return u?.email?.replace(/[^a-zA-Z0-9]/g, '_') || 'anon'
+  } catch { return 'anon' }
+}
+
+function getMessagesKey() {
+  return `staffnow_messages_${getCurrentUserEmail()}`
+}
+
+function isDemoUser() {
+  try {
+    const u = JSON.parse(localStorage.getItem('staffnow_auth_user') || 'null')
+    return u?.email === DEMO_BIZ_EMAIL
+  } catch { return false }
+}
+
 function buildInitialConversations() {
-  const saved = loadFromStorage(MESSAGES_KEY)
-  if (!saved?.length) return MOCK_CONVERSATIONS
-  const savedMap = new Map(saved.map(c => [c.id, c]))
-  const merged = MOCK_CONVERSATIONS.map(c =>
-    savedMap.has(c.id) ? { ...c, ...savedMap.get(c.id) } : c
-  )
-  const mockIds = new Set(MOCK_CONVERSATIONS.map(c => c.id))
-  saved.forEach(c => { if (!mockIds.has(c.id)) merged.push(c) })
-  return merged
+  const key = getMessagesKey()
+  const saved = loadFromStorage(key)
+  // 데모 계정만 목업 대화 표시
+  if (isDemoUser()) {
+    if (!saved?.length) return MOCK_CONVERSATIONS
+    const savedMap = new Map(saved.map(c => [c.id, c]))
+    const merged = MOCK_CONVERSATIONS.map(c =>
+      savedMap.has(c.id) ? { ...c, ...savedMap.get(c.id) } : c
+    )
+    const mockIds = new Set(MOCK_CONVERSATIONS.map(c => c.id))
+    saved.forEach(c => { if (!mockIds.has(c.id)) merged.push(c) })
+    return merged
+  }
+  // 신규 가입 계정: 자신의 대화만, 없으면 빈 배열
+  return saved ?? []
 }
 
 export function AppDataProvider({ children }) {
@@ -73,7 +99,7 @@ export function AppDataProvider({ children }) {
   }, [invitations])
 
   useEffect(() => {
-    try { localStorage.setItem(MESSAGES_KEY, JSON.stringify(conversations)) } catch {}
+    try { localStorage.setItem(getMessagesKey(), JSON.stringify(conversations)) } catch {}
   }, [conversations])
 
   const removeToast = useCallback((id) => {
@@ -104,7 +130,7 @@ export function AppDataProvider({ children }) {
       type: 'job_created',
       text: `"${formData.title}" 공고가 생성되었습니다`,
       time: '방금',
-      actor: '김운영',
+      actor: formData.createdBy || '알 수 없음',
     }, ...prev])
     addToast({ type: 'success', message: `"${formData.title}" 공고가 생성되었습니다` })
     return newJob
@@ -256,6 +282,10 @@ export function AppDataProvider({ children }) {
     addToast({ type: 'success', message: '정산 완료 처리되었습니다' })
   }, [addToast])
 
+  const reinitializeConversations = useCallback(() => {
+    setConversations(buildInitialConversations())
+  }, [])
+
   const resetDemoData = useCallback(() => {
     Object.keys(localStorage)
       .filter(k => k.startsWith('staffnow_'))
@@ -276,6 +306,7 @@ export function AppDataProvider({ children }) {
       addInvitation, updateInvitationStatus,
       sendMessage, editMessage, deleteMessage, markAsRead,
       blockConversation, leaveConversation, markAsPaid,
+      reinitializeConversations,
       toasts, addToast, removeToast,
     }}>
       {children}

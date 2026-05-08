@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { User, Building2, ShieldCheck, Eye, EyeOff, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import { useAppData } from '../../context/AppDataContext'
 
 const ROLES = [
   { key: 'INDIVIDUAL', label: '개인 회원',  icon: User,        hint: '구직자로 로그인',     email: 'user@staffnow.kr' },
@@ -18,24 +19,34 @@ const FEATURES = [
 export default function LoginPage() {
   const navigate = useNavigate()
   const { login } = useAuth()
+  const { reinitializeConversations } = useAppData()
   const [role, setRole] = useState('BUSINESS')
   const [email, setEmail] = useState('biz@staffnow.kr')
   const [password, setPassword] = useState('demo1234')
   const [showPw, setShowPw] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError]     = useState('')
 
   function handleRoleChange(r) {
     setRole(r)
+    setError('')
     setEmail(ROLES.find(x => x.key === r).email)
     setPassword('demo1234')
   }
 
   async function handleLogin(e) {
     e.preventDefault()
+    setError('')
     setLoading(true)
     await new Promise(r => setTimeout(r, 500))
-    const path = login(role)
-    navigate(path)
+    const result = login(role, email, password)
+    setLoading(false)
+    if (result.error) {
+      setError(result.error)
+    } else {
+      reinitializeConversations()
+      navigate(result.path)
+    }
   }
 
   return (
@@ -167,6 +178,12 @@ export default function LoginPage() {
                 비밀번호 찾기
               </Link>
             </div>
+
+            {error && (
+              <p className="flex items-center gap-1.5 text-sm text-red-500 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5">
+                <span className="shrink-0">⚠</span>{error}
+              </p>
+            )}
 
             <button
               type="submit"

@@ -2,11 +2,13 @@ import { Search, MapPin, Clock, Bookmark, SlidersHorizontal } from 'lucide-react
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { RECOMMENDED_JOBS } from '../../data/mockIndividual'
+import { useIndividualData } from '../../hooks/useIndividualData'
 
 const TAGS = ['전체', '단기', '장기', '주말', '야간', '행사/이벤트', '카페', '편의점']
 
 export default function IndividualJobsPage() {
   const navigate = useNavigate()
+  const { isSaved, toggleSave } = useIndividualData()
   const [query, setQuery] = useState('')
   const [activeTag, setActiveTag] = useState('전체')
 
@@ -22,7 +24,6 @@ export default function IndividualJobsPage() {
         <p className="text-sm text-gray-500 mt-1">나에게 맞는 공고를 찾아보세요.</p>
       </div>
 
-      {/* 검색 */}
       <div className="flex gap-3">
         <div className="flex items-center gap-2 bg-white border border-offwhite-200 rounded-xl px-4 py-2.5 flex-1">
           <Search size={16} className="text-gray-400 shrink-0" />
@@ -40,7 +41,6 @@ export default function IndividualJobsPage() {
         </button>
       </div>
 
-      {/* 태그 필터 */}
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
         {TAGS.map(tag => (
           <button
@@ -57,7 +57,6 @@ export default function IndividualJobsPage() {
         ))}
       </div>
 
-      {/* 결과 */}
       <div className="space-y-3">
         {filtered.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
@@ -93,10 +92,10 @@ export default function IndividualJobsPage() {
                 <div className="text-right shrink-0">
                   <p className="text-base font-bold text-orange">{job.wage}</p>
                   <button
-                    onClick={e => e.stopPropagation()}
-                    className={`mt-2 p-1.5 rounded-lg transition-colors ${job.isSaved ? 'text-orange' : 'text-gray-300 hover:text-orange'}`}
+                    onClick={e => { e.stopPropagation(); toggleSave(job.id) }}
+                    className={`mt-2 p-1.5 rounded-lg transition-colors ${isSaved(job.id) ? 'text-orange' : 'text-gray-300 hover:text-orange'}`}
                   >
-                    <Bookmark size={18} fill={job.isSaved ? 'currentColor' : 'none'} />
+                    <Bookmark size={18} fill={isSaved(job.id) ? 'currentColor' : 'none'} />
                   </button>
                 </div>
               </div>

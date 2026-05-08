@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { Zap, BarChart3, Users, Building2, Briefcase, Flag, Settings, ChevronLeft, LogOut, Bell, ShieldCheck } from 'lucide-react'
+import { Outlet, NavLink } from 'react-router-dom'
+import { Zap, BarChart3, Users, Building2, Briefcase, Flag, Settings, ChevronLeft, ShieldCheck } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuth } from '../context/AuthContext'
+import NotificationBell from '../components/topbar/NotificationBell'
+import UserMenu from '../components/topbar/UserMenu'
 
 const NAV = [
   { to: '/admin',            icon: BarChart3,  label: '대시보드',   end: true },
@@ -15,13 +17,7 @@ const NAV = [
 
 export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false)
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
-
-  function handleLogout() {
-    logout()
-    navigate('/login')
-  }
+  const { user } = useAuth()
 
   return (
     <div className="flex h-screen bg-offwhite overflow-hidden">
@@ -76,9 +72,7 @@ export default function AdminLayout() {
                 )}
               >
                 <Icon size={18} className="shrink-0" />
-                {!collapsed && (
-                  <span className="flex-1">{item.label}</span>
-                )}
+                {!collapsed && <span className="flex-1">{item.label}</span>}
                 {!collapsed && item.badge && (
                   <span className="bg-orange text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
                     {item.badge}
@@ -89,22 +83,12 @@ export default function AdminLayout() {
           })}
         </nav>
 
-        {/* 하단 */}
+        {/* 하단: 접기 버튼만 */}
         <div className="p-2 border-t border-navy-700">
-          <button
-            onClick={handleLogout}
-            className={clsx(
-              'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-navy-200 hover:bg-navy-700 hover:text-white text-sm transition-all',
-              collapsed && 'justify-center'
-            )}
-          >
-            <LogOut size={18} className="shrink-0" />
-            {!collapsed && <span>로그아웃</span>}
-          </button>
           <button
             onClick={() => setCollapsed(v => !v)}
             className={clsx(
-              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-navy-200 hover:text-white text-xs transition-all mt-0.5',
+              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-navy-200 hover:text-white text-xs transition-all',
               collapsed ? 'justify-center' : ''
             )}
           >
@@ -118,17 +102,9 @@ export default function AdminLayout() {
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <header className="h-16 flex items-center px-6 gap-4 bg-white border-b border-offwhite-200 shrink-0">
           <div className="flex-1" />
-          <button className="relative p-2 rounded-lg hover:bg-offwhite-100 transition-colors">
-            <Bell size={18} className="text-gray-500" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-orange rounded-full" />
-          </button>
+          <NotificationBell />
           <div className="w-px h-6 bg-offwhite-200" />
-          <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-offwhite-100 cursor-pointer">
-            <div className="w-7 h-7 rounded-full bg-orange flex items-center justify-center">
-              <span className="text-white text-xs font-bold">{user?.avatar}</span>
-            </div>
-            <span className="text-sm font-semibold text-navy hidden sm:block">{user?.name}</span>
-          </div>
+          <UserMenu />
         </header>
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />

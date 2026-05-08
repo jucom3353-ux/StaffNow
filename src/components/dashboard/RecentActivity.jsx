@@ -4,6 +4,7 @@ import {
 import Card from '../ui/Card'
 import EmptyState from '../ui/EmptyState'
 import { useAppData } from '../../context/AppDataContext'
+import { useAuth } from '../../context/AuthContext'
 
 const TYPE_CONFIG = {
   job_created:     { icon: Briefcase, iconBg: 'bg-navy-50',    iconColor: 'text-navy'        },
@@ -30,6 +31,11 @@ function ActivityItem({ type, text, time }) {
 
 export default function RecentActivity() {
   const { activities } = useAppData()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'ADMIN'
+  const myActivities = isAdmin
+    ? activities
+    : activities.filter(a => a.actor === user?.name)
 
   return (
     <Card
@@ -37,19 +43,19 @@ export default function RecentActivity() {
       header={
         <div className="flex items-center gap-2">
           <span className="text-sm font-bold text-navy">최근 활동</span>
-          {activities.length > 0 && (
+          {myActivities.length > 0 && (
             <span className="bg-offwhite-100 text-gray-500 text-xs font-bold px-1.5 py-0.5 rounded-md tabular-nums">
-              {activities.length}
+              {myActivities.length}
             </span>
           )}
         </div>
       }
     >
-      {activities.length === 0 ? (
-        <EmptyState icon={Calendar} title="최근 활동이 없습니다" />
+      {myActivities.length === 0 ? (
+        <EmptyState icon={Calendar} title="최근 활동이 없습니다" description="공고를 생성하거나 Shift를 운영하면 활동 내역이 표시됩니다" />
       ) : (
         <div className="px-5">
-          {activities.slice(0, 8).map(item => (
+          {myActivities.slice(0, 8).map(item => (
             <ActivityItem key={item.id} {...item} />
           ))}
         </div>

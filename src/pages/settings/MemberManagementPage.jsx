@@ -4,16 +4,12 @@ import Card from '../../components/ui/Card'
 import Avatar from '../../components/ui/Avatar'
 import Button from '../../components/ui/Button'
 import { useAppData } from '../../context/AppDataContext'
+import { useAuth } from '../../context/AuthContext'
 
 const ROLE_OPTIONS = [
   { value: '관리자',    label: '관리자',    desc: '모든 기능 접근 가능',          icon: Shield },
   { value: '운영 담당', label: '운영 담당', desc: '공고·Shift·정산 관리 가능',     icon: User },
   { value: '조회 전용', label: '조회 전용', desc: '대시보드 및 데이터 조회만 가능', icon: User },
-]
-
-const INITIAL_MEMBERS = [
-  { id: 1, name: '김운영', email: 'admin@jucompany.kr',   role: '관리자',    initials: '김', joinedAt: '2025-01-01' },
-  { id: 2, name: '박담당', email: 'manager@jucompany.kr', role: '운영 담당', initials: '박', joinedAt: '2025-03-15' },
 ]
 
 const ROLE_COLOR = {
@@ -143,11 +139,44 @@ function InviteModal({ onClose, onInvite }) {
   )
 }
 
+function getMembersKey(user) {
+  return `staffnow_members_${user?.email || user?.name || 'unknown'}`
+}
+
+function getInvitesKey(user) {
+  return `staffnow_invites_${user?.email || user?.name || 'unknown'}`
+}
+
+function loadMembers(user) {
+  try {
+    const saved = localStorage.getItem(getMembersKey(user))
+    if (saved) return JSON.parse(saved)
+  } catch {}
+  const today = new Date().toISOString().slice(0, 10)
+  return [{
+    id: 1,
+    name: user?.name || '관리자',
+    email: user?.email || '',
+    role: '관리자',
+    initials: user?.name?.[0] || '관',
+    joinedAt: today,
+  }]
+}
+
+function loadInvites(user) {
+  try {
+    const saved = localStorage.getItem(getInvitesKey(user))
+    if (saved) return JSON.parse(saved)
+  } catch {}
+  return []
+}
+
 export default function MemberManagementPage() {
   const { addToast } = useAppData()
-  const [members, setMembers] = useState(INITIAL_MEMBERS)
+  const { user } = useAuth()
+  const [members, setMembers] = useState(() => loadMembers(user))
   const [showModal, setShowModal] = useState(false)
-  const [pendingInvites, setPendingInvites] = useState([])
+  const [pendingInvites, setPendingInvites] = useState(() => loadInvites(user))
 
   function handleInvite({ email, role }) {
     const newInvite = {
@@ -156,7 +185,9 @@ export default function MemberManagementPage() {
       role,
       sentAt: new Date().toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }),
     }
-    setPendingInvites(prev => [newInvite, ...prev])
+    const next = [newInvite, ...pendingInvites]
+    setPendingInvites(next)
+    try { localStorage.setItem(getInvitesKey(user), JSON.stringify(next)) } catch {}
     addToast({ type: 'success', message: `${email}로 초대장을 발송했습니다 (데모)` })
   }
 

@@ -1,10 +1,13 @@
 import { Heart, MapPin, Clock, Bookmark } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { RECOMMENDED_JOBS } from '../../data/mockIndividual'
+import { useIndividualData } from '../../hooks/useIndividualData'
 
 export default function IndividualSavedPage() {
   const navigate = useNavigate()
-  const saved = RECOMMENDED_JOBS.filter(j => j.isSaved)
+  const { savedJobIds, toggleSave } = useIndividualData()
+
+  const saved = RECOMMENDED_JOBS.filter(j => savedJobIds.includes(j.id))
 
   return (
     <div className="space-y-5">
@@ -16,7 +19,8 @@ export default function IndividualSavedPage() {
       {saved.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
           <Heart size={32} className="mx-auto mb-3 opacity-30" />
-          <p className="text-sm">저장한 공고가 없습니다.</p>
+          <p className="text-sm font-semibold">저장한 공고가 없습니다.</p>
+          <p className="text-xs mt-1">공고 목록에서 북마크를 눌러 저장해보세요.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -38,8 +42,8 @@ export default function IndividualSavedPage() {
                 <div className="text-right shrink-0">
                   <p className="font-bold text-orange">{job.wage}</p>
                   <button
-                    onClick={e => e.stopPropagation()}
-                    className="mt-2 p-1.5 text-orange"
+                    onClick={e => { e.stopPropagation(); toggleSave(job.id) }}
+                    className="mt-2 p-1.5 text-orange hover:text-gray-400 transition-colors"
                   >
                     <Bookmark size={18} fill="currentColor" />
                   </button>

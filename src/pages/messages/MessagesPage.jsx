@@ -488,7 +488,7 @@ export default function MessagesPage() {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="메시지를 입력하세요… (Enter로 전송)"
+            placeholder="메시지를 입력하세요…"
             className="flex-1 resize-none px-4 py-2.5 text-sm border border-offwhite-200 rounded-xl focus:outline-none focus:border-orange focus:ring-1 focus:ring-orange/30 bg-offwhite-100 leading-relaxed max-h-32 overflow-y-auto"
             style={{ height: '42px' }}
             onInput={e => {
