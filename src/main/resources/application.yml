@@ -1,12 +1,18 @@
 spring:
+  application:
+    name: demo
+
   datasource:
-    url: jdbc:mysql://localhost:3306/my_service
+    url: jdbc:mysql://localhost:3306/my_service?useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
     username: root
-    password: ***REMOVED***
+    password: ***REMOVED*** # 본인의 비밀번호 확인
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     hibernate:
-      ddl-auto: update
-
-    show-sql: true
+      ddl-auto: update # 엔티티 변경 시 DB 테이블 자동 갱신
+    show-sql: true # 실행되는 SQL을 콘솔에 출력
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true

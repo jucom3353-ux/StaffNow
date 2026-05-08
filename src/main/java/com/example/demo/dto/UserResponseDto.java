@@ -1,13 +1,20 @@
 package com.example.demo.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
-@Getter
-@AllArgsConstructor
 public class UserResponseDto {
 
     private String name;
-
     private double rating;
+
+    public UserResponseDto(String name, double rating) {
+        this.name = name;
+        this.rating = rating;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public double getRating() {
+        return rating;
+    }
 }

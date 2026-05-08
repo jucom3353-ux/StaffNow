@@ -7,7 +7,7 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
-@Table(name = "user")
+@Table(name = "users")
 public class User {
 
     @Id
@@ -28,4 +28,7 @@ public class User {
 
     // 평점
     private double rating;
+
+    // 분류
+    private String role;
 }
