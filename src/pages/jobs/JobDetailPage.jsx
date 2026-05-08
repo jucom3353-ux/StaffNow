@@ -79,7 +79,7 @@ export default function JobDetailPage() {
               삭제
             </Button>
           )}
-          <Button icon={CalendarPlus} size="sm" as={Link} to={`/shifts/create`} variant="secondary">
+          <Button icon={CalendarPlus} size="sm" as={Link} to={`/shifts/create?jobId=${id}`} variant="secondary">
             Shift 추가
           </Button>
         </div>
@@ -131,7 +131,7 @@ export default function JobDetailPage() {
               <span className="text-sm font-bold text-navy">연결된 Shift</span>
               <span className="bg-navy-50 text-navy text-xs font-bold px-1.5 py-0.5 rounded-md">{jobShifts.length}</span>
             </div>
-            <Button icon={CalendarPlus} size="sm" variant="ghost" as={Link} to="/shifts/create">
+            <Button icon={CalendarPlus} size="sm" variant="ghost" as={Link} to={`/shifts/create?jobId=${id}`}>
               Shift 추가
             </Button>
           </div>

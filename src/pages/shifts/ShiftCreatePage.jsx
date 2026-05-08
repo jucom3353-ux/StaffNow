@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, AlertCircle } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
@@ -45,9 +45,11 @@ const inputCls = (err) =>
 
 export default function ShiftCreatePage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { jobs, addShift } = useAppData()
 
-  const [form, setForm] = useState(INITIAL)
+  const preselectedJobId = searchParams.get('jobId') ?? ''
+  const [form, setForm] = useState({ ...INITIAL, jobId: preselectedJobId })
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
 
@@ -74,8 +76,8 @@ export default function ShiftCreatePage() {
     if (Object.keys(errs).length) { setErrors(errs); return }
     setSubmitting(true)
     await new Promise(r => setTimeout(r, 600))
-    addShift(form)
-    navigate('/shifts')
+    const newShift = addShift(form)
+    navigate(`/shifts/${newShift.id}`)
   }
 
   return (

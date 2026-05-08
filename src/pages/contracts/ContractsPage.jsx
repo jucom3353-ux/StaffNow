@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { FileCheck, X, Download, CheckCircle2, Building2, User } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { FileCheck, X, Download, CheckCircle2, Building2, User, ClipboardList } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import EmptyState from '../../components/ui/EmptyState'
 import { useAppData } from '../../context/AppDataContext'
@@ -174,9 +175,17 @@ export default function ContractsPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-navy">계약 상태</h1>
-        <p className="text-sm text-gray-500 mt-0.5">총 {contracts.length}건의 계약</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-navy">계약 상태</h1>
+          <p className="text-sm text-gray-500 mt-0.5">총 {contracts.length}건의 계약</p>
+        </div>
+        <Link
+          to="/attendance"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-offwhite-200 text-navy text-sm font-semibold hover:bg-offwhite-100 transition-colors"
+        >
+          <ClipboardList size={14} />근태 관리
+        </Link>
       </div>
 
       {contracts.length === 0 ? (
