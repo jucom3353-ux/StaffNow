@@ -113,9 +113,9 @@ export default function MessagesPage() {
       .filter(c => !c.left && !c.blocked)
       .slice()
       .sort((a, b) => {
-        const aLast = a.messages.at(-1)?.time ?? ''
-        const bLast = b.messages.at(-1)?.time ?? ''
-        return bLast.localeCompare(aLast)
+        const aTime = a.messages.at(-1)?.time ? new Date(a.messages.at(-1).time).getTime() : 0
+        const bTime = b.messages.at(-1)?.time ? new Date(b.messages.at(-1).time).getTime() : 0
+        return bTime - aTime
       })
   , [conversations])
 
