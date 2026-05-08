@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Plus, Search, ChevronRight, Trash2, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
+import { Plus, Search, ChevronRight, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, Pencil } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import StatusSelector from '../../components/ui/StatusSelector'
 import Button from '../../components/ui/Button'
@@ -181,6 +181,14 @@ export default function JobListPage() {
                   <td className="px-5 py-3.5 text-gray-400 text-xs">{job.createdAt}</td>
                   <td className="px-3 py-3.5">
                     <div className="flex items-center gap-1">
+                      <Link
+                        to={`/jobs/${job.id}/edit`}
+                        onClick={e => e.stopPropagation()}
+                        className="p-1 rounded text-gray-300 hover:text-orange hover:bg-orange/10 transition-colors opacity-0 group-hover:opacity-100"
+                        title="공고 수정"
+                      >
+                        <Pencil size={14} />
+                      </Link>
                       <button
                         onClick={e => { e.preventDefault(); e.stopPropagation(); setDeleteTarget(job) }}
                         className="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
