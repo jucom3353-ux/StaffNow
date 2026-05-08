@@ -1,68 +1,36 @@
 package com.example.demo.controller;
 
 import com.example.demo.dto.JobPostCreateRequestDto;
-import com.example.demo.dto.JobPostResponseDto;
-import com.example.demo.service.JobPostService;
+import com.example.demo.entity.JobPost;
+import com.example.demo.repository.JobPostRepository;
+
+import lombok.RequiredArgsConstructor;
+
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
+@RequiredArgsConstructor
+@RequestMapping("/job-posts")
 public class JobPostController {
 
-    private final JobPostService jobPostService;
+    private final JobPostRepository jobPostRepository;
 
-    public JobPostController(JobPostService jobPostService) {
-        this.jobPostService = jobPostService;
-    }
-
-    // 공고 등록
-    @PostMapping("/jobposts")
+    // 공고 생성
+    // COMPANY만 가능
+    @PreAuthorize("hasRole('COMPANY')")
+    @PostMapping
     public String createJobPost(
             @RequestBody JobPostCreateRequestDto requestDto
     ) {
 
-        jobPostService.createJobPost(requestDto);
+        JobPost jobPost = new JobPost();
 
-        return "공고 등록 완료";
-    }
+        jobPost.setTitle(requestDto.getTitle());
+        jobPost.setContent(requestDto.getContent());
 
-    // 공고 전체 조회
-    @GetMapping("/jobposts")
-    public List<JobPostResponseDto> getJobPosts() {
+        jobPostRepository.save(jobPost);
 
-        return jobPostService.getJobPosts();
-    }
-
-    // 공고 단건 조회
-    @GetMapping("/jobposts/{id}")
-    public JobPostResponseDto getJobPost(
-            @PathVariable Long id
-    ) {
-
-        return jobPostService.getJobPost(id);
-    }
-
-    // 공고 수정
-    @PutMapping("/jobposts/{id}")
-    public String updateJobPost(
-            @PathVariable Long id,
-            @RequestBody JobPostCreateRequestDto requestDto
-    ) {
-
-        jobPostService.updateJobPost(id, requestDto);
-
-        return "공고 수정 완료";
-    }
-
-    // 공고 삭제
-    @DeleteMapping("/jobposts/{id}")
-    public String deleteJobPost(
-            @PathVariable Long id
-    ) {
-
-        jobPostService.deleteJobPost(id);
-
-        return "공고 삭제 완료";
+        return "공고 생성 완료";
     }
 }

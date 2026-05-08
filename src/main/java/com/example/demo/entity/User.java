@@ -18,6 +18,7 @@ public class User {
     private String name;
 
     // 이메일
+    @Column(unique = true)
     private String email;
 
     // 전화번호

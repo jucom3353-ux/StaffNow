@@ -1,8 +1,10 @@
 package com.example.demo.service;
 
+import com.example.demo.dto.LoginRequestDto;
 import com.example.demo.dto.UserCreateRequestDto;
 import com.example.demo.dto.UserResponseDto;
 import com.example.demo.entity.User;
+import com.example.demo.jwt.JwtUtil;
 import com.example.demo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -61,5 +63,31 @@ public class UserService {
 
         // DB 저장
         userRepository.save(user);
+    }
+
+    // 로그인
+    @Transactional(readOnly = true)
+    public String login(
+            LoginRequestDto requestDto
+    ) {
+
+        // 이메일로 사용자 찾기
+        User user = userRepository.findByEmail(
+                requestDto.getEmail()
+        ).orElseThrow(() ->
+                new RuntimeException("사용자 없음"));
+
+        // 비밀번호 확인
+        if (!user.getPassword().equals(
+                requestDto.getPassword()
+        )) {
+            throw new RuntimeException("비밀번호 틀림");
+        }
+
+        // JWT 생성 후 반환
+        return JwtUtil.createToken(
+                user.getId(),
+                user.getRole().name()
+        );
     }
 }
