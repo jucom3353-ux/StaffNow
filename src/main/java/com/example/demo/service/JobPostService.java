@@ -15,25 +15,67 @@ public class JobPostService {
 
     private final JobPostRepository jobPostRepository;
 
-    // 1. 수동 생성자 (Lombok 에러 확실히 해결)
     public JobPostService(JobPostRepository jobPostRepository) {
         this.jobPostRepository = jobPostRepository;
     }
 
-    // 2. 공고 등록 메서드 (이게 있어야 컨트롤러 에러가 사라집니다)
+    // 공고 등록
     @Transactional
     public void createJobPost(JobPostCreateRequestDto requestDto) {
+
         JobPost jobPost = new JobPost();
+
         jobPost.setTitle(requestDto.getTitle());
         jobPost.setContent(requestDto.getContent());
+
         jobPostRepository.save(jobPost);
     }
 
-    // 3. 공고 목록 조회 메서드 (이게 있어야 컨트롤러 에러가 사라집니다)
+    // 공고 전체 조회
     @Transactional(readOnly = true)
     public List<JobPostResponseDto> getJobPosts() {
+
         return jobPostRepository.findAll().stream()
-                .map(post -> new JobPostResponseDto(post.getTitle(), post.getContent()))
+                .map(post -> new JobPostResponseDto(
+                        post.getTitle(),
+                        post.getContent()
+                ))
                 .collect(Collectors.toList());
+    }
+
+    // 공고 단건 조회
+    @Transactional(readOnly = true)
+    public JobPostResponseDto getJobPost(Long id) {
+
+        JobPost post = jobPostRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("공고 없음"));
+
+        return new JobPostResponseDto(
+                post.getTitle(),
+                post.getContent()
+        );
+    }
+
+    // 공고 수정
+    @Transactional
+    public void updateJobPost(
+            Long id,
+            JobPostCreateRequestDto requestDto
+    ) {
+
+        JobPost post = jobPostRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("공고 없음"));
+
+        post.setTitle(requestDto.getTitle());
+        post.setContent(requestDto.getContent());
+
+        jobPostRepository.save(post);
+    }
+
+    // 공고 삭제
+    @Transactional
+    public void deleteJobPost(Long id) {
+
+        jobPostRepository.deleteById(id);
     }
 }
