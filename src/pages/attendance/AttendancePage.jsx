@@ -6,6 +6,14 @@ import EmptyState from '../../components/ui/EmptyState'
 import { useAppData } from '../../context/AppDataContext'
 import { useAuth } from '../../context/AuthContext'
 import { MOCK_APPLICANTS } from '../../data/mockApplicants'
+import { SHARED_ATTENDANCE_KEY } from '../../hooks/useAttendance'
+
+function loadLiveAttendance() {
+  try {
+    const raw = localStorage.getItem(SHARED_ATTENDANCE_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch { return [] }
+}
 
 const applicantMap = Object.fromEntries(MOCK_APPLICANTS.map(a => [a.id, a]))
 
@@ -185,8 +193,8 @@ export default function AttendancePage() {
   const myShifts = isAdmin ? shifts : shifts.filter(s => myJobIds.has(s.jobId))
 
   // 완료된 Shift → attendance 파생
-  const allRecords = useMemo(() =>
-    myShifts
+  const allRecords = useMemo(() => {
+    const mockRecords = myShifts
       .filter(s => s.status === 'completed' && s.attendance?.length)
       .flatMap(s => {
         const d = new Date(s.date + 'T00:00:00')
@@ -203,7 +211,25 @@ export default function AttendancePage() {
           status: a.attendanceStatus,
         }))
       })
-  , [myShifts])
+
+    // 인력 앱에서 실시간 출퇴근 기록 병합
+    const live = loadLiveAttendance().map(r => ({
+      id:        `live-${r.shiftId}`,
+      staff:     r.userName,
+      role:      r.jobTitle,
+      shift:     `${r.jobTitle} · ${r.company}`,
+      shiftDate: r.shiftDate,
+      checkIn:   r.checkIn,
+      checkOut:  r.checkOut,
+      workHours: calcWorkHours(r.checkIn, r.checkOut),
+      status:    r.status,
+    }))
+
+    // 중복 방지: live에 있으면 mock은 제외
+    const liveIds = new Set(live.map(r => r.staff + r.shiftDate))
+    const filtered = mockRecords.filter(r => !liveIds.has(r.staff + r.shiftDate))
+    return [...live, ...filtered]
+  }, [myShifts])
 
   // 날짜별 그룹
   const recordsByDate = useMemo(() => {

@@ -61,7 +61,8 @@ export function useIndividualData() {
     })
   }, [user])
 
-  const isSaved = useCallback((jobId) => savedJobIds.includes(jobId), [savedJobIds])
+  // plain function — savedJobIds가 바뀌면 컴포넌트가 이미 재렌더되므로 useCallback 불필요
+  const isSaved = (jobId) => savedJobIds.includes(jobId)
 
   const applyJob = useCallback(({ jobId, jobTitle, company, wage, location }) => {
     setApplications(prev => {

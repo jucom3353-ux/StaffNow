@@ -2,6 +2,7 @@ import { Heart, ClipboardList, Bell, Search, ChevronRight, MapPin, Clock, Bookma
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useIndividualData } from '../../hooks/useIndividualData'
+import { getAssignedShifts } from '../../hooks/useAttendance'
 import { RECOMMENDED_JOBS } from '../../data/mockIndividual'
 
 const STATUS_CONFIG = {
@@ -19,13 +20,16 @@ function getUnreadMsgCount(email) {
   } catch { return 0 }
 }
 
+function todayStr() { return new Date().toISOString().slice(0, 10) }
+
 export default function IndividualDashboardPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { applications, savedJobIds, isSaved, toggleSave } = useIndividualData()
-
   const acceptedCount = applications.filter(a => a.status === 'accepted').length
   const unreadCount   = getUnreadMsgCount(user?.email)
+
+  const todayShift = getAssignedShifts(user?.name).find(s => s.shiftDate === todayStr()) ?? null
 
   const stats = [
     { label: '지원한 공고', value: applications.length, icon: ClipboardList, color: 'text-blue-500',  bg: 'bg-blue-50',    to: '/individual/applications' },
@@ -67,6 +71,43 @@ export default function IndividualDashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* 오늘의 근무 카드 */}
+      {todayShift && (
+        <div className="bg-white rounded-2xl border border-offwhite-200 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-bold text-navy flex items-center gap-2">
+              <Clock size={15} className="text-orange" />
+              오늘의 근무
+            </h2>
+            <button
+              onClick={() => navigate('/individual/attendance')}
+              className="flex items-center gap-1 text-xs text-orange font-semibold hover:underline"
+            >
+              전체 보기 <ChevronRight size={13} />
+            </button>
+          </div>
+
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div>
+              <p className="font-bold text-navy">{todayShift.jobTitle}</p>
+              <p className="text-sm text-gray-500">{todayShift.company}</p>
+              <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400">
+                <span className="flex items-center gap-1"><Clock size={11} />{todayShift.scheduledStart} – {todayShift.scheduledEnd}</span>
+                <span className="flex items-center gap-1"><MapPin size={11} />{todayShift.location}</span>
+              </div>
+            </div>
+            <p className="text-sm font-bold text-orange shrink-0">{todayShift.wage}</p>
+          </div>
+
+          <button
+            onClick={() => navigate('/individual/attendance')}
+            className="w-full py-2.5 bg-orange text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-orange-600 transition-colors"
+          >
+            <Clock size={15} />출퇴근 기록하기
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* 추천 공고 */}
