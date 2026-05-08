@@ -90,6 +90,7 @@ export default function MessagesPage() {
   const [input, setInput] = useState('')
   const [search, setSearch] = useState('')
   const [mobileView, setMobileView] = useState('list')
+  const [convTab, setConvTab] = useState('all') // 'all' | 'unread'
 
   // 더보기 메뉴
   const [menuOpen, setMenuOpen] = useState(false)
@@ -108,14 +109,27 @@ export default function MessagesPage() {
   const bottomRef = useRef(null)
 
   const visibleConvs = useMemo(() =>
-    conversations.filter(c => !c.left && !c.blocked)
+    conversations
+      .filter(c => !c.left && !c.blocked)
+      .slice()
+      .sort((a, b) => {
+        const aLast = a.messages.at(-1)?.time ?? ''
+        const bLast = b.messages.at(-1)?.time ?? ''
+        return bLast.localeCompare(aLast)
+      })
   , [conversations])
 
-  const filtered = useMemo(() =>
-    visibleConvs.filter(c =>
+  const totalUnread = useMemo(() =>
+    visibleConvs.reduce((sum, c) => sum + c.messages.filter(m => !m.read && m.from === 'staff').length, 0)
+  , [visibleConvs])
+
+  const filtered = useMemo(() => {
+    let list = visibleConvs.filter(c =>
       c.staffName.includes(search) || c.role.includes(search)
     )
-  , [visibleConvs, search])
+    if (convTab === 'unread') list = list.filter(c => c.messages.some(m => !m.read && m.from === 'staff'))
+    return list
+  }, [visibleConvs, search, convTab])
 
   const selected = conversations.find(c => c.id === selectedId)
 
@@ -209,6 +223,35 @@ export default function MessagesPage() {
     <div className="flex flex-col h-full">
       <div className="px-4 pt-4 pb-3 border-b border-offwhite-200">
         <h2 className="text-base font-bold text-navy mb-3">메시지</h2>
+
+        {/* 전체 / 안읽음 탭 */}
+        <div className="flex gap-1.5 mb-3">
+          <button
+            onClick={() => setConvTab('all')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors
+              ${convTab === 'all'
+                ? 'bg-navy text-white'
+                : 'bg-offwhite-100 text-gray-500 hover:bg-offwhite-200'}`}
+          >
+            전체
+          </button>
+          <button
+            onClick={() => setConvTab('unread')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors
+              ${convTab === 'unread'
+                ? 'bg-navy text-white'
+                : 'bg-offwhite-100 text-gray-500 hover:bg-offwhite-200'}`}
+          >
+            안읽음
+            {totalUnread > 0 && (
+              <span className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold
+                ${convTab === 'unread' ? 'bg-orange text-white' : 'bg-orange text-white'}`}>
+                {totalUnread > 9 ? '9+' : totalUnread}
+              </span>
+            )}
+          </button>
+        </div>
+
         <div className="relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
