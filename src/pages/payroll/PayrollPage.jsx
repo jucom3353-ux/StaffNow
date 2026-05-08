@@ -1,13 +1,14 @@
 import { useState, useMemo, useCallback } from 'react'
-import { DollarSign, CheckCircle2, Clock, AlertCircle, Check } from 'lucide-react'
+import { DollarSign, CheckCircle2, AlertCircle, Check, Clock, ShieldAlert } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import EmptyState from '../../components/ui/EmptyState'
 import { useAppData } from '../../context/AppDataContext'
 import { useAuth } from '../../context/AuthContext'
 import { MOCK_APPLICANTS } from '../../data/mockApplicants'
+import { calcBillableHours, hoursLabel } from '../../utils/payrollUtils'
 
-const HOURLY_RATE = 13000  // 데모 기준 시급
+const HOURLY_RATE = 13000
 
 const applicantMap = Object.fromEntries(MOCK_APPLICANTS.map(a => [a.id, a]))
 
@@ -17,30 +18,22 @@ const STATUS_META = {
   pending_confirm: { label: '확인 중',   color: 'text-gray-500 bg-gray-50 border-gray-200' },
 }
 
+// overtimeStatus 뱃지
+const OT_META = {
+  approved: { label: '연장 승인',  color: 'text-blue-600 bg-blue-50 border-blue-200' },
+  capped:   { label: `초과 미인정`, color: 'text-red-500 bg-red-50 border-red-200' },
+  grace:    { label: '유예 처리',  color: 'text-gray-400 bg-gray-50 border-gray-200' },
+}
+
 const TABS = [
   { key: 'all',             label: '전체' },
   { key: 'unpaid',          label: '미정산' },
   { key: 'paid',            label: '완료' },
   { key: 'pending_confirm', label: '확인 중' },
+  { key: 'capped',          label: '초과 미인정' },
 ]
 
 function fmt(n) { return n.toLocaleString('ko-KR') }
-
-function calcHours(checkIn, checkOut) {
-  if (!checkIn || !checkOut) return 0
-  const [h1, m1] = checkIn.split(':').map(Number)
-  const [h2, m2] = checkOut.split(':').map(Number)
-  let mins = (h2 * 60 + m2) - (h1 * 60 + m1)
-  if (mins < 0) mins += 24 * 60  // 자정 넘는 야간 근무
-  return Math.max(0, mins / 60)
-}
-
-function hoursLabel(h) {
-  if (h === 0) return '0h'
-  const hh = Math.floor(h)
-  const mm = Math.round((h - hh) * 60)
-  return mm > 0 ? `${hh}h ${mm}m` : `${hh}h`
-}
 
 function StatusPill({ status }) {
   const meta = STATUS_META[status] || { label: status, color: 'text-gray-500 bg-gray-50 border-gray-200' }
@@ -51,18 +44,34 @@ function StatusPill({ status }) {
   )
 }
 
+function OvertimePill({ overtimeStatus, cappedMins }) {
+  if (!overtimeStatus || overtimeStatus === 'normal' || overtimeStatus === 'absent') return null
+  const meta = OT_META[overtimeStatus]
+  if (!meta) return null
+  return (
+    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${meta.color}`}>
+      {overtimeStatus === 'capped' && <ShieldAlert size={10} />}
+      {meta.label}
+      {cappedMins > 0 && overtimeStatus !== 'approved' && (
+        <span className="opacity-70">({cappedMins}분)</span>
+      )}
+    </span>
+  )
+}
+
 export default function PayrollPage() {
   const { shifts, jobs } = useAppData()
   const { user } = useAuth()
 
-  // 정산 지급 상태를 로컬로 관리 (실제 서비스에서는 백엔드 필드)
   const [paidIds, setPaidIds] = useState(new Set())
+  // 관리자가 현장에서 연장 승인한 ID 세트 (로컬)
+  const [approvedOtIds, setApprovedOtIds] = useState(new Set())
+  const [tab, setTab] = useState('all')
 
   const isAdmin = user?.role === 'ADMIN'
   const myJobIds = isAdmin ? null : new Set(jobs.filter(j => j.createdBy === user?.name).map(j => j.id))
   const myShifts = isAdmin ? shifts : shifts.filter(s => myJobIds.has(s.jobId))
 
-  // 완료된 Shift의 고용 확정 인원 → 정산 행 생성
   const payroll = useMemo(() => {
     const rows = []
     myShifts
@@ -70,48 +79,59 @@ export default function PayrollPage() {
       .forEach(s => {
         const d = new Date(s.date + 'T00:00:00')
         const shiftLabel = `${s.jobTitle} · ${d.getMonth() + 1}월 ${d.getDate()}일`
+        const scheduledEnd = s.endTime ?? '18:00'
 
-        // attendance 있으면 우선 사용, 없으면 applicantStates hired 목록
         const attendees = s.attendance?.length
           ? s.attendance
           : (s.applicantStates?.filter(a => a.status === 'hired') ?? []).map(a => ({
               id: a.id, role: '스태프',
               checkIn: s.startTime, checkOut: s.endTime,
               attendanceStatus: 'completed',
+              overtimeApproved: false,
             }))
 
         attendees.forEach(a => {
+          const rowId = `${s.id}-${a.id}`
+          const isOtApproved = a.overtimeApproved || approvedOtIds.has(rowId)
+
           if (a.attendanceStatus === 'absent') {
             rows.push({
-              id: `${s.id}-${a.id}`,
+              id: rowId,
               staff: applicantMap[a.id]?.name ?? a.id,
               role: a.role,
               shift: shiftLabel,
               hours: 0,
               hoursLabel: '결근',
+              actualCheckout: null,
+              billableCheckout: null,
+              cappedMins: 0,
+              overtimeStatus: 'absent',
               amount: 0,
               status: 'pending_confirm',
             })
             return
           }
-          const h = calcHours(a.checkIn, a.checkOut)
+
+          const result = calcBillableHours(a.checkIn, a.checkOut, scheduledEnd, isOtApproved)
+
           rows.push({
-            id: `${s.id}-${a.id}`,
+            id: rowId,
             staff: applicantMap[a.id]?.name ?? a.id,
             role: a.role,
             shift: shiftLabel,
-            hours: h,
-            hoursLabel: hoursLabel(h),
-            amount: Math.round(h * HOURLY_RATE),
+            hours: result.hours,
+            hoursLabel: hoursLabel(result.hours),
+            actualCheckout: a.checkOut,
+            billableCheckout: result.billableCheckout,
+            cappedMins: result.cappedMins,
+            overtimeStatus: result.overtimeStatus,
+            amount: Math.round(result.hours * HOURLY_RATE),
             status: 'unpaid',
           })
         })
       })
     return rows
-  }, [myShifts])
-
-  // 지급 완료 처리 (로컬)
-  const [tab, setTab] = useState('all')
+  }, [myShifts, approvedOtIds])
 
   const resolvedPayroll = payroll.map(p => ({
     ...p,
@@ -119,8 +139,13 @@ export default function PayrollPage() {
   }))
 
   const unpaid   = resolvedPayroll.filter(p => p.status === 'unpaid')
-  const filtered = resolvedPayroll.filter(p => tab === 'all' || p.status === tab)
+  const capped   = resolvedPayroll.filter(p => p.overtimeStatus === 'capped')
+  const filtered = resolvedPayroll.filter(p => {
+    if (tab === 'capped') return p.overtimeStatus === 'capped'
+    return tab === 'all' || p.status === tab
+  })
 
+  const approveOt = useCallback((id) => setApprovedOtIds(prev => new Set([...prev, id])), [])
   const approveOne = useCallback((id) => setPaidIds(prev => new Set([...prev, id])), [])
   const approveAll = useCallback(() => {
     setPaidIds(prev => new Set([...prev, ...unpaid.map(p => p.id)]))
@@ -137,6 +162,11 @@ export default function PayrollPage() {
           <p className="text-sm text-gray-500 mt-0.5">
             미정산 <strong className="text-amber-600">{unpaid.length}건</strong>
             {totalUnpaid > 0 && <span className="ml-1 text-amber-600">· ₩{fmt(totalUnpaid)}</span>}
+            {capped.length > 0 && (
+              <span className="ml-2 text-red-500 font-medium">
+                · 초과 미인정 {capped.length}건
+              </span>
+            )}
           </p>
         </div>
         {unpaid.length > 0 && (
@@ -147,9 +177,9 @@ export default function PayrollPage() {
       {/* 요약 카드 */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: '미정산',    value: `₩${fmt(totalUnpaid)}`,         sub: `${unpaid.length}건`,                                             icon: AlertCircle,  color: 'text-amber-500',  bg: 'bg-amber-50' },
-          { label: '정산 완료', value: `₩${fmt(totalPaid)}`,           sub: `${resolvedPayroll.filter(p => p.status === 'paid').length}건`,    icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
-          { label: '이번 달 총', value: `₩${fmt(totalUnpaid + totalPaid)}`, sub: `${resolvedPayroll.filter(p => p.status !== 'pending_confirm').length}건`, icon: DollarSign, color: 'text-navy', bg: 'bg-navy/10' },
+          { label: '미정산',    value: `₩${fmt(totalUnpaid)}`,         sub: `${unpaid.length}건`,                                                            icon: AlertCircle,  color: 'text-amber-500',  bg: 'bg-amber-50' },
+          { label: '정산 완료', value: `₩${fmt(totalPaid)}`,           sub: `${resolvedPayroll.filter(p => p.status === 'paid').length}건`,                  icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
+          { label: '이번 달 총', value: `₩${fmt(totalUnpaid + totalPaid)}`, sub: `${resolvedPayroll.filter(p => p.status !== 'pending_confirm').length}건`, icon: DollarSign,   color: 'text-navy',       bg: 'bg-navy/10' },
         ].map(({ label, value, sub, icon: Icon, color, bg }) => (
           <Card key={label}>
             <div className="flex items-center gap-3">
@@ -165,10 +195,31 @@ export default function PayrollPage() {
         ))}
       </div>
 
+      {/* 초과 미인정 안내 배너 */}
+      {capped.length > 0 && tab !== 'capped' && (
+        <button
+          onClick={() => setTab('capped')}
+          className="w-full flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-left hover:bg-red-100 transition-colors"
+        >
+          <ShieldAlert size={16} className="text-red-500 shrink-0" />
+          <div className="flex-1">
+            <span className="text-sm font-semibold text-red-600">
+              퇴근 시간 초과 미인정 {capped.length}건
+            </span>
+            <span className="text-xs text-red-400 ml-2">— 연장 승인 처리가 필요합니다</span>
+          </div>
+          <span className="text-xs text-red-400">확인하기 →</span>
+        </button>
+      )}
+
       {/* 탭 */}
       <div className="flex gap-1 border-b border-offwhite-200">
         {TABS.map(t => {
-          const cnt = t.key === 'all' ? resolvedPayroll.length : resolvedPayroll.filter(p => p.status === t.key).length
+          const cnt = t.key === 'all'
+            ? resolvedPayroll.length
+            : t.key === 'capped'
+              ? capped.length
+              : resolvedPayroll.filter(p => p.status === t.key).length
           return (
             <button
               key={t.key}
@@ -179,7 +230,11 @@ export default function PayrollPage() {
             >
               {t.label}
               {cnt > 0 && (
-                <span className={`text-xs tabular-nums px-1.5 rounded-md ${tab === t.key ? 'bg-orange/10 text-orange' : 'bg-offwhite-200 text-gray-500'}`}>
+                <span className={`text-xs tabular-nums px-1.5 rounded-md ${
+                  tab === t.key
+                    ? t.key === 'capped' ? 'bg-red-100 text-red-500' : 'bg-orange/10 text-orange'
+                    : t.key === 'capped' ? 'bg-red-50 text-red-400' : 'bg-offwhite-200 text-gray-500'
+                }`}>
                   {cnt}
                 </span>
               )}
@@ -205,6 +260,7 @@ export default function PayrollPage() {
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">스태프</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Shift</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">근무 시간</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">실제 퇴근</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">금액</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">상태</th>
                 <th className="px-5 py-3" />
@@ -212,31 +268,66 @@ export default function PayrollPage() {
             </thead>
             <tbody>
               {filtered.map(p => (
-                <tr key={p.id} className="border-b border-offwhite-100 last:border-0 hover:bg-offwhite-100 transition-colors">
+                <tr
+                  key={p.id}
+                  className={`border-b border-offwhite-100 last:border-0 transition-colors ${
+                    p.overtimeStatus === 'capped' ? 'bg-red-50/40 hover:bg-red-50' : 'hover:bg-offwhite-100'
+                  }`}
+                >
                   <td className="px-5 py-3.5">
                     <p className="font-semibold text-navy">{p.staff}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{p.role}</p>
                   </td>
                   <td className="px-5 py-3.5 text-gray-600 hidden md:table-cell">{p.shift}</td>
-                  <td className="px-5 py-3.5 text-gray-700 tabular-nums">{p.hoursLabel}</td>
+                  <td className="px-5 py-3.5">
+                    <p className="text-gray-700 tabular-nums font-medium">{p.hoursLabel}</p>
+                    <OvertimePill overtimeStatus={p.overtimeStatus} cappedMins={p.cappedMins} />
+                  </td>
+                  <td className="px-5 py-3.5 hidden lg:table-cell">
+                    {p.actualCheckout ? (
+                      <div className="text-xs tabular-nums">
+                        <span className={p.overtimeStatus === 'capped' ? 'text-red-500 font-semibold' : 'text-gray-500'}>
+                          {p.actualCheckout}
+                        </span>
+                        {p.billableCheckout && p.billableCheckout !== p.actualCheckout && (
+                          <span className="text-gray-300 mx-1">→</span>
+                        )}
+                        {p.billableCheckout && p.billableCheckout !== p.actualCheckout && (
+                          <span className="text-navy font-semibold">{p.billableCheckout}</span>
+                        )}
+                      </div>
+                    ) : '—'}
+                  </td>
                   <td className="px-5 py-3.5 font-semibold text-navy tabular-nums">
                     {p.amount > 0 ? `₩${fmt(p.amount)}` : '—'}
                   </td>
                   <td className="px-5 py-3.5"><StatusPill status={p.status} /></td>
                   <td className="px-5 py-3.5">
-                    {p.status === 'unpaid' && (
-                      <button
-                        onClick={() => approveOne(p.id)}
-                        className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 hover:bg-green-100 border border-green-200 px-2.5 py-1.5 rounded-lg transition-colors"
-                      >
-                        <Check size={12} />승인
-                      </button>
-                    )}
-                    {p.status === 'paid' && (
-                      <span className="text-xs text-green-600 flex items-center gap-1 font-medium">
-                        <CheckCircle2 size={11} />완료
-                      </span>
-                    )}
+                    <div className="flex flex-col gap-1.5 items-start">
+                      {/* 연장 승인 버튼 (capped 상태일 때만) */}
+                      {p.overtimeStatus === 'capped' && p.status !== 'paid' && (
+                        <button
+                          onClick={() => approveOt(p.id)}
+                          className="flex items-center gap-1 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2.5 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+                        >
+                          <Clock size={11} />연장 승인
+                        </button>
+                      )}
+                      {/* 정산 승인 버튼 */}
+                      {p.status === 'unpaid' && (
+                        <button
+                          onClick={() => approveOne(p.id)}
+                          className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 hover:bg-green-100 border border-green-200 px-2.5 py-1.5 rounded-lg transition-colors"
+                        >
+                          <Check size={12} />승인
+                        </button>
+                      )}
+                      {p.status === 'paid' && (
+                        <span className="text-xs text-green-600 flex items-center gap-1 font-medium">
+                          <CheckCircle2 size={11} />완료
+                        </span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
