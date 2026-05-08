@@ -1,5 +1,7 @@
 package com.example.demo.dto;
 
+import com.example.demo.entity.Role;
+
 public class UserCreateRequestDto {
 
     private String name;
@@ -10,7 +12,8 @@ public class UserCreateRequestDto {
 
     private String password;
 
-    private String role;
+    // USER / COMPANY
+    private Role role;
 
     public String getName() {
         return name;
@@ -28,7 +31,7 @@ public class UserCreateRequestDto {
         return password;
     }
 
-    public String getRole() {
+    public Role getRole() {
         return role;
     }
 }
