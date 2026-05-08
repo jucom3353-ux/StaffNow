@@ -353,7 +353,10 @@ export default function IndividualMessagesPage() {
           </button>
           {menuOpen && (
             <div className="absolute right-0 top-10 w-44 bg-white rounded-xl shadow-lg border border-offwhite-200 z-50 py-1">
-              <button onClick={() => setMenuOpen(false)}
+              <button onClick={() => {
+                setMenuOpen(false)
+                alert('신고가 접수되었습니다. 검토 후 처리됩니다. (데모)')
+              }}
                 className="w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-offwhite-100 transition-colors">
                 신고하기
               </button>

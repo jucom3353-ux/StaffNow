@@ -10,18 +10,28 @@ const STATUS_CONFIG = {
   rejected: { label: '불합격',  color: 'bg-red-100 text-red-700' },
 }
 
+function getUnreadMsgCount(email) {
+  try {
+    const safe = email?.replace(/[^a-zA-Z0-9]/g, '_') || 'anon'
+    const convs = JSON.parse(localStorage.getItem(`staffnow_ind_messages_${safe}`) || '[]')
+    return convs.reduce((sum, c) =>
+      sum + c.messages.filter(m => !m.read && m.from === 'company').length, 0)
+  } catch { return 0 }
+}
+
 export default function IndividualDashboardPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { applications, savedJobIds, isSaved, toggleSave } = useIndividualData()
 
   const acceptedCount = applications.filter(a => a.status === 'accepted').length
+  const unreadCount   = getUnreadMsgCount(user?.email)
 
   const stats = [
     { label: '지원한 공고', value: applications.length, icon: ClipboardList, color: 'text-blue-500',  bg: 'bg-blue-50',    to: '/individual/applications' },
     { label: '합격',        value: acceptedCount,        icon: ClipboardList, color: 'text-green-500', bg: 'bg-green-50',   to: '/individual/applications' },
     { label: '관심 공고',   value: savedJobIds.length,   icon: Heart,         color: 'text-pink-500',  bg: 'bg-pink-50',    to: '/individual/saved' },
-    { label: '미확인 알림', value: 0,                    icon: Bell,          color: 'text-orange',    bg: 'bg-orange-50',  to: null },
+    { label: '미확인 알림', value: unreadCount,           icon: Bell,          color: 'text-orange',    bg: 'bg-orange-50',  to: '/individual/messages' },
   ]
 
   const recentApplications = applications.slice(0, 4)
@@ -47,7 +57,7 @@ export default function IndividualDashboardPage() {
           <div
             key={s.label}
             onClick={() => s.to && navigate(s.to)}
-            className={`bg-white rounded-2xl p-4 border border-offwhite-200 transition-all ${s.to ? 'cursor-pointer hover:border-navy hover:shadow-sm' : ''}`}
+            className={`bg-white rounded-2xl p-4 border border-offwhite-200 transition-all cursor-pointer hover:border-navy hover:shadow-sm`}
           >
             <div className={`w-9 h-9 rounded-xl ${s.bg} flex items-center justify-center mb-3`}>
               <s.icon size={18} className={s.color} />

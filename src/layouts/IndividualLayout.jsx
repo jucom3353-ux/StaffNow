@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { Zap, Home, Search, ClipboardList, Heart, MessageSquare, User, ChevronLeft } from 'lucide-react'
+import { Home, Search, ClipboardList, Heart, MessageSquare, User, ChevronLeft } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuth } from '../context/AuthContext'
 import NotificationBell from '../components/topbar/NotificationBell'
@@ -35,17 +35,18 @@ export default function IndividualLayout() {
         collapsed ? 'w-16' : 'w-64'
       )}>
         {/* 로고 */}
-        <div className={clsx('flex items-center h-16 shrink-0 px-4', collapsed ? 'justify-center' : 'gap-2.5')}>
-          <div className="w-8 h-8 rounded-lg bg-orange flex items-center justify-center shrink-0">
-            <Zap size={18} className="text-white fill-white" />
-          </div>
+        <button
+          onClick={() => navigate('/individual')}
+          className={clsx('flex items-center h-16 shrink-0 px-4 hover:opacity-80 transition-opacity', collapsed ? 'justify-center' : 'gap-2.5')}
+        >
+          <img src="/logo.png" alt="StaffNow" className="w-8 h-8 object-contain shrink-0" />
           {!collapsed && (
             <div className="overflow-hidden">
               <span className="text-white font-bold text-base leading-tight block whitespace-nowrap">StaffNow</span>
               <span className="text-navy-200 text-xs leading-tight block whitespace-nowrap">구직자 포털</span>
             </div>
           )}
-        </div>
+        </button>
 
         {/* 유저 정보 */}
         {!collapsed && (

@@ -1,21 +1,53 @@
-import { Search, MapPin, Clock, Bookmark, SlidersHorizontal } from 'lucide-react'
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Search, MapPin, Clock, Bookmark, SlidersHorizontal, X } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { RECOMMENDED_JOBS } from '../../data/mockIndividual'
 import { useIndividualData } from '../../hooks/useIndividualData'
 
 const TAGS = ['전체', '단기', '장기', '주말', '야간', '행사/이벤트', '카페', '편의점']
 
+const SORT_OPTIONS = [
+  { value: 'newest',   label: '최신순' },
+  { value: 'wage',     label: '급여 높은순' },
+  { value: 'deadline', label: '마감 임박순' },
+]
+
+function parseWage(wage) {
+  const m = wage?.match(/[\d,]+/)
+  return m ? parseInt(m[0].replace(/,/g, ''), 10) : 0
+}
+
 export default function IndividualJobsPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { isSaved, toggleSave } = useIndividualData()
-  const [query, setQuery] = useState('')
+  const [query,     setQuery]     = useState(() => searchParams.get('q') ?? '')
   const [activeTag, setActiveTag] = useState('전체')
+  const [sortBy,    setSortBy]    = useState('newest')
+  const [filterOpen, setFilterOpen] = useState(false)
+  const filterRef = useRef(null)
 
-  const filtered = RECOMMENDED_JOBS.filter(j =>
-    (query === '' || j.title.includes(query) || j.company.includes(query)) &&
-    (activeTag === '전체' || j.tags.includes(activeTag))
-  )
+  useEffect(() => {
+    function handler(e) {
+      if (filterRef.current && !filterRef.current.contains(e.target)) setFilterOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const filtered = RECOMMENDED_JOBS
+    .filter(j =>
+      (query === '' || j.title.includes(query) || j.company.includes(query)) &&
+      (activeTag === '전체' || j.tags.includes(activeTag))
+    )
+    .slice()
+    .sort((a, b) => {
+      if (sortBy === 'wage')     return parseWage(b.wage) - parseWage(a.wage)
+      if (sortBy === 'deadline') return new Date(a.deadline) - new Date(b.deadline)
+      return (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0)
+    })
+
+  const activeSortLabel = SORT_OPTIONS.find(o => o.value === sortBy)?.label
 
   return (
     <div className="space-y-5">
@@ -34,11 +66,44 @@ export default function IndividualJobsPage() {
             onChange={e => setQuery(e.target.value)}
             className="bg-transparent text-sm text-navy placeholder-gray-400 outline-none w-full"
           />
+          {query && (
+            <button onClick={() => setQuery('')} className="text-gray-300 hover:text-gray-500 transition-colors">
+              <X size={14} />
+            </button>
+          )}
         </div>
-        <button className="flex items-center gap-2 bg-white border border-offwhite-200 rounded-xl px-4 py-2.5 text-sm text-navy hover:border-navy transition-colors">
-          <SlidersHorizontal size={15} />
-          필터
-        </button>
+
+        {/* 필터 드롭다운 */}
+        <div className="relative" ref={filterRef}>
+          <button
+            onClick={() => setFilterOpen(v => !v)}
+            className={`flex items-center gap-2 border rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${
+              filterOpen || sortBy !== 'newest'
+                ? 'bg-orange text-white border-orange'
+                : 'bg-white text-navy border-offwhite-200 hover:border-navy'
+            }`}
+          >
+            <SlidersHorizontal size={15} />
+            {sortBy !== 'newest' ? activeSortLabel : '정렬'}
+          </button>
+
+          {filterOpen && (
+            <div className="absolute right-0 top-12 w-44 bg-white rounded-xl shadow-lg border border-offwhite-200 z-20 py-1.5 overflow-hidden">
+              <p className="px-4 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wide">정렬 기준</p>
+              {SORT_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => { setSortBy(opt.value); setFilterOpen(false) }}
+                  className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between
+                    ${sortBy === opt.value ? 'text-orange font-semibold bg-orange/5' : 'text-gray-600 hover:bg-offwhite-100'}`}
+                >
+                  {opt.label}
+                  {sortBy === opt.value && <span className="w-1.5 h-1.5 rounded-full bg-orange" />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">

@@ -83,6 +83,14 @@ export function useIndividualData() {
 
   const isApplied = useCallback((jobId) => applications.some(a => a.jobId === jobId), [applications])
 
+  const cancelApplication = useCallback((appId) => {
+    setApplications(prev => {
+      const next = prev.filter(a => a.id !== appId)
+      saveJSON(getKey(user, 'applications'), next)
+      return next
+    })
+  }, [user])
+
   const updateProfile = useCallback((patch) => {
     setProfile(prev => {
       const next = { ...prev, ...patch }
@@ -99,6 +107,7 @@ export function useIndividualData() {
     isSaved,
     applyJob,
     isApplied,
+    cancelApplication,
     updateProfile,
   }
 }

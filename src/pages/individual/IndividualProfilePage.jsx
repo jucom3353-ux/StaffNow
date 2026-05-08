@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   User, Mail, Phone, MapPin, Pencil, X, Plus, Check,
@@ -67,6 +67,9 @@ export default function IndividualProfilePage() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const { profile, updateProfile } = useIndividualData()
+  const healthFileRef = useRef(null)
+  const safetyFileRef = useRef(null)
+  const docRefs = { health: healthFileRef, safety: safetyFileRef }
 
   // ── 토스트 ──
   const [toast, setToast] = useState('')
@@ -151,9 +154,15 @@ export default function IndividualProfilePage() {
   // ── 필수 서류 ──
   const documents = profile.documents ?? { health: false, safety: false }
 
-  function toggleDocument(key) {
-    updateProfile({ documents: { ...documents, [key]: !documents[key] } })
-    showToast(documents[key] ? '서류가 철회되었습니다.' : '서류 제출이 완료되었습니다.')
+  function handleDocumentUpload(key, file) {
+    if (!file) return
+    updateProfile({ documents: { ...documents, [key]: true } })
+    showToast(`${file.name} 업로드 완료되었습니다.`)
+  }
+
+  function withdrawDocument(key) {
+    updateProfile({ documents: { ...documents, [key]: false } })
+    showToast('서류가 철회되었습니다.')
   }
 
   // ── 비밀번호 변경 ──
@@ -488,6 +497,12 @@ export default function IndividualProfilePage() {
 
       {/* ── 7. 필수 서류 ── */}
       <SectionCard title="필수 서류" icon={FileText}>
+        {/* 숨김 파일 입력 */}
+        <input ref={healthFileRef} type="file" accept="image/*,.pdf" className="hidden"
+          onChange={e => { handleDocumentUpload('health', e.target.files?.[0]); e.target.value = '' }} />
+        <input ref={safetyFileRef} type="file" accept="image/*,.pdf" className="hidden"
+          onChange={e => { handleDocumentUpload('safety', e.target.files?.[0]); e.target.value = '' }} />
+
         <div className="space-y-3">
           {[
             { key: 'health', label: '보건증',          desc: '발급일로부터 1년 이내' },
@@ -506,15 +521,17 @@ export default function IndividualProfilePage() {
                   }`}>
                     {submitted ? '제출 완료' : '미제출'}
                   </span>
-                  <button onClick={() => toggleDocument(doc.key)}
-                    className={`flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${
-                      submitted
-                        ? 'text-gray-500 border border-offwhite-200 hover:border-gray-400'
-                        : 'bg-orange text-white hover:bg-orange-600'
-                    }`}>
-                    <Upload size={12} />
-                    {submitted ? '철회' : '업로드'}
-                  </button>
+                  {submitted ? (
+                    <button onClick={() => withdrawDocument(doc.key)}
+                      className="flex items-center gap-1 text-xs font-semibold text-gray-500 border border-offwhite-200 hover:border-gray-400 px-3 py-1.5 rounded-lg transition-colors">
+                      <X size={12} />철회
+                    </button>
+                  ) : (
+                    <button onClick={() => docRefs[doc.key].current?.click()}
+                      className="flex items-center gap-1 text-xs font-semibold bg-orange text-white hover:bg-orange-600 px-3 py-1.5 rounded-lg transition-colors">
+                      <Upload size={12} />업로드
+                    </button>
+                  )}
                 </div>
               </div>
             )

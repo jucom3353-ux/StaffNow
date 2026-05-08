@@ -97,21 +97,24 @@ export default function IndividualJobDetailPage() {
 
       <div className="bg-white rounded-2xl border border-offwhite-200 p-6">
         <h2 className="font-bold text-navy mb-4">공고 내용</h2>
-        <div className="space-y-3 text-sm text-gray-600 leading-relaxed">
-          <p>안녕하세요! {job.company}입니다.</p>
-          <p>이번에 <strong className="text-navy">{job.title}</strong> 포지션으로 열정 있는 스태프를 모집합니다.</p>
-          <p className="font-semibold text-navy mt-4">업무 내용</p>
-          <ul className="list-disc list-inside space-y-1 text-gray-500">
-            <li>행사 진행 보조 및 안내</li>
-            <li>현장 스태프 운영 지원</li>
-            <li>기타 현장 관련 업무</li>
-          </ul>
-          <p className="font-semibold text-navy mt-4">지원 자격</p>
-          <ul className="list-disc list-inside space-y-1 text-gray-500">
-            <li>성실하고 책임감 있는 분</li>
-            <li>팀워크를 중시하는 분</li>
-            <li>경력 무관, 누구나 지원 가능</li>
-          </ul>
+        <div className="space-y-4 text-sm text-gray-600 leading-relaxed">
+          <p>{job.intro ?? `안녕하세요! ${job.company}입니다. ${job.title} 포지션으로 열정 있는 스태프를 모집합니다.`}</p>
+          <div>
+            <p className="font-semibold text-navy mb-2">업무 내용</p>
+            <ul className="list-disc list-inside space-y-1 text-gray-500">
+              {(job.duties ?? ['행사 진행 보조 및 안내', '현장 스태프 운영 지원', '기타 현장 관련 업무']).map((d, i) => (
+                <li key={i}>{d}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="font-semibold text-navy mb-2">지원 자격</p>
+            <ul className="list-disc list-inside space-y-1 text-gray-500">
+              {(job.requirements ?? ['성실하고 책임감 있는 분', '팀워크를 중시하는 분', '경력 무관, 누구나 지원 가능']).map((r, i) => (
+                <li key={i}>{r}</li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
     </div>
