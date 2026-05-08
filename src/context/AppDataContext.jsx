@@ -3,12 +3,14 @@ import { MOCK_JOBS } from '../data/mockJobs'
 import { MOCK_SHIFTS } from '../data/mockShifts'
 import { RECENT_ACTIVITIES } from '../data/mockDashboard'
 import { MOCK_INVITATIONS } from '../data/mockInvitations'
+import { MOCK_CONVERSATIONS } from '../data/mockMessages'
 
 const AppDataContext = createContext(null)
 
 // ── localStorage 키 ───────────────────────────────────────
 const SHIFTS_KEY = 'staffnow_shifts_v1'
 const INVITATIONS_KEY = 'staffnow_invitations_v1'
+const MESSAGES_KEY = 'staffnow_messages_v1'
 
 function loadFromStorage(key) {
   try {
@@ -42,11 +44,24 @@ function buildInitialInvitations() {
   return merged
 }
 
+function buildInitialConversations() {
+  const saved = loadFromStorage(MESSAGES_KEY)
+  if (!saved?.length) return MOCK_CONVERSATIONS
+  const savedMap = new Map(saved.map(c => [c.id, c]))
+  const merged = MOCK_CONVERSATIONS.map(c =>
+    savedMap.has(c.id) ? { ...c, ...savedMap.get(c.id) } : c
+  )
+  const mockIds = new Set(MOCK_CONVERSATIONS.map(c => c.id))
+  saved.forEach(c => { if (!mockIds.has(c.id)) merged.push(c) })
+  return merged
+}
+
 export function AppDataProvider({ children }) {
   const [jobs, setJobs] = useState(MOCK_JOBS)
   const [shifts, setShifts] = useState(buildInitialShifts)
   const [activities, setActivities] = useState(RECENT_ACTIVITIES)
   const [invitations, setInvitations] = useState(buildInitialInvitations)
+  const [conversations, setConversations] = useState(buildInitialConversations)
   const [toasts, setToasts] = useState([])
 
   useEffect(() => {
@@ -56,6 +71,10 @@ export function AppDataProvider({ children }) {
   useEffect(() => {
     try { localStorage.setItem(INVITATIONS_KEY, JSON.stringify(invitations)) } catch {}
   }, [invitations])
+
+  useEffect(() => {
+    try { localStorage.setItem(MESSAGES_KEY, JSON.stringify(conversations)) } catch {}
+  }, [conversations])
 
   const removeToast = useCallback((id) => {
     setToasts(prev => prev.filter(t => t.id !== id))
@@ -174,7 +193,62 @@ export function AppDataProvider({ children }) {
     setInvitations(prev => prev.map(i => i.id === invId ? { ...i, status } : i))
   }, [])
 
-  // 데모 초기화: 모든 staffnow_ localStorage 키 삭제 + state 리셋
+  const sendMessage = useCallback((convId, { text, file = null }) => {
+    const newMsg = {
+      id: `m-${Date.now()}`,
+      from: 'biz',
+      text: text ?? '',
+      time: new Date().toISOString(),
+      read: true,
+      deleted: false,
+      file,
+    }
+    setConversations(prev =>
+      prev.map(c => c.id === convId ? { ...c, messages: [...c.messages, newMsg] } : c)
+    )
+  }, [])
+
+  const editMessage = useCallback((convId, msgId, newText) => {
+    setConversations(prev =>
+      prev.map(c => c.id === convId
+        ? { ...c, messages: c.messages.map(m => m.id === msgId ? { ...m, text: newText, edited: true } : m) }
+        : c
+      )
+    )
+  }, [])
+
+  const deleteMessage = useCallback((convId, msgId) => {
+    setConversations(prev =>
+      prev.map(c => c.id === convId
+        ? { ...c, messages: c.messages.map(m => m.id === msgId ? { ...m, deleted: true } : m) }
+        : c
+      )
+    )
+  }, [])
+
+  const markAsRead = useCallback((convId) => {
+    setConversations(prev =>
+      prev.map(c => c.id === convId
+        ? { ...c, messages: c.messages.map(m => ({ ...m, read: true })) }
+        : c
+      )
+    )
+  }, [])
+
+  const blockConversation = useCallback((convId) => {
+    setConversations(prev =>
+      prev.map(c => c.id === convId ? { ...c, blocked: true } : c)
+    )
+    addToast({ type: 'info', message: '차단 처리되었습니다' })
+  }, [addToast])
+
+  const leaveConversation = useCallback((convId) => {
+    setConversations(prev =>
+      prev.map(c => c.id === convId ? { ...c, left: true } : c)
+    )
+    addToast({ type: 'info', message: '대화방을 나갔습니다' })
+  }, [addToast])
+
   const resetDemoData = useCallback(() => {
     Object.keys(localStorage)
       .filter(k => k.startsWith('staffnow_'))
@@ -183,15 +257,18 @@ export function AppDataProvider({ children }) {
     setJobs(MOCK_JOBS)
     setActivities(RECENT_ACTIVITIES)
     setInvitations(MOCK_INVITATIONS)
+    setConversations(MOCK_CONVERSATIONS)
     addToast({ type: 'info', message: '데모 데이터가 초기화되었습니다' })
   }, [addToast])
 
   return (
     <AppDataContext.Provider value={{
-      jobs, shifts, activities, invitations,
+      jobs, shifts, activities, invitations, conversations,
       addJob, addShift, updateJob, updateJobStatus, deleteJob,
       updateShiftConfirmed, finalizeShift, resetDemoData,
       addInvitation, updateInvitationStatus,
+      sendMessage, editMessage, deleteMessage, markAsRead,
+      blockConversation, leaveConversation,
       toasts, addToast, removeToast,
     }}>
       {children}

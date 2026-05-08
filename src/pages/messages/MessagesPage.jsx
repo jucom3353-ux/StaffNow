@@ -1,90 +1,11 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
-import { Search, Send, MoreVertical, ChevronLeft } from 'lucide-react'
-import { useAuth } from '../../context/AuthContext'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import {
+  Search, Send, MoreVertical, ChevronLeft,
+  Paperclip, FileText, ImageIcon, Pencil, Trash2, X, Check,
+} from 'lucide-react'
+import { useAppData } from '../../context/AppDataContext'
 
-// ── 목업 대화 데이터 ──────────────────────────────────────
-const INITIAL_CONVERSATIONS = [
-  {
-    id: 'conv-01',
-    staffId: 'ap-01',
-    staffName: '김서연',
-    role: '부스 운영 보조',
-    avatar: '김',
-    online: true,
-    messages: [
-      { id: 'm1', from: 'staff', text: '안녕하세요, 6월 1일 박람회 Shift 관련해서 문의드립니다.', time: '2025-06-01T09:10:00' },
-      { id: 'm2', from: 'biz',   text: '네, 안녕하세요! 어떤 부분이 궁금하신가요?', time: '2025-06-01T09:12:00' },
-      { id: 'm3', from: 'staff', text: '현장 도착 시간이 10시인데, 준비가 있어서 9시 30분에 와도 될까요?', time: '2025-06-01T09:13:00' },
-      { id: 'm4', from: 'biz',   text: '물론이죠! 일찍 오시면 더 좋습니다. 입장 시 1층 안내데스크에서 스태프 배지 수령해 주세요.', time: '2025-06-01T09:15:00' },
-      { id: 'm5', from: 'staff', text: '감사합니다. 당일 잘 부탁드립니다!', time: '2025-06-01T09:16:00' },
-    ],
-  },
-  {
-    id: 'conv-02',
-    staffId: 'ap-03',
-    staffName: '이지은',
-    role: '행사 안내 스태프',
-    avatar: '이',
-    online: true,
-    messages: [
-      { id: 'm1', from: 'biz',   text: '이지은님, 이번 Shift 확정되셨습니다. 수고해 주세요!', time: '2025-05-28T14:00:00' },
-      { id: 'm2', from: 'staff', text: '감사합니다! 열심히 하겠습니다 😊', time: '2025-05-28T14:05:00' },
-      { id: 'm3', from: 'staff', text: '혹시 유니폼이 따로 있나요?', time: '2025-05-28T14:06:00' },
-      { id: 'm4', from: 'biz',   text: '흰 셔츠 + 검정 바지로 통일해 주시면 됩니다.', time: '2025-05-28T14:10:00' },
-    ],
-  },
-  {
-    id: 'conv-03',
-    staffId: 'ap-05',
-    staffName: '정다영',
-    role: '고객 응대',
-    avatar: '정',
-    online: false,
-    messages: [
-      { id: 'm1', from: 'biz',   text: '정다영님, 초대 수락해 주셔서 감사합니다!', time: '2025-05-25T10:00:00' },
-      { id: 'm2', from: 'staff', text: '네! 잘 부탁드립니다. 근무지 위치가 어디인가요?', time: '2025-05-25T10:30:00' },
-      { id: 'm3', from: 'biz',   text: '서울 강남구 코엑스 B홀입니다. 지하철 2호선 삼성역 5번 출구 도보 3분이에요.', time: '2025-05-25T10:35:00' },
-    ],
-  },
-  {
-    id: 'conv-04',
-    staffId: 'ap-06',
-    staffName: '황민석',
-    role: '안내 데스크',
-    avatar: '황',
-    online: false,
-    messages: [
-      { id: 'm1', from: 'staff', text: '안녕하세요, 내일 Shift 교통편 때문에 30분 늦을 것 같습니다. 괜찮을까요?', time: '2025-05-31T20:00:00' },
-      { id: 'm2', from: 'biz',   text: '확인했습니다. 알려주셔서 감사해요. 최대한 서둘러 주시면 됩니다.', time: '2025-05-31T20:15:00' },
-    ],
-  },
-  {
-    id: 'conv-05',
-    staffId: 'ap-09',
-    staffName: '임수진',
-    role: '행사 안내 스태프',
-    avatar: '임',
-    online: false,
-    messages: [
-      { id: 'm1', from: 'biz',   text: '임수진님, 이번 6월 박람회 Shift에 관심 있으신가요?', time: '2025-05-20T11:00:00' },
-      { id: 'm2', from: 'staff', text: '네, 관심 있습니다! 자세한 내용 알 수 있을까요?', time: '2025-05-20T11:30:00' },
-      { id: 'm3', from: 'biz',   text: '6월 1일 오전 10시 ~ 오후 7시, 코엑스 행사입니다. 시급 13,000원이에요.', time: '2025-05-20T11:32:00' },
-      { id: 'm4', from: 'staff', text: '좋네요! 참여하겠습니다.', time: '2025-05-20T11:45:00' },
-    ],
-  },
-  {
-    id: 'conv-06',
-    staffId: 'ap-10',
-    staffName: '손태민',
-    role: '부스 운영 보조',
-    avatar: '손',
-    online: true,
-    messages: [
-      { id: 'm1', from: 'biz',   text: '손태민님, 초대 발송했습니다. 확인 부탁드립니다!', time: '2025-05-22T09:00:00' },
-    ],
-  },
-]
-
+// ── 유틸 ────────────────────────────────────────────────────
 function formatTime(iso) {
   const d = new Date(iso)
   const now = new Date()
@@ -95,16 +16,21 @@ function formatTime(iso) {
   if (diff < 2 * day) return '어제'
   return d.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
 }
-
 function formatFull(iso) {
   return new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
 }
+function formatFileSize(bytes) {
+  if (bytes < 1024) return `${bytes}B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`
+}
 
+// ── 서브 컴포넌트 ────────────────────────────────────────────
 function Avatar({ name, online, size = 'md' }) {
   const sz = size === 'lg' ? 'w-11 h-11 text-base' : 'w-9 h-9 text-sm'
   return (
     <div className="relative shrink-0">
-      <div className={`${sz} rounded-full bg-navy/10 text-navy font-bold flex items-center justify-center`}>
+      <div className={`${sz} rounded-full bg-navy/10 text-navy font-bold flex items-center justify-center select-none`}>
         {name[0]}
       </div>
       {online && (
@@ -114,58 +40,173 @@ function Avatar({ name, online, size = 'md' }) {
   )
 }
 
+function FileBubble({ file, isBiz }) {
+  const isImage = file.type?.startsWith('image/')
+  const Icon = isImage ? ImageIcon : FileText
+  return (
+    <div className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl border max-w-[240px]
+      ${isBiz ? 'bg-navy/5 border-navy/15' : 'bg-offwhite-100 border-offwhite-200'}`}>
+      <div className="w-8 h-8 rounded-lg bg-orange/10 flex items-center justify-center shrink-0">
+        <Icon size={15} className="text-orange" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs font-semibold text-navy truncate">{file.name}</p>
+        <p className="text-[11px] text-gray-400">{formatFileSize(file.size)}</p>
+      </div>
+    </div>
+  )
+}
+
+function TypingIndicator({ name }) {
+  return (
+    <div className="flex items-end gap-2">
+      <div className="w-9 h-9 rounded-full bg-navy/10 text-navy font-bold text-sm flex items-center justify-center select-none shrink-0">
+        {name[0]}
+      </div>
+      <div className="bg-offwhite-100 border border-offwhite-200 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1">
+        {[0, 1, 2].map(i => (
+          <span
+            key={i}
+            className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce"
+            style={{ animationDelay: `${i * 0.15}s`, animationDuration: '0.8s' }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── 메인 페이지 ──────────────────────────────────────────────
 export default function MessagesPage() {
-  const { user } = useAuth()
-  const [conversations, setConversations] = useState(INITIAL_CONVERSATIONS)
-  const [selectedId, setSelectedId] = useState(INITIAL_CONVERSATIONS[0].id)
+  const {
+    conversations,
+    sendMessage, editMessage, deleteMessage, markAsRead,
+    blockConversation, leaveConversation, addToast,
+  } = useAppData()
+
+  const [selectedId, setSelectedId] = useState(() =>
+    conversations.find(c => !c.left && !c.blocked)?.id ?? null
+  )
   const [input, setInput] = useState('')
   const [search, setSearch] = useState('')
-  const [mobileView, setMobileView] = useState('list') // 'list' | 'chat'
+  const [mobileView, setMobileView] = useState('list')
+
+  // 더보기 메뉴
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef(null)
+
+  // 메시지 수정 상태
+  const [editingId, setEditingId] = useState(null)
+  const [editText, setEditText] = useState('')
+
+  // 타이핑 인디케이터
+  const [typing, setTyping] = useState(false)
+  const typingTimer = useRef(null)
+
+  // 파일 input ref
+  const fileRef = useRef(null)
   const bottomRef = useRef(null)
+
+  const visibleConvs = useMemo(() =>
+    conversations.filter(c => !c.left && !c.blocked)
+  , [conversations])
+
+  const filtered = useMemo(() =>
+    visibleConvs.filter(c =>
+      c.staffName.includes(search) || c.role.includes(search)
+    )
+  , [visibleConvs, search])
 
   const selected = conversations.find(c => c.id === selectedId)
 
-  const filteredConvs = useMemo(() =>
-    conversations.filter(c =>
-      c.staffName.includes(search) || c.role.includes(search)
-    )
-  , [conversations, search])
+  // 대화 선택 시 읽음 처리
+  useEffect(() => {
+    if (selectedId) markAsRead(selectedId)
+  }, [selectedId, markAsRead])
 
+  // 스크롤
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [selectedId, selected?.messages.length])
+  }, [selectedId, selected?.messages.length, typing])
 
-  function sendMessage() {
-    const text = input.trim()
-    if (!text) return
-    const newMsg = {
-      id: `m-${Date.now()}`,
-      from: 'biz',
-      text,
-      time: new Date().toISOString(),
+  // 더보기 메뉴 외부 클릭 닫기
+  useEffect(() => {
+    function handler(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false)
     }
-    setConversations(prev =>
-      prev.map(c => c.id === selectedId ? { ...c, messages: [...c.messages, newMsg] } : c)
-    )
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  function handleSend() {
+    const text = input.trim()
+    if (!text || !selectedId) return
+    sendMessage(selectedId, { text })
     setInput('')
+
+    // 타이핑 인디케이터 시뮬레이션
+    clearTimeout(typingTimer.current)
+    setTyping(true)
+    typingTimer.current = setTimeout(() => setTyping(false), 2500)
   }
 
   function handleKeyDown(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      sendMessage()
+      handleSend()
     }
+  }
+
+  function handleFileChange(e) {
+    const file = e.target.files?.[0]
+    if (!file || !selectedId) return
+    sendMessage(selectedId, {
+      text: '',
+      file: { name: file.name, size: file.size, type: file.type },
+    })
+    e.target.value = ''
+
+    clearTimeout(typingTimer.current)
+    setTyping(true)
+    typingTimer.current = setTimeout(() => setTyping(false), 2000)
+  }
+
+  function startEdit(msg) {
+    setEditingId(msg.id)
+    setEditText(msg.text)
+  }
+
+  function confirmEdit() {
+    if (!editText.trim() || !selectedId) return
+    editMessage(selectedId, editingId, editText.trim())
+    setEditingId(null)
+    setEditText('')
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+    setEditText('')
+  }
+
+  function handleDelete(msgId) {
+    if (!selectedId) return
+    deleteMessage(selectedId, msgId)
   }
 
   function selectConv(id) {
     setSelectedId(id)
     setMobileView('chat')
+    setMenuOpen(false)
   }
 
-  // ── 대화 목록 패널 ──────────────────────────────────────
+  // unreadCount per conv
+  function getUnread(conv) {
+    return conv.messages.filter(m => !m.read && m.from === 'staff').length
+  }
+
+  // ── 대화 목록 패널 ────────────────────────────────────────
   const ConvList = (
     <div className="flex flex-col h-full">
-      {/* 헤더 */}
       <div className="px-4 pt-4 pb-3 border-b border-offwhite-200">
         <h2 className="text-base font-bold text-navy mb-3">메시지</h2>
         <div className="relative">
@@ -180,19 +221,21 @@ export default function MessagesPage() {
         </div>
       </div>
 
-      {/* 목록 */}
       <div className="flex-1 overflow-y-auto">
-        {filteredConvs.length === 0 ? (
+        {filtered.length === 0 ? (
           <p className="text-center text-sm text-gray-400 mt-8">검색 결과가 없습니다</p>
-        ) : filteredConvs.map(c => {
-          const last = c.messages.at(-1)
+        ) : filtered.map(c => {
+          const last = c.messages.filter(m => !m.deleted).at(-1)
+          const unread = getUnread(c)
           const isSelected = c.id === selectedId
           return (
             <button
               key={c.id}
               onClick={() => selectConv(c.id)}
               className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors border-b border-offwhite-100 last:border-0
-                ${isSelected ? 'bg-orange/5 border-l-2 border-l-orange' : 'hover:bg-offwhite-100 border-l-2 border-l-transparent'}`}
+                ${isSelected
+                  ? 'bg-orange/5 border-l-2 border-l-orange'
+                  : 'hover:bg-offwhite-100 border-l-2 border-l-transparent'}`}
             >
               <Avatar name={c.staffName} online={c.online} />
               <div className="flex-1 min-w-0">
@@ -200,12 +243,24 @@ export default function MessagesPage() {
                   <span className={`text-sm font-semibold ${isSelected ? 'text-orange' : 'text-navy'}`}>
                     {c.staffName}
                   </span>
-                  {last && <span className="text-xs text-gray-400 shrink-0 ml-1">{formatTime(last.time)}</span>}
+                  <div className="flex items-center gap-1.5 shrink-0 ml-1">
+                    {last && <span className="text-xs text-gray-400">{formatTime(last.time)}</span>}
+                    {unread > 0 && !isSelected && (
+                      <span className="w-4 h-4 rounded-full bg-orange text-white text-[10px] font-bold flex items-center justify-center">
+                        {unread > 9 ? '9+' : unread}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <p className="text-xs text-gray-400 truncate mt-0.5">{c.role}</p>
                 {last && (
-                  <p className="text-xs text-gray-500 truncate mt-0.5">
-                    {last.from === 'biz' ? '나: ' : ''}{last.text}
+                  <p className={`text-xs truncate mt-0.5 ${unread > 0 && !isSelected ? 'font-semibold text-navy' : 'text-gray-500'}`}>
+                    {last.deleted
+                      ? <span className="italic text-gray-400">삭제된 메시지</span>
+                      : last.file
+                        ? `📎 ${last.file.name}`
+                        : <>{last.from === 'biz' ? '나: ' : ''}{last.text}</>
+                    }
                   </p>
                 )}
               </div>
@@ -216,10 +271,10 @@ export default function MessagesPage() {
     </div>
   )
 
-  // ── 채팅 패널 ───────────────────────────────────────────
+  // ── 채팅 패널 ─────────────────────────────────────────────
   const ChatPanel = selected ? (
     <div className="flex flex-col h-full">
-      {/* 채팅 헤더 */}
+      {/* 헤더 */}
       <div className="flex items-center gap-3 px-5 py-3.5 border-b border-offwhite-200 bg-white shrink-0">
         <button
           onClick={() => setMobileView('list')}
@@ -236,39 +291,155 @@ export default function MessagesPage() {
               : selected.role}
           </p>
         </div>
-        <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-offwhite-100 text-gray-400 hover:text-navy transition-colors">
-          <MoreVertical size={16} />
-        </button>
+
+        {/* 더보기 메뉴 */}
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setMenuOpen(v => !v)}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-offwhite-100 text-gray-400 hover:text-navy transition-colors"
+          >
+            <MoreVertical size={16} />
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-10 w-44 bg-white rounded-xl shadow-lg border border-offwhite-200 z-50 py-1 animate-slide-up">
+              <button
+                onClick={() => {
+                  setMenuOpen(false)
+                  addToast({ type: 'info', message: '신고가 접수되었습니다 (데모)' })
+                }}
+                className="w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-offwhite-100 transition-colors"
+              >
+                신고하기
+              </button>
+              <button
+                onClick={() => {
+                  setMenuOpen(false)
+                  blockConversation(selectedId)
+                  setSelectedId(visibleConvs.find(c => c.id !== selectedId)?.id ?? null)
+                }}
+                className="w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-offwhite-100 transition-colors"
+              >
+                차단하기
+              </button>
+              <div className="border-t border-offwhite-200 my-1" />
+              <button
+                onClick={() => {
+                  setMenuOpen(false)
+                  leaveConversation(selectedId)
+                  setSelectedId(visibleConvs.find(c => c.id !== selectedId)?.id ?? null)
+                }}
+                className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+              >
+                대화방 나가기
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 메시지 목록 */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-2">
         {selected.messages.map((msg, i) => {
           const isBiz = msg.from === 'biz'
           const prevSame = i > 0 && selected.messages[i - 1].from === msg.from
+          const isEditing = editingId === msg.id
+
+          if (msg.deleted) {
+            return (
+              <div key={msg.id} className={`flex ${isBiz ? 'justify-end' : 'justify-start'} ${prevSame ? 'mt-0.5' : 'mt-3'}`}>
+                {!isBiz && <div className="w-9 shrink-0 mr-2" />}
+                <p className="text-xs italic text-gray-400 px-4 py-2 bg-gray-50 rounded-2xl border border-gray-100">
+                  삭제된 메시지입니다
+                </p>
+              </div>
+            )
+          }
+
           return (
-            <div key={msg.id} className={`flex items-end gap-2 ${isBiz ? 'flex-row-reverse' : 'flex-row'} ${prevSame ? 'mt-1' : 'mt-3'}`}>
+            <div
+              key={msg.id}
+              className={`flex items-end gap-2 group ${isBiz ? 'flex-row-reverse' : 'flex-row'} ${prevSame ? 'mt-0.5' : 'mt-3'}`}
+            >
               {!isBiz && !prevSame && <Avatar name={selected.staffName} online={false} />}
               {!isBiz && prevSame && <div className="w-9 shrink-0" />}
-              <div className={`max-w-[65%] ${isBiz ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
-                <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed
-                  ${isBiz
-                    ? 'bg-navy text-white rounded-br-sm'
-                    : 'bg-offwhite-100 text-navy rounded-bl-sm border border-offwhite-200'}`}
-                >
-                  {msg.text}
-                </div>
+
+              <div className={`max-w-[65%] flex flex-col gap-0.5 ${isBiz ? 'items-end' : 'items-start'}`}>
+                {isEditing ? (
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      autoFocus
+                      value={editText}
+                      onChange={e => setEditText(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') confirmEdit()
+                        if (e.key === 'Escape') cancelEdit()
+                      }}
+                      className="px-3 py-2 text-sm border border-orange rounded-xl focus:outline-none focus:ring-1 focus:ring-orange/30"
+                    />
+                    <button onClick={confirmEdit} className="w-7 h-7 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 flex items-center justify-center">
+                      <Check size={13} />
+                    </button>
+                    <button onClick={cancelEdit} className="w-7 h-7 rounded-lg bg-gray-50 text-gray-500 hover:bg-gray-100 flex items-center justify-center">
+                      <X size={13} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative flex items-center gap-1.5">
+                    {/* 수정/삭제 버튼 (biz 메시지에만, hover 시 표시) */}
+                    {isBiz && !msg.file && (
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity order-first">
+                        <button
+                          onClick={() => startEdit(msg)}
+                          className="w-6 h-6 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center"
+                          title="수정"
+                        >
+                          <Pencil size={11} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(msg.id)}
+                          className="w-6 h-6 rounded-md bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-500 flex items-center justify-center"
+                          title="삭제"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
+                    )}
+
+                    {msg.file ? (
+                      <FileBubble file={msg.file} isBiz={isBiz} />
+                    ) : (
+                      <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed
+                        ${isBiz
+                          ? 'bg-navy text-white rounded-br-sm'
+                          : 'bg-offwhite-100 text-navy rounded-bl-sm border border-offwhite-200'}`}
+                      >
+                        {msg.text}
+                        {msg.edited && <span className="text-[10px] opacity-60 ml-1.5">(수정됨)</span>}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <span className="text-[11px] text-gray-400 px-1">{formatFull(msg.time)}</span>
               </div>
             </div>
           )
         })}
+
+        {typing && <TypingIndicator name={selected.staffName} />}
         <div ref={bottomRef} />
       </div>
 
       {/* 입력창 */}
       <div className="px-5 py-4 border-t border-offwhite-200 bg-white shrink-0">
+        <input ref={fileRef} type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" className="hidden" onChange={handleFileChange} />
         <div className="flex items-end gap-2">
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="w-10 h-10 rounded-xl border border-offwhite-200 hover:bg-offwhite-100 text-gray-400 hover:text-navy flex items-center justify-center shrink-0 transition-colors"
+            title="파일 첨부"
+          >
+            <Paperclip size={16} />
+          </button>
           <textarea
             rows={1}
             value={input}
@@ -283,7 +454,7 @@ export default function MessagesPage() {
             }}
           />
           <button
-            onClick={sendMessage}
+            onClick={handleSend}
             disabled={!input.trim()}
             className="w-10 h-10 rounded-xl bg-orange hover:bg-orange-600 disabled:bg-offwhite-200 disabled:text-gray-400 text-white flex items-center justify-center transition-colors shrink-0"
           >
@@ -293,21 +464,18 @@ export default function MessagesPage() {
       </div>
     </div>
   ) : (
-    <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
-      대화를 선택하세요
+    <div className="flex-1 flex items-center justify-center">
+      <p className="text-sm text-gray-400">대화를 선택하세요</p>
     </div>
   )
 
   // ── 레이아웃 ─────────────────────────────────────────────
   return (
     <div className="h-[calc(100vh-4rem)] -m-6 flex overflow-hidden">
-      {/* 좌측: 대화 목록 */}
       <div className={`w-80 shrink-0 border-r border-offwhite-200 bg-white
         ${mobileView === 'chat' ? 'hidden lg:flex' : 'flex'} flex-col`}>
         {ConvList}
       </div>
-
-      {/* 우측: 채팅 */}
       <div className={`flex-1 min-w-0 bg-white
         ${mobileView === 'list' ? 'hidden lg:flex' : 'flex'} flex-col`}>
         {ChatPanel}

@@ -17,7 +17,7 @@ export const NAV_GROUPS = [
     label: null,
     items: [
       { icon: LayoutDashboard, label: '대시보드', path: '/dashboard' },
-      { icon: MessageSquare, label: '메시지', path: '/messages', badge: 3 },
+      { icon: MessageSquare, label: '메시지', path: '/messages' },
     ],
   },
   {

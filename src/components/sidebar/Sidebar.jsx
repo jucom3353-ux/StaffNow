@@ -1,10 +1,29 @@
 import clsx from 'clsx'
+import { useMemo } from 'react'
 import { NAV_GROUPS } from '../../constants/navigation'
+import { useAppData } from '../../context/AppDataContext'
 import SidebarLogo from './SidebarLogo'
 import SidebarNavGroup from './SidebarNavGroup'
 import SidebarToggleButton from './SidebarToggleButton'
 
 export default function Sidebar({ collapsed, onToggle }) {
+  const { conversations } = useAppData()
+
+  const unreadTotal = useMemo(() =>
+    conversations
+      .filter(c => !c.left && !c.blocked)
+      .reduce((sum, c) => sum + c.messages.filter(m => !m.read && m.from === 'staff').length, 0)
+  , [conversations])
+
+  const navGroups = useMemo(() =>
+    NAV_GROUPS.map(group => ({
+      ...group,
+      items: group.items.map(item =>
+        item.path === '/messages' ? { ...item, badge: unreadTotal } : item
+      ),
+    }))
+  , [unreadTotal])
+
   return (
     <aside
       className={clsx(
@@ -16,7 +35,7 @@ export default function Sidebar({ collapsed, onToggle }) {
       <SidebarLogo collapsed={collapsed} />
       <div className="border-t border-navy-700" />
       <nav className="flex-1 overflow-y-auto py-3 space-y-1 scrollbar-none">
-        {NAV_GROUPS.map((group, i) => (
+        {navGroups.map((group, i) => (
           <SidebarNavGroup key={i} {...group} collapsed={collapsed} />
         ))}
       </nav>
