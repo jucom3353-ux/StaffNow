@@ -1,12 +1,14 @@
 package com.example.demo.service;
 
 import com.example.demo.dto.UserCreateRequestDto;
+import com.example.demo.dto.UserResponseDto;
 import com.example.demo.entity.User;
 import com.example.demo.repository.UserRepository;
 
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -18,8 +20,17 @@ public class UserService {
     }
 
     // 전체 유저 조회
-    public List<User> getUsers() {
-        return userRepository.findAll();
+    public List<UserResponseDto> getUsers() {
+
+        List<User> users = userRepository.findAll();
+
+        return users.stream()
+                .map(user -> new UserResponseDto(
+                        user.getId(),
+                        user.getEmail(),
+                        user.getName()
+                ))
+                .collect(Collectors.toList());
     }
 
     // 회원가입
@@ -34,7 +45,7 @@ public class UserService {
         userRepository.save(user);
     }
 
-    // 이메일로 유저 조회 (JWT 로그인 사용자 찾기용)
+    // 이메일로 유저 조회
     public User findByEmail(String email) {
 
         return userRepository.findByEmail(email)

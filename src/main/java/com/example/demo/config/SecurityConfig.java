@@ -2,14 +2,10 @@ package com.example.demo.config;
 
 import com.example.demo.jwt.JwtFilter;
 
-import lombok.RequiredArgsConstructor;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-
 import org.springframework.security.config.http.SessionCreationPolicy;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -19,52 +15,40 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
-@RequiredArgsConstructor
-@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
 
+    public SecurityConfig(JwtFilter jwtFilter) {
+        this.jwtFilter = jwtFilter;
+    }
+
     @Bean
-    public SecurityFilterChain filterChain(
-            HttpSecurity http
-    ) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-
-                // csrf 끄기
                 .csrf(csrf -> csrf.disable())
 
-                // session 안 씀
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(
-                                SessionCreationPolicy.STATELESS
-                        )
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
-                // URL 권한 설정
                 .authorizeHttpRequests(auth -> auth
 
-                        // 회원가입/로그인 허용
-                        .requestMatchers(
-                                "/users/**",
-                                "/auth/**"
-                        ).permitAll()
+                        .requestMatchers("/auth/**").permitAll()
 
-                        // 나머지는 인증 필요
+                        .requestMatchers("/reviews/**").authenticated()
+
                         .anyRequest().authenticated()
                 )
 
-                // JWT 필터 등록
-                .addFilterBefore(
-                        jwtFilter,
-                        UsernamePasswordAuthenticationFilter.class
-                );
+                .addFilterBefore(jwtFilter,
+                        UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    // BCrypt 비밀번호 암호화 Bean
+    // ✅ 추가
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
