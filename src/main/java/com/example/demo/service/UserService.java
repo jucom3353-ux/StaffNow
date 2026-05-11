@@ -3,10 +3,14 @@ package com.example.demo.service;
 import com.example.demo.dto.LoginRequestDto;
 import com.example.demo.dto.UserCreateRequestDto;
 import com.example.demo.dto.UserResponseDto;
+import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
 import com.example.demo.jwt.JwtUtil;
 import com.example.demo.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +22,8 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+
+    private final PasswordEncoder passwordEncoder;
 
     // 회원 목록 조회
     @Transactional(readOnly = true)
@@ -49,11 +55,15 @@ public class UserService {
         // 전화번호 저장
         user.setPhone(requestDto.getPhone());
 
-        // 비밀번호 저장
-        user.setPassword(requestDto.getPassword());
+        // 비밀번호 암호화 저장
+        user.setPassword(
+                passwordEncoder.encode(
+                        requestDto.getPassword()
+                )
+        );
 
-        // 역할 저장(USER / COMPANY)
-        user.setRole(requestDto.getRole());
+        // 기본 역할 지정
+        user.setRole(Role.USER);
 
         // 초기 노쇼 횟수
         user.setNoShowCount(0);
@@ -77,10 +87,12 @@ public class UserService {
         ).orElseThrow(() ->
                 new RuntimeException("사용자 없음"));
 
-        // 비밀번호 확인
-        if (!user.getPassword().equals(
-                requestDto.getPassword()
+        // BCrypt 비밀번호 비교
+        if (!passwordEncoder.matches(
+                requestDto.getPassword(),
+                user.getPassword()
         )) {
+
             throw new RuntimeException("비밀번호 틀림");
         }
 
