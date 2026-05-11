@@ -3,7 +3,6 @@ package com.example.demo.service;
 import com.example.demo.dto.LoginRequestDto;
 import com.example.demo.dto.UserCreateRequestDto;
 import com.example.demo.dto.UserResponseDto;
-import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
 import com.example.demo.jwt.JwtUtil;
 import com.example.demo.repository.UserRepository;
@@ -62,8 +61,8 @@ public class UserService {
                 )
         );
 
-        // 기본 역할 지정
-        user.setRole(Role.USER);
+        // 요청 role 저장
+        user.setRole(requestDto.getRole());
 
         // 초기 노쇼 횟수
         user.setNoShowCount(0);
