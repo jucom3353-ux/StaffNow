@@ -1,8 +1,9 @@
-import { Search, MapPin, Clock, Bookmark, SlidersHorizontal, X } from 'lucide-react'
+import { Search, MapPin, Clock, Bookmark, SlidersHorizontal, X, List, Map } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { RECOMMENDED_JOBS } from '../../data/mockIndividual'
 import { useIndividualData } from '../../hooks/useIndividualData'
+import MapView from '../../components/jobs/MapView'
 
 const TAGS = ['전체', '단기', '장기', '주말', '야간', '행사/이벤트', '카페', '편의점']
 
@@ -21,10 +22,11 @@ export default function IndividualJobsPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { isSaved, toggleSave } = useIndividualData()
-  const [query,     setQuery]     = useState(() => searchParams.get('q') ?? '')
-  const [activeTag, setActiveTag] = useState('전체')
-  const [sortBy,    setSortBy]    = useState('newest')
+  const [query,      setQuery]      = useState(() => searchParams.get('q') ?? '')
+  const [activeTag,  setActiveTag]  = useState('전체')
+  const [sortBy,     setSortBy]     = useState('newest')
   const [filterOpen, setFilterOpen] = useState(false)
+  const [viewMode,   setViewMode]   = useState('list')
   const filterRef = useRef(null)
 
   useEffect(() => {
@@ -73,40 +75,62 @@ export default function IndividualJobsPage() {
           )}
         </div>
 
-        {/* 필터 드롭다운 */}
-        <div className="relative" ref={filterRef}>
+        {/* 리스트 / 지도 토글 */}
+        <div className="flex bg-offwhite-100 border border-offwhite-200 rounded-xl p-1 gap-0.5">
           <button
-            onClick={() => setFilterOpen(v => !v)}
-            className={`flex items-center gap-2 border rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${
-              filterOpen || sortBy !== 'newest'
-                ? 'bg-orange text-white border-orange'
-                : 'bg-white text-navy border-offwhite-200 hover:border-navy'
+            onClick={() => setViewMode('list')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+              viewMode === 'list' ? 'bg-white text-navy shadow-sm' : 'text-gray-400 hover:text-navy'
             }`}
           >
-            <SlidersHorizontal size={15} />
-            {sortBy !== 'newest' ? activeSortLabel : '정렬'}
+            <List size={15} />
           </button>
-
-          {filterOpen && (
-            <div className="absolute right-0 top-12 w-44 bg-white rounded-xl shadow-lg border border-offwhite-200 z-20 py-1.5 overflow-hidden">
-              <p className="px-4 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wide">정렬 기준</p>
-              {SORT_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => { setSortBy(opt.value); setFilterOpen(false) }}
-                  className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between
-                    ${sortBy === opt.value ? 'text-orange font-semibold bg-orange/5' : 'text-gray-600 hover:bg-offwhite-100'}`}
-                >
-                  {opt.label}
-                  {sortBy === opt.value && <span className="w-1.5 h-1.5 rounded-full bg-orange" />}
-                </button>
-              ))}
-            </div>
-          )}
+          <button
+            onClick={() => setViewMode('map')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+              viewMode === 'map' ? 'bg-white text-navy shadow-sm' : 'text-gray-400 hover:text-navy'
+            }`}
+          >
+            <Map size={15} />
+          </button>
         </div>
+
+        {/* 정렬 드롭다운 — 리스트 뷰에서만 표시 */}
+        {viewMode === 'list' && (
+          <div className="relative" ref={filterRef}>
+            <button
+              onClick={() => setFilterOpen(v => !v)}
+              className={`flex items-center gap-2 border rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${
+                filterOpen || sortBy !== 'newest'
+                  ? 'bg-orange text-white border-orange'
+                  : 'bg-white text-navy border-offwhite-200 hover:border-navy'
+              }`}
+            >
+              <SlidersHorizontal size={15} />
+              {sortBy !== 'newest' ? activeSortLabel : '정렬'}
+            </button>
+
+            {filterOpen && (
+              <div className="absolute right-0 top-12 w-44 bg-white rounded-xl shadow-lg border border-offwhite-200 z-20 py-1.5 overflow-hidden">
+                <p className="px-4 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wide">정렬 기준</p>
+                {SORT_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => { setSortBy(opt.value); setFilterOpen(false) }}
+                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between
+                      ${sortBy === opt.value ? 'text-orange font-semibold bg-orange/5' : 'text-gray-600 hover:bg-offwhite-100'}`}
+                  >
+                    {opt.label}
+                    {sortBy === opt.value && <span className="w-1.5 h-1.5 rounded-full bg-orange" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+      <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
         {TAGS.map(tag => (
           <button
             key={tag}
@@ -122,52 +146,59 @@ export default function IndividualJobsPage() {
         ))}
       </div>
 
-      <div className="space-y-3">
-        {filtered.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
-            <Search size={32} className="mx-auto mb-3 opacity-30" />
-            <p className="text-sm">검색 결과가 없습니다.</p>
-          </div>
-        ) : (
-          filtered.map(job => (
-            <div
-              key={job.id}
-              onClick={() => navigate(`/individual/jobs/${job.id}`)}
-              className="bg-white rounded-2xl border border-offwhite-200 p-5 cursor-pointer hover:border-navy transition-colors"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    {job.isNew && (
-                      <span className="text-[10px] font-bold bg-orange text-white px-1.5 py-0.5 rounded-full">NEW</span>
-                    )}
-                    <span className="text-base font-bold text-navy">{job.title}</span>
+      {viewMode === 'map' ? (
+        <MapView
+          jobs={filtered}
+          onJobClick={id => navigate(`/individual/jobs/${id}`)}
+        />
+      ) : (
+        <div className="space-y-3">
+          {filtered.length === 0 ? (
+            <div className="text-center py-16 text-gray-400">
+              <Search size={32} className="mx-auto mb-3 opacity-30" />
+              <p className="text-sm">검색 결과가 없습니다.</p>
+            </div>
+          ) : (
+            filtered.map(job => (
+              <div
+                key={job.id}
+                onClick={() => navigate(`/individual/jobs/${job.id}`)}
+                className="bg-white rounded-2xl border border-offwhite-200 p-5 cursor-pointer hover:border-navy transition-colors"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      {job.isNew && (
+                        <span className="text-[10px] font-bold bg-orange text-white px-1.5 py-0.5 rounded-full">NEW</span>
+                      )}
+                      <span className="text-base font-bold text-navy">{job.title}</span>
+                    </div>
+                    <p className="text-sm text-gray-500 mb-3">{job.company}</p>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400 mb-3">
+                      <span className="flex items-center gap-1"><MapPin size={12} />{job.location}</span>
+                      <span className="flex items-center gap-1"><Clock size={12} />마감 {job.deadline}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {job.tags.map(t => (
+                        <span key={t} className="text-[11px] bg-offwhite px-2.5 py-1 rounded-full text-gray-500">{t}</span>
+                      ))}
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-500 mb-3">{job.company}</p>
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400 mb-3">
-                    <span className="flex items-center gap-1"><MapPin size={12} />{job.location}</span>
-                    <span className="flex items-center gap-1"><Clock size={12} />마감 {job.deadline}</span>
+                  <div className="text-right shrink-0">
+                    <p className="text-base font-bold text-orange">{job.wage}</p>
+                    <button
+                      onClick={e => { e.stopPropagation(); toggleSave(job.id) }}
+                      className={`mt-2 p-1.5 rounded-lg transition-colors ${isSaved(job.id) ? 'text-orange' : 'text-gray-300 hover:text-orange'}`}
+                    >
+                      <Bookmark size={18} fill={isSaved(job.id) ? 'currentColor' : 'none'} />
+                    </button>
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {job.tags.map(t => (
-                      <span key={t} className="text-[11px] bg-offwhite px-2.5 py-1 rounded-full text-gray-500">{t}</span>
-                    ))}
-                  </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-base font-bold text-orange">{job.wage}</p>
-                  <button
-                    onClick={e => { e.stopPropagation(); toggleSave(job.id) }}
-                    className={`mt-2 p-1.5 rounded-lg transition-colors ${isSaved(job.id) ? 'text-orange' : 'text-gray-300 hover:text-orange'}`}
-                  >
-                    <Bookmark size={18} fill={isSaved(job.id) ? 'currentColor' : 'none'} />
-                  </button>
                 </div>
               </div>
-            </div>
-          ))
-        )}
-      </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   )
 }

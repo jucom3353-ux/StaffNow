@@ -4,6 +4,7 @@ export function useSidebar() {
   const [collapsed, setCollapsed] = useState(() => {
     return localStorage.getItem('staffnow_sidebar_collapsed') === 'true'
   })
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   const toggleSidebar = () => {
     setCollapsed(prev => {
@@ -13,5 +14,8 @@ export function useSidebar() {
     })
   }
 
-  return { collapsed, toggleSidebar }
+  const openMobile  = () => setMobileOpen(true)
+  const closeMobile = () => setMobileOpen(false)
+
+  return { collapsed, toggleSidebar, mobileOpen, openMobile, closeMobile }
 }

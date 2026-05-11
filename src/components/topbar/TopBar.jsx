@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search } from 'lucide-react'
+import { Search, Menu } from 'lucide-react'
 import PageBreadcrumb from './PageBreadcrumb'
 import NotificationBell from './NotificationBell'
 import UserMenu from './UserMenu'
 
-export default function TopBar() {
+export default function TopBar({ onOpenMobile }) {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
 
@@ -18,7 +18,16 @@ export default function TopBar() {
   }
 
   return (
-    <header className="h-16 flex items-center px-6 gap-4 bg-white border-b border-offwhite-200 shrink-0">
+    <header className="h-16 flex items-center px-4 md:px-6 gap-3 bg-white border-b border-offwhite-200 shrink-0">
+      {/* 햄버거 버튼 — 모바일 전용 */}
+      {onOpenMobile && (
+        <button
+          onClick={onOpenMobile}
+          className="md:hidden p-1.5 rounded-lg text-gray-500 hover:bg-offwhite transition-colors shrink-0"
+        >
+          <Menu size={20} />
+        </button>
+      )}
       <PageBreadcrumb />
       <div className="flex-1" />
       <form onSubmit={handleSearch} className="hidden md:flex items-center gap-2 bg-offwhite rounded-lg px-3 py-1.5 w-56">

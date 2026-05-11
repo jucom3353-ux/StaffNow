@@ -1,10 +1,11 @@
 import clsx from 'clsx'
 import { NavLink } from 'react-router-dom'
 
-export default function SidebarNavItem({ icon: Icon, label, path, badge, collapsed }) {
+export default function SidebarNavItem({ icon: Icon, label, path, badge, collapsed, onNavClick }) {
   return (
     <NavLink
       to={path}
+      onClick={onNavClick}
       className={({ isActive }) =>
         clsx(
           'flex items-center mx-2 rounded-lg transition-colors duration-150 relative group',

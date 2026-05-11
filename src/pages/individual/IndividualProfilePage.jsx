@@ -10,10 +10,10 @@ import { useIndividualData } from '../../hooks/useIndividualData'
 
 // ─── 하드코딩 데모 데이터 ────────────────────────────────────────────────────
 const DEMO_STATS = [
-  { label: '완료한 업무', value: '23건',    icon: Briefcase, color: 'text-blue-500',  bg: 'bg-blue-50' },
-  { label: '총 근무 시간', value: '184시간', icon: Clock,     color: 'text-purple-500', bg: 'bg-purple-50' },
-  { label: '평균 별점',   value: '4.8',     icon: Star,      color: 'text-yellow-500', bg: 'bg-yellow-50', suffix: '/ 5.0' },
-  { label: '근태 지수',   value: '노쇼 0회', icon: ShieldCheck, color: 'text-green-600', bg: 'bg-green-50', badge: true },
+  { key: 'jobs',   label: '완료한 업무', value: '23건',    icon: Briefcase,   color: 'text-blue-500',   bg: 'bg-blue-50' },
+  { key: 'hours',  label: '총 근무 시간', value: '184시간', icon: Clock,       color: 'text-purple-500', bg: 'bg-purple-50' },
+  { key: 'rating', label: '평균 별점',   value: '4.8',     icon: Star,        color: 'text-yellow-500', bg: 'bg-yellow-50', suffix: '/ 5.0' },
+  { key: 'attend', label: '근태 지수',   value: '노쇼 0회', icon: ShieldCheck, color: 'text-green-600',  bg: 'bg-green-50', badge: true },
 ]
 
 const CAREER_LIST = [
@@ -23,9 +23,91 @@ const CAREER_LIST = [
   { id: 4, company: '마케팅 에이전시', role: '홍보 활동',         period: '2023.09 – 2023.09', type: '프리랜서' },
 ]
 
+const DEMO_COMPLETED_JOBS = [
+  { id: 1,  company: '스타벅스 역삼점',  role: '바리스타 파트타임',    date: '2024.12.20', hours: 8,  pay: 80000 },
+  { id: 2,  company: '스타벅스 역삼점',  role: '바리스타 파트타임',    date: '2024.12.14', hours: 8,  pay: 80000 },
+  { id: 3,  company: '스타벅스 역삼점',  role: '바리스타 파트타임',    date: '2024.12.07', hours: 8,  pay: 80000 },
+  { id: 4,  company: '코엑스 전시',      role: '행사 스태프',          date: '2024.02.03', hours: 10, pay: 120000 },
+  { id: 5,  company: '코엑스 전시',      role: '행사 스태프',          date: '2024.02.04', hours: 10, pay: 120000 },
+  { id: 6,  company: '코엑스 전시',      role: '행사 스태프',          date: '2024.01.27', hours: 8,  pay: 96000 },
+  { id: 7,  company: '브랜드X',          role: '팝업스토어 운영',      date: '2023.12.10', hours: 9,  pay: 108000 },
+  { id: 8,  company: '브랜드X',          role: '팝업스토어 운영',      date: '2023.12.03', hours: 9,  pay: 108000 },
+  { id: 9,  company: '브랜드X',          role: '팝업스토어 운영',      date: '2023.11.26', hours: 9,  pay: 108000 },
+  { id: 10, company: '마케팅 에이전시',  role: '홍보 활동',            date: '2023.09.15', hours: 6,  pay: 72000 },
+  { id: 11, company: '스타벅스 역삼점',  role: '바리스타 파트타임',    date: '2024.11.30', hours: 8,  pay: 80000 },
+  { id: 12, company: '스타벅스 역삼점',  role: '바리스타 파트타임',    date: '2024.11.23', hours: 8,  pay: 80000 },
+  { id: 13, company: '강남 행사 스태프', role: '행사 진행 보조',       date: '2024.10.05', hours: 7,  pay: 84000 },
+  { id: 14, company: '강남 행사 스태프', role: '행사 진행 보조',       date: '2024.09.28', hours: 7,  pay: 84000 },
+  { id: 15, company: '편의점 GS25',      role: '야간 파트타임',        date: '2024.08.10', hours: 8,  pay: 76000 },
+  { id: 16, company: '편의점 GS25',      role: '야간 파트타임',        date: '2024.08.03', hours: 8,  pay: 76000 },
+  { id: 17, company: '편의점 GS25',      role: '야간 파트타임',        date: '2024.07.27', hours: 8,  pay: 76000 },
+  { id: 18, company: '물류창고 A',       role: '입출고 작업',          date: '2024.06.15', hours: 9,  pay: 108000 },
+  { id: 19, company: '물류창고 A',       role: '입출고 작업',          date: '2024.06.08', hours: 9,  pay: 108000 },
+  { id: 20, company: '카페 봄날',        role: '카운터 파트타임',      date: '2024.05.18', hours: 7,  pay: 70000 },
+  { id: 21, company: '카페 봄날',        role: '카운터 파트타임',      date: '2024.05.11', hours: 7,  pay: 70000 },
+  { id: 22, company: '현대백화점',       role: '판촉 행사 스태프',     date: '2024.04.20', hours: 8,  pay: 112000 },
+  { id: 23, company: '현대백화점',       role: '판촉 행사 스태프',     date: '2024.04.13', hours: 8,  pay: 112000 },
+]
+
+const DEMO_RATINGS = [
+  { company: '스타벅스 역삼점',  rating: 4.9, comment: '친절하고 빠른 업무 처리, 적극적인 태도가 인상적이었습니다.',    date: '2024.12.22' },
+  { company: '코엑스 전시',      rating: 4.7, comment: '지시 사항을 잘 이해하고 성실하게 임했습니다.',                  date: '2024.02.05' },
+  { company: '브랜드X',          rating: 4.8, comment: '고객 응대가 훌륭했고 팀워크도 좋았습니다.',                    date: '2023.12.12' },
+  { company: '마케팅 에이전시',  rating: 4.6, comment: '홍보 활동에 적극적으로 참여하여 목표를 달성하였습니다.',        date: '2023.09.16' },
+  { company: '강남 행사 스태프', rating: 5.0, comment: '매우 뛰어난 서비스 마인드로 행사를 성공적으로 진행했습니다.',  date: '2024.10.06' },
+  { company: '편의점 GS25',      rating: 4.5, comment: '야간 근무임에도 성실하게 임했습니다.',                        date: '2024.08.12' },
+  { company: '물류창고 A',       rating: 4.7, comment: '작업 속도가 빠르고 정확하게 업무를 수행했습니다.',              date: '2024.06.16' },
+  { company: '카페 봄날',        rating: 4.8, comment: '밝은 미소와 친절한 서비스가 손님들에게 호응이 좋았습니다.',    date: '2024.05.19' },
+  { company: '현대백화점',       rating: 5.0, comment: '행사 스태프로서 완벽한 역할을 수행했습니다. 재고용 의사 있음.', date: '2024.04.21' },
+]
+
+const DEMO_ATTENDANCE = [
+  { date: '2024.12.20', company: '스타벅스 역삼점',  status: '정상 출근' },
+  { date: '2024.12.14', company: '스타벅스 역삼점',  status: '정상 출근' },
+  { date: '2024.12.07', company: '스타벅스 역삼점',  status: '정상 출근' },
+  { date: '2024.11.30', company: '스타벅스 역삼점',  status: '정상 출근' },
+  { date: '2024.11.23', company: '스타벅스 역삼점',  status: '정상 출근' },
+  { date: '2024.10.06', company: '강남 행사 스태프', status: '정상 출근' },
+  { date: '2024.09.28', company: '강남 행사 스태프', status: '정상 출근' },
+  { date: '2024.08.10', company: '편의점 GS25',      status: '정상 출근' },
+  { date: '2024.08.03', company: '편의점 GS25',      status: '정상 출근' },
+  { date: '2024.07.27', company: '편의점 GS25',      status: '정상 출근' },
+  { date: '2024.06.15', company: '물류창고 A',       status: '정상 출근' },
+  { date: '2024.06.08', company: '물류창고 A',       status: '정상 출근' },
+  { date: '2024.05.18', company: '카페 봄날',        status: '정상 출근' },
+  { date: '2024.05.11', company: '카페 봄날',        status: '정상 출근' },
+  { date: '2024.04.20', company: '현대백화점',       status: '정상 출근' },
+  { date: '2024.04.13', company: '현대백화점',       status: '정상 출근' },
+  { date: '2024.02.04', company: '코엑스 전시',      status: '정상 출근' },
+  { date: '2024.02.03', company: '코엑스 전시',      status: '정상 출근' },
+  { date: '2024.01.27', company: '코엑스 전시',      status: '정상 출근' },
+  { date: '2023.12.10', company: '브랜드X',          status: '정상 출근' },
+]
+
 const BANKS = ['국민은행', '신한은행', '하나은행', '우리은행', 'IBK기업은행', 'NH농협은행', 'SC제일은행', '카카오뱅크', '토스뱅크']
 
 const TIME_OPTIONS = ['주말', '평일', '새벽', '오전', '오후', '저녁']
+
+// ─── 행정구역 데이터 ─────────────────────────────────────────────────────────
+const REGIONS = {
+  '서울': ['강남구','강동구','강북구','강서구','관악구','광진구','구로구','금천구','노원구','도봉구','동대문구','동작구','마포구','서대문구','서초구','성동구','성북구','송파구','양천구','영등포구','용산구','은평구','종로구','중구','중랑구'],
+  '부산': ['강서구','금정구','기장군','남구','동구','동래구','부산진구','북구','사상구','사하구','서구','수영구','연제구','영도구','중구','해운대구'],
+  '대구': ['남구','달서구','달성군','동구','북구','서구','수성구','중구'],
+  '인천': ['강화군','계양구','남동구','동구','미추홀구','부평구','서구','연수구','옹진군','중구'],
+  '광주': ['광산구','남구','동구','북구','서구'],
+  '대전': ['대덕구','동구','서구','유성구','중구'],
+  '울산': ['남구','동구','북구','울주군','중구'],
+  '세종': ['세종시'],
+  '경기': ['가평군','고양시','과천시','광명시','광주시','구리시','군포시','김포시','남양주시','동두천시','부천시','성남시','수원시','시흥시','안산시','안성시','안양시','양주시','양평군','여주시','연천군','오산시','용인시','의왕시','의정부시','이천시','파주시','평택시','포천시','하남시','화성시'],
+  '강원': ['강릉시','고성군','동해시','삼척시','속초시','양구군','양양군','영월군','원주시','인제군','정선군','철원군','춘천시','태백시','평창군','홍천군','화천군','횡성군'],
+  '충북': ['괴산군','단양군','보은군','영동군','옥천군','음성군','제천시','증평군','진천군','청주시','충주시'],
+  '충남': ['공주시','금산군','논산시','당진시','보령시','부여군','서산시','서천군','아산시','예산군','천안시','청양군','태안군','홍성군','계룡시'],
+  '전북': ['고창군','군산시','김제시','남원시','무주군','부안군','순창군','완주군','익산시','임실군','장수군','전주시','정읍시','진안군'],
+  '전남': ['강진군','고흥군','곡성군','광양시','구례군','나주시','담양군','목포시','무안군','보성군','순천시','신안군','여수시','영광군','영암군','완도군','장성군','장흥군','진도군','함평군','해남군','화순군'],
+  '경북': ['경산시','경주시','고령군','구미시','김천시','문경시','봉화군','상주시','성주군','안동시','영덕군','영양군','영주시','영천시','예천군','울릉군','울진군','의성군','청도군','청송군','칠곡군','포항시'],
+  '경남': ['거제시','거창군','고성군','김해시','남해군','밀양시','사천시','산청군','양산시','의령군','진주시','창녕군','창원시','통영시','하동군','함안군','함양군','합천군'],
+  '제주': ['서귀포시','제주시'],
+}
 const TYPE_COLOR = {
   '파트타임':   'bg-blue-50 text-blue-600',
   '단기':       'bg-orange-50 text-orange',
@@ -82,6 +164,7 @@ export default function IndividualProfilePage() {
   const [showResume,   setShowResume]   = useState(false)
   const [showPwChange, setShowPwChange] = useState(false)
   const [showWithdraw, setShowWithdraw] = useState(false)
+  const [statModal,    setStatModal]    = useState(null) // 'jobs' | 'hours' | 'rating' | 'attend'
 
   // ── 프로필 편집 ──
   const [editingProfile, setEditingProfile] = useState(false)
@@ -115,14 +198,17 @@ export default function IndividualProfilePage() {
   // ── 활동 가능 지역 ──
   const regions = profile.regions?.length ? profile.regions : ['서울 강남구', '서울 서초구', '경기 성남시']
   const [showRegionInput, setShowRegionInput] = useState(false)
-  const [regionInput,     setRegionInput]     = useState('')
+  const [regionSido,      setRegionSido]      = useState('')
+  const [regionGungu,     setRegionGungu]     = useState('')
 
   function addRegion() {
-    const r = regionInput.trim()
-    if (r && !regions.includes(r)) {
+    if (!regionSido || !regionGungu) return
+    const r = `${regionSido} ${regionGungu}`
+    if (!regions.includes(r)) {
       updateProfile({ regions: [...regions, r] })
     }
-    setRegionInput('')
+    setRegionSido('')
+    setRegionGungu('')
     setShowRegionInput(false)
   }
 
@@ -221,7 +307,11 @@ export default function IndividualProfilePage() {
       {/* ── 1. Stats 카드 ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {DEMO_STATS.map(s => (
-          <div key={s.label} className="bg-white rounded-2xl border border-offwhite-200 p-4">
+          <button
+            key={s.label}
+            onClick={() => setStatModal(s.key)}
+            className="bg-white rounded-2xl border border-offwhite-200 p-4 text-left hover:border-navy hover:shadow-sm transition-all group"
+          >
             <div className={`w-9 h-9 rounded-xl ${s.bg} flex items-center justify-center mb-3`}>
               <s.icon size={18} className={s.color} />
             </div>
@@ -229,13 +319,13 @@ export default function IndividualProfilePage() {
               {s.value}
               {s.suffix && <span className="text-xs font-normal text-gray-400 ml-1">{s.suffix}</span>}
             </p>
-            <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
+            <p className="text-xs text-gray-500 mt-0.5 group-hover:text-navy transition-colors">{s.label}</p>
             {s.badge && (
               <span className="inline-block mt-1.5 text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
                 최근 20회 중 0건
               </span>
             )}
-          </div>
+          </button>
         ))}
       </div>
 
@@ -402,20 +492,55 @@ export default function IndividualProfilePage() {
           ))}
         </div>
         {showRegionInput && (
-          <div className="flex gap-2 mt-2">
-            <input type="text" placeholder="예: 서울 마포구" value={regionInput}
-              onChange={e => setRegionInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') addRegion() }}
-              autoFocus
-              className="flex-1 border border-offwhite-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-navy" />
-            <button onClick={addRegion}
-              className="px-3 py-2 bg-navy text-white text-sm font-semibold rounded-lg hover:bg-navy-700 transition-colors">
-              추가
-            </button>
-            <button onClick={() => setShowRegionInput(false)}
-              className="px-3 py-2 text-sm text-gray-400 rounded-lg border border-offwhite-200 hover:border-gray-400 transition-colors">
-              취소
-            </button>
+          <div className="mt-2 space-y-2">
+            <div className="flex gap-2">
+              {/* 시/도 */}
+              <div className="relative flex-1">
+                <select
+                  value={regionSido}
+                  onChange={e => { setRegionSido(e.target.value); setRegionGungu('') }}
+                  className="w-full appearance-none border border-offwhite-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-navy bg-white text-navy"
+                >
+                  <option value="">시/도 선택</option>
+                  {Object.keys(REGIONS).map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+                <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              </div>
+
+              {/* 구/군 */}
+              <div className="relative flex-1">
+                <select
+                  value={regionGungu}
+                  onChange={e => setRegionGungu(e.target.value)}
+                  disabled={!regionSido}
+                  className="w-full appearance-none border border-offwhite-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-navy bg-white text-navy disabled:text-gray-300 disabled:bg-offwhite"
+                >
+                  <option value="">구/군 선택</option>
+                  {(REGIONS[regionSido] ?? []).map(g => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+                <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={addRegion}
+                disabled={!regionSido || !regionGungu}
+                className="px-4 py-2 bg-navy text-white text-sm font-semibold rounded-lg hover:bg-navy/80 disabled:opacity-40 transition-colors"
+              >
+                추가
+              </button>
+              <button
+                onClick={() => { setShowRegionInput(false); setRegionSido(''); setRegionGungu('') }}
+                className="px-4 py-2 text-sm text-gray-400 rounded-lg border border-offwhite-200 hover:border-gray-400 transition-colors"
+              >
+                취소
+              </button>
+            </div>
           </div>
         )}
       </SectionCard>
@@ -688,6 +813,203 @@ export default function IndividualProfilePage() {
             </div>
           </div>
         </Modal>
+      )}
+
+      {/* ── 모달: 완료한 업무 ── */}
+      {statModal === 'jobs' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={e => e.target === e.currentTarget && setStatModal(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden flex flex-col max-h-[80vh]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-offwhite-200 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
+                  <Briefcase size={16} className="text-blue-500" />
+                </div>
+                <h3 className="font-bold text-navy">완료한 업무 <span className="text-blue-500">23건</span></h3>
+              </div>
+              <button onClick={() => setStatModal(null)} className="text-gray-400 hover:text-navy transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1">
+              {Object.entries(
+                DEMO_COMPLETED_JOBS.reduce((acc, j) => {
+                  if (!acc[j.company]) acc[j.company] = []
+                  acc[j.company].push(j)
+                  return acc
+                }, {})
+              ).map(([company, jobs]) => (
+                <div key={company}>
+                  <div className="px-5 py-2.5 bg-offwhite border-b border-offwhite-200 flex items-center justify-between">
+                    <p className="text-xs font-bold text-navy">{company}</p>
+                    <span className="text-xs text-gray-400">{jobs.length}건</span>
+                  </div>
+                  {jobs.map(j => (
+                    <div key={j.id} className="px-5 py-3 border-b border-offwhite-200 flex items-center justify-between gap-4 hover:bg-offwhite-100 transition-colors">
+                      <div>
+                        <p className="text-sm font-medium text-navy">{j.role}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{j.date} · {j.hours}시간</p>
+                      </div>
+                      <span className="text-sm font-semibold text-orange shrink-0">
+                        {j.pay.toLocaleString()}원
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+            <div className="px-5 py-3 bg-offwhite-100 border-t border-offwhite-200 flex items-center justify-between shrink-0">
+              <span className="text-xs text-gray-500">총 수입</span>
+              <span className="text-sm font-extrabold text-navy">
+                {DEMO_COMPLETED_JOBS.reduce((s, j) => s + j.pay, 0).toLocaleString()}원
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 모달: 총 근무 시간 ── */}
+      {statModal === 'hours' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={e => e.target === e.currentTarget && setStatModal(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden flex flex-col max-h-[80vh]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-offwhite-200 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center">
+                  <Clock size={16} className="text-purple-500" />
+                </div>
+                <h3 className="font-bold text-navy">총 근무 시간 <span className="text-purple-500">184시간</span></h3>
+              </div>
+              <button onClick={() => setStatModal(null)} className="text-gray-400 hover:text-navy transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-5 space-y-3">
+              {Object.entries(
+                DEMO_COMPLETED_JOBS.reduce((acc, j) => {
+                  if (!acc[j.company]) acc[j.company] = 0
+                  acc[j.company] += j.hours
+                  return acc
+                }, {})
+              )
+                .sort((a, b) => b[1] - a[1])
+                .map(([company, hours]) => {
+                  const pct = Math.round((hours / 184) * 100)
+                  return (
+                    <div key={company}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium text-navy">{company}</span>
+                        <span className="text-sm font-bold text-purple-600">{hours}시간</span>
+                      </div>
+                      <div className="h-2 bg-offwhite rounded-full overflow-hidden">
+                        <div className="h-full bg-purple-400 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                      </div>
+                      <p className="text-[10px] text-gray-400 mt-0.5 text-right">{pct}%</p>
+                    </div>
+                  )
+                })}
+            </div>
+            <div className="px-5 py-3 bg-offwhite-100 border-t border-offwhite-200 flex items-center justify-between shrink-0">
+              <span className="text-xs text-gray-500">총 근무 시간</span>
+              <span className="text-sm font-extrabold text-navy">184시간</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 모달: 평균 별점 ── */}
+      {statModal === 'rating' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={e => e.target === e.currentTarget && setStatModal(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden flex flex-col max-h-[80vh]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-offwhite-200 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-yellow-50 flex items-center justify-center">
+                  <Star size={16} className="text-yellow-500" />
+                </div>
+                <h3 className="font-bold text-navy">기업별 평점 <span className="text-yellow-500">평균 4.8</span></h3>
+              </div>
+              <button onClick={() => setStatModal(null)} className="text-gray-400 hover:text-navy transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 divide-y divide-offwhite-200">
+              {DEMO_RATINGS.sort((a, b) => b.rating - a.rating).map(r => (
+                <div key={r.company} className="px-5 py-4 hover:bg-offwhite-100 transition-colors">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-bold text-navy">{r.company}</p>
+                        <span className="text-xs text-gray-400">{r.date}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{r.comment}</p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Star size={14} className="text-yellow-400 fill-yellow-400" />
+                      <span className="text-base font-extrabold text-navy tabular-nums">{r.rating.toFixed(1)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="px-5 py-3 bg-offwhite-100 border-t border-offwhite-200 flex items-center justify-between shrink-0">
+              <span className="text-xs text-gray-500">총 {DEMO_RATINGS.length}개 평가 · 평균</span>
+              <div className="flex items-center gap-1">
+                <Star size={13} className="text-yellow-400 fill-yellow-400" />
+                <span className="text-sm font-extrabold text-navy">
+                  {(DEMO_RATINGS.reduce((s, r) => s + r.rating, 0) / DEMO_RATINGS.length).toFixed(1)}
+                </span>
+                <span className="text-xs text-gray-400">/ 5.0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 모달: 근태 지수 ── */}
+      {statModal === 'attend' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={e => e.target === e.currentTarget && setStatModal(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden flex flex-col max-h-[80vh]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-offwhite-200 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-green-50 flex items-center justify-center">
+                  <ShieldCheck size={16} className="text-green-600" />
+                </div>
+                <h3 className="font-bold text-navy">근태 기록</h3>
+              </div>
+              <button onClick={() => setStatModal(null)} className="text-gray-400 hover:text-navy transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="px-5 py-4 bg-green-50 border-b border-green-100 flex items-center gap-4 shrink-0">
+              <div className="flex items-center gap-2">
+                <ShieldCheck size={20} className="text-green-600" />
+                <span className="text-sm font-bold text-green-700">노쇼 0회</span>
+              </div>
+              <span className="text-xs text-gray-500 bg-white border border-green-200 px-2.5 py-1 rounded-full">
+                최근 20회 근무 중 0건 결근
+              </span>
+            </div>
+            <div className="overflow-y-auto flex-1 divide-y divide-offwhite-200">
+              {DEMO_ATTENDANCE.map((a, i) => (
+                <div key={i} className="px-5 py-3 flex items-center justify-between hover:bg-offwhite-100 transition-colors">
+                  <div>
+                    <p className="text-sm font-medium text-navy">{a.company}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{a.date}</p>
+                  </div>
+                  <span className="text-xs font-bold bg-green-100 text-green-700 px-2.5 py-1 rounded-full">
+                    {a.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="px-5 py-3 bg-offwhite-100 border-t border-offwhite-200 flex items-center justify-between shrink-0">
+              <span className="text-xs text-gray-500">총 {DEMO_ATTENDANCE.length}건 기록</span>
+              <span className="text-xs font-bold text-green-600">출근율 100%</span>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
