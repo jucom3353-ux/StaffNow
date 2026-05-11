@@ -197,53 +197,91 @@ export default function ContractsPage() {
           />
         </Card>
       ) : (
-        <Card padding={false}>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-offwhite-200 bg-offwhite-100">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">스태프</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Shift</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">근무 시간</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">금액</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">상태</th>
-                <th className="px-5 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {contracts.map(c => {
-                const meta = STATUS_META[c.status] ?? STATUS_META.completed
-                return (
-                  <tr key={c.id} className="border-b border-offwhite-100 last:border-0 hover:bg-offwhite-100 transition-colors">
-                    <td className="px-5 py-3.5">
-                      <p className="font-semibold text-navy">{c.staffName}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{c.role}</p>
-                    </td>
-                    <td className="px-5 py-3.5 text-gray-600 hidden md:table-cell">{c.shift}</td>
-                    <td className="px-5 py-3.5 text-gray-600 hidden md:table-cell tabular-nums">
-                      {c.workHours ?? '—'}
-                    </td>
-                    <td className="px-5 py-3.5 font-semibold text-navy tabular-nums">
-                      {c.amount ? `₩${c.amount.toLocaleString('ko-KR')}` : '—'}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className={`inline-flex text-xs font-semibold px-2.5 py-1 rounded-full border ${meta.color}`}>
+        <>
+          {/* 모바일 카드 뷰 */}
+          <div className="md:hidden space-y-2">
+            {contracts.map(c => {
+              const meta = STATUS_META[c.status] ?? STATUS_META.completed
+              return (
+                <Card key={c.id} padding={false}>
+                  <div className="p-4">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div>
+                        <p className="font-semibold text-navy">{c.staffName}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{c.role}</p>
+                      </div>
+                      <span className={`shrink-0 inline-flex text-xs font-semibold px-2.5 py-1 rounded-full border ${meta.color}`}>
                         {meta.label}
                       </span>
-                    </td>
-                    <td className="px-5 py-3.5">
+                    </div>
+                    <p className="text-xs text-gray-500 truncate mb-3">{c.shift}</p>
+                    <div className="flex items-center justify-between pt-2.5 border-t border-offwhite-100">
+                      <div>
+                        <p className="font-semibold text-navy tabular-nums">
+                          {c.amount ? `₩${c.amount.toLocaleString('ko-KR')}` : '—'}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">{c.workHours ?? '—'}</p>
+                      </div>
                       <button
                         onClick={() => setSelectedContract(c)}
-                        className="text-xs font-semibold text-navy bg-offwhite-100 hover:bg-navy hover:text-white border border-offwhite-200 hover:border-navy px-3 py-1.5 rounded-lg transition-colors"
+                        className="text-xs font-semibold text-navy bg-offwhite-100 hover:bg-navy hover:text-white border border-offwhite-200 hover:border-navy px-3 py-2 rounded-lg transition-colors"
                       >
                         계약서 보기
                       </button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </Card>
+                    </div>
+                  </div>
+                </Card>
+              )
+            })}
+          </div>
+
+          {/* 데스크탑 테이블 */}
+          <Card padding={false} className="hidden md:block">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-offwhite-200 bg-offwhite-100">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">스태프</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Shift</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">근무 시간</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">금액</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">상태</th>
+                  <th className="px-5 py-3" />
+                </tr>
+              </thead>
+              <tbody>
+                {contracts.map(c => {
+                  const meta = STATUS_META[c.status] ?? STATUS_META.completed
+                  return (
+                    <tr key={c.id} className="border-b border-offwhite-100 last:border-0 hover:bg-offwhite-100 transition-colors">
+                      <td className="px-5 py-3.5">
+                        <p className="font-semibold text-navy">{c.staffName}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{c.role}</p>
+                      </td>
+                      <td className="px-5 py-3.5 text-gray-600">{c.shift}</td>
+                      <td className="px-5 py-3.5 text-gray-600 tabular-nums">{c.workHours ?? '—'}</td>
+                      <td className="px-5 py-3.5 font-semibold text-navy tabular-nums">
+                        {c.amount ? `₩${c.amount.toLocaleString('ko-KR')}` : '—'}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className={`inline-flex text-xs font-semibold px-2.5 py-1 rounded-full border ${meta.color}`}>
+                          {meta.label}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <button
+                          onClick={() => setSelectedContract(c)}
+                          className="text-xs font-semibold text-navy bg-offwhite-100 hover:bg-navy hover:text-white border border-offwhite-200 hover:border-navy px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          계약서 보기
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </Card>
+        </>
       )}
 
       {selectedContract && (

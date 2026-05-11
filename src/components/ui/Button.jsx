@@ -31,7 +31,7 @@ export default function Button({
   className,
 }) {
   const base = clsx(
-    'inline-flex items-center justify-center font-medium rounded-lg transition-colors duration-150 cursor-pointer select-none',
+    'inline-flex items-center justify-center font-medium rounded-lg transition-colors duration-150 cursor-pointer select-none whitespace-nowrap shrink-0',
     variants[variant],
     sizes[size],
     (disabled || loading) && 'opacity-50 cursor-not-allowed pointer-events-none',

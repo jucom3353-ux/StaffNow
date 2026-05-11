@@ -52,7 +52,7 @@ export default function IndividualLayout() {
       {/* ── 모바일 백드롭 ── */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          className="fixed inset-0 z-[1100] bg-black/50 md:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -64,7 +64,7 @@ export default function IndividualLayout() {
       <aside className={clsx(
         'flex flex-col bg-navy transition-all duration-200',
         // 모바일: fixed overlay — translate로 슬라이드 인/아웃
-        'fixed inset-y-0 left-0 z-50 w-64',
+        'fixed inset-y-0 left-0 z-[1200] w-64',
         mobileOpen ? 'translate-x-0' : '-translate-x-full',
         // 데스크탑: flex 흐름 복귀, translate 리셋
         'md:relative md:inset-auto md:z-auto md:translate-x-0 md:shrink-0',

@@ -185,7 +185,7 @@ export default function StaffRecommendationsPage() {
         />
       )}
 
-      <div className="flex items-start justify-between flex-wrap gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-navy">추천 인력</h1>
           <p className="text-sm text-gray-500 mt-0.5">총 {MOCK_APPLICANTS.length}명의 인력 풀</p>
@@ -195,12 +195,12 @@ export default function StaffRecommendationsPage() {
           placeholder="이름, 지역 검색"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="border border-offwhite-200 rounded-lg px-3 py-1.5 text-sm text-navy placeholder-gray-400 outline-none focus:border-navy w-44"
+          className="border border-offwhite-200 rounded-lg px-3 py-1.5 text-sm text-navy placeholder-gray-400 outline-none focus:border-navy w-full sm:w-44"
         />
       </div>
 
       {/* 티어 필터 탭 */}
-      <div className="flex gap-1">
+      <div className="flex gap-1 overflow-x-auto scrollbar-hide pb-2">
         {TIER_FILTERS.map(t => {
           const count = t.key === 'all'
             ? MOCK_APPLICANTS.length
@@ -213,7 +213,7 @@ export default function StaffRecommendationsPage() {
             <button
               key={t.key}
               onClick={() => setFilter(t.key)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5
+              className={`shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5
                 ${filter === t.key ? 'bg-navy text-white' : 'text-gray-500 hover:bg-offwhite-100 hover:text-navy'}`}
             >
               {t.label}

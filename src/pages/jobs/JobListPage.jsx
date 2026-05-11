@@ -94,15 +94,15 @@ export default function JobListPage() {
       </div>
 
       {/* 탭 + 검색 */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex gap-1">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div className="flex gap-1 overflow-x-auto scrollbar-hide">
           {TABS.map(t => {
             const count = t.key === 'all' ? myJobs.length : myJobs.filter(j => j.status === t.key).length
             return (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5
+                className={`shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5
                   ${tab === t.key
                     ? 'bg-navy text-white'
                     : 'text-gray-500 hover:bg-offwhite-100 hover:text-navy'}`}
@@ -118,7 +118,7 @@ export default function JobListPage() {
             )
           })}
         </div>
-        <div className="flex items-center gap-2 bg-white border border-offwhite-200 rounded-lg px-3 py-1.5 w-52">
+        <div className="flex items-center gap-2 bg-white border border-offwhite-200 rounded-lg px-3 py-1.5 sm:w-52">
           <Search size={14} className="text-gray-400 shrink-0" />
           <input
             type="text"
@@ -130,7 +130,7 @@ export default function JobListPage() {
         </div>
       </div>
 
-      {/* 테이블 */}
+      {/* 공고 목록 */}
       {filtered.length === 0 ? (
         <Card>
           <EmptyState
@@ -141,71 +141,115 @@ export default function JobListPage() {
           />
         </Card>
       ) : (
-        <Card padding={false}>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-offwhite-200 bg-offwhite-100">
-                {COLUMNS.map(col => (
-                  <th
-                    key={col.key}
-                    onClick={() => handleSort(col.key)}
-                    className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide cursor-pointer select-none hover:text-navy transition-colors whitespace-nowrap"
-                  >
-                    {col.label}
-                    <SortIcon colKey={col.key} sortKey={sortKey} sortDir={sortDir} />
-                  </th>
-                ))}
-                <th className="w-8" />
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(job => (
-                <tr key={job.id} className="border-b border-offwhite-100 last:border-0 hover:bg-offwhite-100 transition-colors group">
-                  <td className="px-5 py-3.5">
-                    <Link to={`/jobs/${job.id}`} className="font-semibold text-navy group-hover:text-orange transition-colors">
-                      {job.title}
-                    </Link>
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <StatusSelector
-                      status={job.status}
-                      options={JOB_STATUS_OPTIONS}
-                      onChange={val => updateJobStatus(job.id, val)}
-                    />
-                  </td>
-                  <td className="px-5 py-3.5 text-gray-600">{job.location}</td>
-                  <td className="px-5 py-3.5">
-                    <span className="font-semibold text-navy tabular-nums">{shifts.filter(s => s.jobId === job.id).reduce((sum, s) => sum + (s.confirmedStaff || 0), 0)}</span>
-                    <span className="text-gray-400">/{job.headcount}명</span>
-                  </td>
-                  <td className="px-5 py-3.5 text-gray-400 text-xs">{job.createdAt}</td>
-                  <td className="px-3 py-3.5">
-                    <div className="flex items-center gap-1">
-                      <Link
-                        to={`/jobs/${job.id}/edit`}
-                        onClick={e => e.stopPropagation()}
-                        className="p-1 rounded text-gray-300 hover:text-orange hover:bg-orange/10 transition-colors opacity-0 group-hover:opacity-100"
-                        title="공고 수정"
-                      >
-                        <Pencil size={14} />
+        <>
+          {/* ── 모바일 카드 뷰 ── */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {filtered.map(job => {
+              const confirmed = shifts.filter(s => s.jobId === job.id).reduce((sum, s) => sum + (s.confirmedStaff || 0), 0)
+              return (
+                <Card key={job.id} padding={false}>
+                  <div className="p-4">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <Link to={`/jobs/${job.id}`} className="font-bold text-navy text-sm leading-tight hover:text-orange transition-colors">
+                        {job.title}
+                      </Link>
+                      <StatusSelector
+                        status={job.status}
+                        options={JOB_STATUS_OPTIONS}
+                        onChange={val => updateJobStatus(job.id, val)}
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 mb-3">
+                      <span>📍 {job.location}</span>
+                      <span>👥 {confirmed}/{job.headcount}명</span>
+                      <span>🗓 {job.createdAt}</span>
+                    </div>
+                    <div className="flex items-center gap-2 pt-2 border-t border-offwhite-100">
+                      <Link to={`/jobs/${job.id}`}
+                        className="flex-1 text-center text-xs font-semibold text-navy py-1.5 rounded-lg bg-offwhite-100 hover:bg-offwhite-200 transition-colors">
+                        상세 보기
+                      </Link>
+                      <Link to={`/jobs/${job.id}/edit`}
+                        className="flex items-center justify-center gap-1 text-xs font-semibold text-gray-500 py-1.5 px-3 rounded-lg bg-offwhite-100 hover:bg-offwhite-200 transition-colors">
+                        <Pencil size={12} /> 수정
                       </Link>
                       <button
-                        onClick={e => { e.preventDefault(); e.stopPropagation(); setDeleteTarget(job) }}
-                        className="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
-                        title="공고 삭제"
-                      >
-                        <Trash2 size={14} />
+                        onClick={() => setDeleteTarget(job)}
+                        className="flex items-center justify-center gap-1 text-xs font-semibold text-red-400 py-1.5 px-3 rounded-lg bg-red-50 hover:bg-red-100 transition-colors">
+                        <Trash2 size={12} /> 삭제
                       </button>
-                      <Link to={`/jobs/${job.id}`} className="p-1 text-gray-300 group-hover:text-navy transition-colors">
-                        <ChevronRight size={16} />
-                      </Link>
                     </div>
-                  </td>
+                  </div>
+                </Card>
+              )
+            })}
+          </div>
+
+          {/* ── 데스크탑 테이블 뷰 ── */}
+          <Card padding={false} className="hidden md:block">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-offwhite-200 bg-offwhite-100">
+                  {COLUMNS.map(col => (
+                    <th
+                      key={col.key}
+                      onClick={() => handleSort(col.key)}
+                      className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide cursor-pointer select-none hover:text-navy transition-colors whitespace-nowrap"
+                    >
+                      {col.label}
+                      <SortIcon colKey={col.key} sortKey={sortKey} sortDir={sortDir} />
+                    </th>
+                  ))}
+                  <th className="w-8" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
+              </thead>
+              <tbody>
+                {filtered.map(job => (
+                  <tr key={job.id} className="border-b border-offwhite-100 last:border-0 hover:bg-offwhite-100 transition-colors group">
+                    <td className="px-5 py-3.5">
+                      <Link to={`/jobs/${job.id}`} className="font-semibold text-navy group-hover:text-orange transition-colors">
+                        {job.title}
+                      </Link>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <StatusSelector
+                        status={job.status}
+                        options={JOB_STATUS_OPTIONS}
+                        onChange={val => updateJobStatus(job.id, val)}
+                      />
+                    </td>
+                    <td className="px-5 py-3.5 text-gray-600">{job.location}</td>
+                    <td className="px-5 py-3.5">
+                      <span className="font-semibold text-navy tabular-nums">{shifts.filter(s => s.jobId === job.id).reduce((sum, s) => sum + (s.confirmedStaff || 0), 0)}</span>
+                      <span className="text-gray-400">/{job.headcount}명</span>
+                    </td>
+                    <td className="px-5 py-3.5 text-gray-400 text-xs">{job.createdAt}</td>
+                    <td className="px-3 py-3.5">
+                      <div className="flex items-center gap-1">
+                        <Link
+                          to={`/jobs/${job.id}/edit`}
+                          onClick={e => e.stopPropagation()}
+                          className="p-1 rounded text-gray-300 hover:text-orange hover:bg-orange/10 transition-colors opacity-0 group-hover:opacity-100"
+                        >
+                          <Pencil size={14} />
+                        </Link>
+                        <button
+                          onClick={e => { e.preventDefault(); e.stopPropagation(); setDeleteTarget(job) }}
+                          className="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                        <Link to={`/jobs/${job.id}`} className="p-1 text-gray-300 group-hover:text-navy transition-colors">
+                          <ChevronRight size={16} />
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </>
       )}
 
       <ConfirmModal

@@ -316,6 +316,7 @@ export default function IndividualMessagesPage() {
                   </p>
                 )}
               </div>
+              <ChevronRight size={14} className="text-gray-300 shrink-0 md:hidden" />
             </button>
           )
         })}
@@ -328,7 +329,7 @@ export default function IndividualMessagesPage() {
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-3 px-5 py-3.5 border-b border-offwhite-200 bg-white shrink-0">
         <button onClick={() => setMobileView('list')}
-          className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-offwhite-100 text-gray-500 mr-1">
+          className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-offwhite-100 text-gray-500 mr-1">
           <ChevronLeft size={18} />
         </button>
         <button
@@ -464,10 +465,10 @@ export default function IndividualMessagesPage() {
 
   return (
     <div className="h-[calc(100vh-4rem)] -m-6 flex overflow-hidden">
-      <div className={`w-80 shrink-0 border-r border-offwhite-200 bg-white ${mobileView === 'chat' ? 'hidden lg:flex' : 'flex'} flex-col`}>
+      <div className={`w-80 shrink-0 border-r border-offwhite-200 bg-white ${mobileView === 'chat' ? 'hidden md:flex' : 'flex'} flex-col`}>
         {ConvList}
       </div>
-      <div className={`flex-1 min-w-0 bg-white ${mobileView === 'list' ? 'hidden lg:flex' : 'flex'} flex-col`}>
+      <div className={`flex-1 min-w-0 bg-white ${mobileView === 'list' ? 'hidden md:flex' : 'flex'} flex-col`}>
         {ChatPanel}
       </div>
     </div>

@@ -38,14 +38,14 @@ export default function ShiftListPage() {
       </div>
 
       {/* 탭 */}
-      <div className="flex gap-1">
+      <div className="flex gap-1 overflow-x-auto scrollbar-hide">
         {TABS.map(t => {
           const count = t.key === 'all' ? myShifts.length : myShifts.filter(s => s.status === t.key).length
           return (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5
+              className={`shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5
                 ${tab === t.key
                   ? 'bg-navy text-white'
                   : 'text-gray-500 hover:bg-offwhite-100 hover:text-navy'}`}
@@ -97,18 +97,20 @@ export default function ShiftListPage() {
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-navy text-sm group-hover:text-orange transition-colors truncate">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <p className="font-semibold text-navy text-sm group-hover:text-orange transition-colors truncate min-w-0">
                           {shift.jobTitle}
                         </p>
-                        <StatusBadge status={shift.status} size="sm" />
-                        {isOver && (
-                          <span className="text-xs font-bold text-orange bg-orange-50 border border-orange/20 px-1.5 py-0.5 rounded-full">
-                            마감 초과
-                          </span>
-                        )}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <StatusBadge status={shift.status} size="sm" />
+                          {isOver && (
+                            <span className="whitespace-nowrap text-xs font-bold text-orange bg-orange-50 border border-orange/20 px-1.5 py-0.5 rounded-full">
+                              마감 초과
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-xs text-gray-400 mt-0.5">
+                      <p className="text-xs text-gray-400 mt-2 truncate">
                         {shift.startTime}–{shift.endTime}
                         {shift.location && <><span className="mx-1.5">·</span>{shift.location}</>}
                       </p>

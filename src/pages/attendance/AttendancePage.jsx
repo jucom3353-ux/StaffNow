@@ -302,7 +302,7 @@ export default function AttendancePage() {
       </div>
 
       {/* 달력 + 요약 카드 2단 레이아웃 */}
-      <div className="grid grid-cols-[320px_1fr] gap-5 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] gap-5 items-start">
         <AttendanceCalendar
           recordsByDate={recordsByDate}
           selectedDate={selectedDate}
@@ -340,14 +340,14 @@ export default function AttendancePage() {
       </div>
 
       {/* 탭 */}
-      <div className="flex gap-1 border-b border-offwhite-200">
+      <div className="flex gap-1 border-b border-offwhite-200 overflow-x-auto scrollbar-hide">
         {TABS.map(t => {
           const cnt = t.key === 'all' ? dayRecords.length : (counts[t.key] ?? 0)
           return (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`px-4 py-2.5 text-sm font-semibold transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
+              className={`shrink-0 px-4 py-2.5 text-sm font-semibold transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
                 tab === t.key ? 'border-orange text-orange' : 'border-transparent text-gray-500 hover:text-navy'
               }`}
             >
@@ -362,7 +362,7 @@ export default function AttendancePage() {
         })}
       </div>
 
-      {/* 테이블 */}
+      {/* 근태 목록 */}
       {filtered.length === 0 ? (
         <Card>
           <EmptyState
@@ -372,37 +372,74 @@ export default function AttendancePage() {
           />
         </Card>
       ) : (
-        <Card padding={false}>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-offwhite-200 bg-offwhite-100">
-                <SortableHeader label="스태프"   sortKey="staff"     sort={sort} onSort={handleSort} />
-                <SortableHeader label="Shift"    sortKey="shift"     sort={sort} onSort={handleSort} className="hidden md:table-cell" />
-                <SortableHeader label="체크인"   sortKey="checkIn"   sort={sort} onSort={handleSort} />
-                <SortableHeader label="체크아웃" sortKey="checkOut"  sort={sort} onSort={handleSort} />
-                <SortableHeader label="근무 시간" sortKey="workHours" sort={sort} onSort={handleSort} className="hidden md:table-cell" />
-                <SortableHeader label="상태"     sortKey="status"    sort={sort} onSort={handleSort} />
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(a => (
-                <tr key={a.id} className="border-b border-offwhite-100 last:border-0 hover:bg-offwhite-100 transition-colors">
-                  <td className="px-5 py-3.5">
-                    <p className="font-semibold text-navy">{a.staff}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{a.role}</p>
-                  </td>
-                  <td className="px-5 py-3.5 text-gray-600 hidden md:table-cell">{a.shift}</td>
-                  <td className="px-5 py-3.5 text-gray-700 font-medium tabular-nums">{a.checkIn ?? '—'}</td>
-                  <td className="px-5 py-3.5 text-gray-700 font-medium tabular-nums">{a.checkOut ?? '—'}</td>
-                  <td className="px-5 py-3.5 text-gray-500 hidden md:table-cell">
-                    {a.workHours ? <span className="font-medium text-navy">{a.workHours}</span> : '—'}
-                  </td>
-                  <td className="px-5 py-3.5"><StatusPill status={a.status} /></td>
+        <>
+          {/* 모바일 카드 뷰 */}
+          <div className="md:hidden space-y-2">
+            {filtered.map(a => (
+              <Card key={a.id} padding={false}>
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div>
+                      <p className="font-semibold text-navy">{a.staff}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{a.role}</p>
+                    </div>
+                    <StatusPill status={a.status} />
+                  </div>
+                  <p className="text-xs text-gray-500 truncate mb-3">{a.shift}</p>
+                  <div className="flex items-center gap-4 pt-2.5 border-t border-offwhite-100">
+                    <div>
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">체크인</p>
+                      <p className="text-sm font-semibold text-navy tabular-nums">{a.checkIn ?? '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">체크아웃</p>
+                      <p className="text-sm font-semibold text-navy tabular-nums">{a.checkOut ?? '—'}</p>
+                    </div>
+                    {a.workHours && (
+                      <div className="ml-auto">
+                        <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">근무 시간</p>
+                        <p className="text-sm font-semibold text-navy">{a.workHours}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* 데스크탑 테이블 */}
+          <Card padding={false} className="hidden md:block">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-offwhite-200 bg-offwhite-100">
+                  <SortableHeader label="스태프"   sortKey="staff"     sort={sort} onSort={handleSort} />
+                  <SortableHeader label="Shift"    sortKey="shift"     sort={sort} onSort={handleSort} />
+                  <SortableHeader label="체크인"   sortKey="checkIn"   sort={sort} onSort={handleSort} />
+                  <SortableHeader label="체크아웃" sortKey="checkOut"  sort={sort} onSort={handleSort} />
+                  <SortableHeader label="근무 시간" sortKey="workHours" sort={sort} onSort={handleSort} />
+                  <SortableHeader label="상태"     sortKey="status"    sort={sort} onSort={handleSort} />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
+              </thead>
+              <tbody>
+                {filtered.map(a => (
+                  <tr key={a.id} className="border-b border-offwhite-100 last:border-0 hover:bg-offwhite-100 transition-colors">
+                    <td className="px-5 py-3.5">
+                      <p className="font-semibold text-navy">{a.staff}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{a.role}</p>
+                    </td>
+                    <td className="px-5 py-3.5 text-gray-600">{a.shift}</td>
+                    <td className="px-5 py-3.5 text-gray-700 font-medium tabular-nums">{a.checkIn ?? '—'}</td>
+                    <td className="px-5 py-3.5 text-gray-700 font-medium tabular-nums">{a.checkOut ?? '—'}</td>
+                    <td className="px-5 py-3.5 text-gray-500">
+                      {a.workHours ? <span className="font-medium text-navy">{a.workHours}</span> : '—'}
+                    </td>
+                    <td className="px-5 py-3.5"><StatusPill status={a.status} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </>
       )}
     </div>
   )

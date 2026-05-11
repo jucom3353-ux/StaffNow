@@ -234,7 +234,7 @@ export default function PayrollPage() {
       </div>
 
       {/* 요약 카드 */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
           { label: '미정산',    value: `₩${fmt(totalUnpaid)}`,         sub: `${unpaid.length}건`,                                                            icon: AlertCircle,  color: 'text-amber-500',  bg: 'bg-amber-50' },
           { label: '정산 완료', value: `₩${fmt(totalPaid)}`,           sub: `${resolvedPayroll.filter(p => p.status === 'paid').length}건`,                  icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
@@ -245,8 +245,8 @@ export default function PayrollPage() {
               <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center shrink-0`}>
                 <Icon size={16} className={color} />
               </div>
-              <div>
-                <p className="text-lg font-bold text-navy tabular-nums">{value}</p>
+              <div className="min-w-0">
+                <p className="text-lg font-bold text-navy tabular-nums truncate">{value}</p>
                 <p className="text-xs text-gray-500">{label} · {sub}</p>
               </div>
             </div>
@@ -272,7 +272,7 @@ export default function PayrollPage() {
       )}
 
       {/* 탭 */}
-      <div className="flex gap-1 border-b border-offwhite-200">
+      <div className="flex gap-1 border-b border-offwhite-200 overflow-x-auto scrollbar-hide">
         {TABS.map(t => {
           const cnt = t.key === 'all'
             ? resolvedPayroll.length
@@ -283,7 +283,7 @@ export default function PayrollPage() {
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`px-4 py-2.5 text-sm font-semibold transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
+              className={`shrink-0 px-4 py-2.5 text-sm font-semibold transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
                 tab === t.key ? 'border-orange text-orange' : 'border-transparent text-gray-500 hover:text-navy'
               }`}
             >
@@ -302,7 +302,7 @@ export default function PayrollPage() {
         })}
       </div>
 
-      {/* 테이블 */}
+      {/* 정산 목록 */}
       {filtered.length === 0 ? (
         <Card>
           <EmptyState
@@ -312,83 +312,41 @@ export default function PayrollPage() {
           />
         </Card>
       ) : (
-        <Card padding={false}>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-offwhite-200 bg-offwhite-100">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">스태프</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Shift</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">근무 시간</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">실제 퇴근</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden xl:table-cell">기본급+보너스</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">합계</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">상태</th>
-                <th className="px-5 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(p => (
-                <tr
-                  key={p.id}
-                  className={`border-b border-offwhite-100 last:border-0 transition-colors ${
-                    p.overtimeStatus === 'capped' ? 'bg-red-50/40 hover:bg-red-50' : 'hover:bg-offwhite-100'
-                  }`}
-                >
-                  <td className="px-5 py-3.5">
-                    <p className="font-semibold text-navy">{p.staff}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{p.role}</p>
-                  </td>
-                  <td className="px-5 py-3.5 text-gray-600 hidden md:table-cell">{p.shift}</td>
-                  <td className="px-5 py-3.5">
-                    <p className="text-gray-700 tabular-nums font-medium">{p.hoursLabel}</p>
+        <>
+          {/* 모바일 카드 뷰 */}
+          <div className="md:hidden space-y-2">
+            {filtered.map(p => (
+              <Card key={p.id} padding={false} className={p.overtimeStatus === 'capped' ? 'border-red-200 bg-red-50/20' : ''}>
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div>
+                      <p className="font-semibold text-navy">{p.staff}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{p.role}</p>
+                    </div>
+                    <StatusPill status={p.status} />
+                  </div>
+                  <p className="text-xs text-gray-500 truncate mb-1">{p.shift}</p>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-sm font-medium text-gray-700 tabular-nums">{p.hoursLabel}</span>
                     <OvertimePill overtimeStatus={p.overtimeStatus} cappedMins={p.cappedMins} isLate={p.isLate} lateMins={p.lateMins} />
-                  </td>
-                  <td className="px-5 py-3.5 hidden lg:table-cell">
-                    {p.actualCheckout ? (
-                      <div className="text-xs tabular-nums">
-                        <span className={p.overtimeStatus === 'capped' ? 'text-red-500 font-semibold' : 'text-gray-500'}>
-                          {p.actualCheckout}
-                        </span>
-                        {p.billableCheckout && p.billableCheckout !== p.actualCheckout && (
-                          <span className="text-gray-300 mx-1">→</span>
-                        )}
-                        {p.billableCheckout && p.billableCheckout !== p.actualCheckout && (
-                          <span className="text-navy font-semibold">{p.billableCheckout}</span>
-                        )}
-                      </div>
-                    ) : '—'}
-                  </td>
-                  <td className="px-5 py-3.5 hidden xl:table-cell">
-                    {p.basePay > 0 || p.bonusPay > 0 ? (
-                      <div className="text-xs tabular-nums">
-                        <span className="text-navy font-semibold">₩{fmt(p.basePay)}</span>
-                        <span className="text-gray-300 mx-1">+</span>
-                        <span className={`font-semibold ${p.bonusPay > 0 ? 'text-orange' : 'text-gray-300'}`}>
-                          ₩{fmt(p.bonusPay)}
-                        </span>
-                      </div>
-                    ) : '—'}
-                  </td>
-                  <td className="px-5 py-3.5 font-semibold text-navy tabular-nums">
-                    {p.amount > 0 ? `₩${fmt(p.amount)}` : '—'}
-                  </td>
-                  <td className="px-5 py-3.5"><StatusPill status={p.status} /></td>
-                  <td className="px-5 py-3.5">
-                    <div className="flex flex-col gap-1.5 items-start">
-                      {/* 연장 승인 버튼 (capped 상태일 때만) */}
+                  </div>
+                  <div className="flex items-center justify-between pt-2.5 border-t border-offwhite-100">
+                    <p className="font-bold text-navy tabular-nums">
+                      {p.amount > 0 ? `₩${fmt(p.amount)}` : '—'}
+                    </p>
+                    <div className="flex items-center gap-2">
                       {p.overtimeStatus === 'capped' && p.status !== 'paid' && (
                         <button
                           onClick={() => approveOt(p.id)}
-                          className="flex items-center gap-1 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2.5 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+                          className="flex items-center gap-1 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg"
                         >
                           <Clock size={11} />연장 승인
                         </button>
                       )}
-                      {/* 정산 승인 버튼 */}
                       {p.status === 'unpaid' && (
                         <button
                           onClick={() => approveOne(p.id)}
-                          className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 hover:bg-green-100 border border-green-200 px-2.5 py-1.5 rounded-lg transition-colors"
+                          className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 border border-green-200 px-3 py-1.5 rounded-lg"
                         >
                           <Check size={12} />승인
                         </button>
@@ -399,12 +357,105 @@ export default function PayrollPage() {
                         </span>
                       )}
                     </div>
-                  </td>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* 데스크탑 테이블 */}
+          <Card padding={false} className="hidden md:block">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-offwhite-200 bg-offwhite-100">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">스태프</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Shift</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">근무 시간</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">실제 퇴근</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden xl:table-cell">기본급+보너스</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">합계</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">상태</th>
+                  <th className="px-5 py-3" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
+              </thead>
+              <tbody>
+                {filtered.map(p => (
+                  <tr
+                    key={p.id}
+                    className={`border-b border-offwhite-100 last:border-0 transition-colors ${
+                      p.overtimeStatus === 'capped' ? 'bg-red-50/40 hover:bg-red-50' : 'hover:bg-offwhite-100'
+                    }`}
+                  >
+                    <td className="px-5 py-3.5">
+                      <p className="font-semibold text-navy">{p.staff}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{p.role}</p>
+                    </td>
+                    <td className="px-5 py-3.5 text-gray-600">{p.shift}</td>
+                    <td className="px-5 py-3.5">
+                      <p className="text-gray-700 tabular-nums font-medium">{p.hoursLabel}</p>
+                      <OvertimePill overtimeStatus={p.overtimeStatus} cappedMins={p.cappedMins} isLate={p.isLate} lateMins={p.lateMins} />
+                    </td>
+                    <td className="px-5 py-3.5 hidden lg:table-cell">
+                      {p.actualCheckout ? (
+                        <div className="text-xs tabular-nums">
+                          <span className={p.overtimeStatus === 'capped' ? 'text-red-500 font-semibold' : 'text-gray-500'}>
+                            {p.actualCheckout}
+                          </span>
+                          {p.billableCheckout && p.billableCheckout !== p.actualCheckout && (
+                            <span className="text-gray-300 mx-1">→</span>
+                          )}
+                          {p.billableCheckout && p.billableCheckout !== p.actualCheckout && (
+                            <span className="text-navy font-semibold">{p.billableCheckout}</span>
+                          )}
+                        </div>
+                      ) : '—'}
+                    </td>
+                    <td className="px-5 py-3.5 hidden xl:table-cell">
+                      {p.basePay > 0 || p.bonusPay > 0 ? (
+                        <div className="text-xs tabular-nums">
+                          <span className="text-navy font-semibold">₩{fmt(p.basePay)}</span>
+                          <span className="text-gray-300 mx-1">+</span>
+                          <span className={`font-semibold ${p.bonusPay > 0 ? 'text-orange' : 'text-gray-300'}`}>
+                            ₩{fmt(p.bonusPay)}
+                          </span>
+                        </div>
+                      ) : '—'}
+                    </td>
+                    <td className="px-5 py-3.5 font-semibold text-navy tabular-nums">
+                      {p.amount > 0 ? `₩${fmt(p.amount)}` : '—'}
+                    </td>
+                    <td className="px-5 py-3.5"><StatusPill status={p.status} /></td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex flex-col gap-1.5 items-start">
+                        {p.overtimeStatus === 'capped' && p.status !== 'paid' && (
+                          <button
+                            onClick={() => approveOt(p.id)}
+                            className="flex items-center gap-1 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2.5 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+                          >
+                            <Clock size={11} />연장 승인
+                          </button>
+                        )}
+                        {p.status === 'unpaid' && (
+                          <button
+                            onClick={() => approveOne(p.id)}
+                            className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 hover:bg-green-100 border border-green-200 px-2.5 py-1.5 rounded-lg transition-colors"
+                          >
+                            <Check size={12} />승인
+                          </button>
+                        )}
+                        {p.status === 'paid' && (
+                          <span className="text-xs text-green-600 flex items-center gap-1 font-medium">
+                            <CheckCircle2 size={11} />완료
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </>
       )}
     </div>
   )

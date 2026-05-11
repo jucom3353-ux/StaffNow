@@ -156,12 +156,12 @@ export default function WheelPicker({ value, onChange, label = '시간 선택' }
     : label
 
   return (
-    <div ref={containerRef} className="relative inline-block">
+    <div ref={containerRef} className="relative">
       {/* 트리거 */}
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all
+        className={`w-full flex items-center gap-2 px-4 py-3 rounded-xl border text-sm font-semibold transition-all
           ${value
             ? 'border-navy bg-navy/5 text-navy'
             : 'border-offwhite-200 text-gray-400 hover:border-navy'

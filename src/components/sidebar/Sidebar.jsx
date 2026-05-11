@@ -29,8 +29,8 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onClose }) {
       className={clsx(
         'flex flex-col bg-navy h-screen transition-all duration-200 ease-in-out overflow-hidden',
         'shadow-[2px_0_8px_rgba(27,43,72,0.12)]',
-        // 모바일: fixed overlay 드로어
-        'fixed inset-y-0 left-0 z-50 w-64',
+        // 모바일: fixed overlay 드로어 (Leaflet z-index 최대 1000 이상으로 설정)
+        'fixed inset-y-0 left-0 z-[1200] w-64',
         mobileOpen ? 'translate-x-0' : '-translate-x-full',
         // 데스크탑: flex 흐름으로 복귀
         'md:relative md:inset-auto md:z-auto md:translate-x-0 md:shrink-0',

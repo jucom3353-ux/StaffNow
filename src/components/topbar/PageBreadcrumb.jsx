@@ -1,4 +1,4 @@
-import { useLocation } from 'react-router-dom'
+import { useLocation, Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 
 const PAGE_LABELS = {
@@ -26,12 +26,17 @@ export default function PageBreadcrumb() {
       {parts.map((part, i) => {
         const isLast = i === parts.length - 1
         const label = PAGE_LABELS[part] ?? part
+        const href = '/' + parts.slice(0, i + 1).join('/')
         return (
           <span key={i} className="flex items-center gap-1">
             {i > 0 && <ChevronRight size={14} className="text-gray-300" />}
-            <span className={isLast ? 'font-semibold text-navy' : 'text-gray-400'}>
-              {label}
-            </span>
+            {isLast ? (
+              <span className="font-semibold text-navy">{label}</span>
+            ) : (
+              <Link to={href} className="text-gray-400 hover:text-navy transition-colors">
+                {label}
+              </Link>
+            )}
           </span>
         )
       })}

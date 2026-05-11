@@ -23,7 +23,7 @@ export default function AppShell() {
       {/* 모바일 백드롭 */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          className="fixed inset-0 z-[1100] bg-black/50 md:hidden"
           onClick={closeMobile}
         />
       )}

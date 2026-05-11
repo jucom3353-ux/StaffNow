@@ -313,7 +313,7 @@ export default function CompanySettingsPage() {
         </div>
       }>
         <p className="text-xs text-gray-400 mb-4">공고에 노출될 담당자 정보를 설정합니다. 매번 공고마다 입력할 필요 없이 기본값으로 사용됩니다.</p>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">담당자 성함</label>
             <input

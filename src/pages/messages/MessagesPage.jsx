@@ -321,7 +321,7 @@ export default function MessagesPage() {
       <div className="flex items-center gap-3 px-5 py-3.5 border-b border-offwhite-200 bg-white shrink-0">
         <button
           onClick={() => setMobileView('list')}
-          className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-offwhite-100 text-gray-500 mr-1"
+          className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-offwhite-100 text-gray-500 mr-1"
         >
           <ChevronLeft size={18} />
         </button>
@@ -515,12 +515,26 @@ export default function MessagesPage() {
   // ── 레이아웃 ─────────────────────────────────────────────
   return (
     <div className="h-[calc(100vh-4rem)] -m-6 flex overflow-hidden">
-      <div className={`w-80 shrink-0 border-r border-offwhite-200 bg-white
-        ${mobileView === 'chat' ? 'hidden lg:flex' : 'flex'} flex-col`}>
+
+      {/* ── 모바일: 슬라이드 전환 ── */}
+      <div className="relative flex-1 overflow-hidden md:hidden">
+        {/* 대화 목록 — 채팅 열리면 왼쪽으로 슬라이드아웃 */}
+        <div className={`absolute inset-0 bg-white transition-transform duration-300 ease-in-out
+          ${mobileView === 'chat' ? '-translate-x-full' : 'translate-x-0'}`}>
+          {ConvList}
+        </div>
+        {/* 채팅 — 오른쪽에서 슬라이드인 */}
+        <div className={`absolute inset-0 bg-white transition-transform duration-300 ease-in-out
+          ${mobileView === 'chat' ? 'translate-x-0' : 'translate-x-full'}`}>
+          {ChatPanel}
+        </div>
+      </div>
+
+      {/* ── 데스크탑: 2패널 ── */}
+      <div className="hidden md:flex w-80 shrink-0 border-r border-offwhite-200 bg-white flex-col">
         {ConvList}
       </div>
-      <div className={`flex-1 min-w-0 bg-white
-        ${mobileView === 'list' ? 'hidden lg:flex' : 'flex'} flex-col`}>
+      <div className="hidden md:flex flex-1 min-w-0 bg-white flex-col">
         {ChatPanel}
       </div>
     </div>

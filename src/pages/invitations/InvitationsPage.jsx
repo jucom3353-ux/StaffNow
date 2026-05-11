@@ -204,27 +204,34 @@ export default function InvitationsPage() {
       )}
 
       {/* 헤더 */}
-      <div className="flex items-start justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-xl font-bold text-navy">초대/확정 관리</h1>
+          <p className="text-sm text-gray-500 mt-0.5">스태프 초대 현황</p>
           <p className="text-sm text-gray-500 mt-0.5">
-            스태프 초대 현황 — 대기 <strong className="text-amber-600">{counts.pending}건</strong>,
-            수락 <strong className="text-blue-600">{counts.accepted}건</strong>,
-            확정 <strong className="text-green-600">{counts.confirmed}건</strong>
+            대기 <strong className="text-amber-600">{counts.pending}건</strong>
+            {' · '}수락 <strong className="text-blue-600">{counts.accepted}건</strong>
+            {' · '}확정 <strong className="text-green-600">{counts.confirmed}건</strong>
           </p>
         </div>
-        <Button icon={Send} onClick={() => setShowModal(true)}>초대 발송</Button>
+        <Button icon={Send} onClick={() => setShowModal(true)} className="shrink-0 whitespace-nowrap">초대 발송</Button>
       </div>
 
       {/* 요약 카드 */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: '응답 대기', value: counts.pending,   icon: Clock,     color: 'text-amber-500', bg: 'bg-amber-50' },
-          { label: '수락됨',   value: counts.accepted,  icon: Mail,      color: 'text-blue-500',  bg: 'bg-blue-50' },
-          { label: '확정됨',   value: counts.confirmed, icon: UserCheck, color: 'text-green-600', bg: 'bg-green-50' },
-          { label: '거절됨',   value: counts.rejected,  icon: X,         color: 'text-red-400',   bg: 'bg-red-50' },
-        ].map(({ label, value, icon: Icon, color, bg }) => (
-          <Card key={label}>
+          { key: 'pending',   label: '응답 대기', value: counts.pending,   icon: Clock,     color: 'text-amber-500', bg: 'bg-amber-50',   ring: 'ring-amber-300' },
+          { key: 'accepted',  label: '수락됨',   value: counts.accepted,  icon: Mail,      color: 'text-blue-500',  bg: 'bg-blue-50',    ring: 'ring-blue-300' },
+          { key: 'confirmed', label: '확정됨',   value: counts.confirmed, icon: UserCheck, color: 'text-green-600', bg: 'bg-green-50',   ring: 'ring-green-300' },
+          { key: 'rejected',  label: '거절됨',   value: counts.rejected,  icon: X,         color: 'text-red-400',   bg: 'bg-red-50',     ring: 'ring-red-300' },
+        ].map(({ key, label, value, icon: Icon, color, bg, ring }) => (
+          <button
+            key={key}
+            onClick={() => { const next = tab === key ? 'all' : key; setTab(next); document.getElementById('inv-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}
+            className={`text-left rounded-xl border border-offwhite-200 bg-white shadow-[0_1px_4px_0_rgba(27,43,72,0.06)] p-5
+              transition-all hover:shadow-md hover:ring-2 ${ring} active:scale-95
+              ${tab === key ? `ring-2 ${ring}` : ''}`}
+          >
             <div className="flex items-center gap-3">
               <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center shrink-0`}>
                 <Icon size={16} className={color} />
@@ -234,19 +241,19 @@ export default function InvitationsPage() {
                 <p className="text-xs text-gray-500">{label}</p>
               </div>
             </div>
-          </Card>
+          </button>
         ))}
       </div>
 
       {/* 탭 */}
-      <div className="flex gap-1 border-b border-offwhite-200">
+      <div id="inv-list" className="flex gap-1 border-b border-offwhite-200 overflow-x-auto scrollbar-hide">
         {TABS.map(t => {
           const cnt = t.key === 'all' ? myInvitations.length : (counts[t.key] ?? 0)
           return (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`px-4 py-2.5 text-sm font-semibold transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
+              className={`shrink-0 px-4 py-2.5 text-sm font-semibold transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
                 tab === t.key ? 'border-orange text-orange' : 'border-transparent text-gray-500 hover:text-navy'
               }`}
             >
@@ -261,47 +268,40 @@ export default function InvitationsPage() {
         })}
       </div>
 
-      {/* 목록 */}
-      <Card padding={false}>
-        {filtered.length === 0 ? (
-          <div className="py-12 text-center text-sm text-gray-400">해당 상태의 초대가 없습니다.</div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-offwhite-200 bg-offwhite-100">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">스태프</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Shift · 급여</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">상태</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">발송일</th>
-                <th className="px-5 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(inv => (
-                <tr key={inv.id} className="border-b border-offwhite-100 last:border-0 hover:bg-offwhite-100 transition-colors">
-                  <td className="px-5 py-3.5">
-                    <p className="font-semibold text-navy">{inv.staffName}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{inv.role}</p>
-                  </td>
-                  <td className="px-5 py-3.5 hidden md:table-cell">
-                    <p className="text-gray-700">{inv.shiftLabel}</p>
-                    <p className="text-xs text-orange font-medium mt-0.5">{inv.wage}</p>
-                  </td>
-                  <td className="px-5 py-3.5"><StatusPill status={inv.status} /></td>
-                  <td className="px-5 py-3.5 text-gray-500 tabular-nums">{inv.sentAt}</td>
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-2 justify-end">
+      {/* 모바일 카드 목록 */}
+      {filtered.length === 0 ? (
+        <Card>
+          <div className="py-8 text-center text-sm text-gray-400">해당 상태의 초대가 없습니다.</div>
+        </Card>
+      ) : (
+        <>
+          <div className="md:hidden space-y-2">
+            {filtered.map(inv => (
+              <Card key={inv.id} padding={false}>
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div>
+                      <p className="font-semibold text-navy">{inv.staffName}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{inv.role}</p>
+                    </div>
+                    <StatusPill status={inv.status} />
+                  </div>
+                  <p className="text-xs text-gray-500 truncate">{inv.shiftLabel}</p>
+                  <p className="text-xs text-orange font-medium mt-0.5">{inv.wage}</p>
+                  <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-offwhite-100">
+                    <span className="text-xs text-gray-400 tabular-nums">{inv.sentAt}</span>
+                    <div className="flex items-center gap-2">
                       {inv.status === 'accepted' && (
                         <>
                           <button
                             onClick={() => updateInvitationStatus(inv.id, 'confirmed')}
-                            className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 hover:bg-green-100 border border-green-200 px-2.5 py-1.5 rounded-lg transition-colors"
+                            className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 border border-green-200 px-3 py-1.5 rounded-lg"
                           >
                             <Check size={12} />확정
                           </button>
                           <button
                             onClick={() => updateInvitationStatus(inv.id, 'rejected')}
-                            className="flex items-center gap-1 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-1.5 rounded-lg transition-colors"
+                            className="flex items-center gap-1 text-xs font-semibold text-red-500 bg-red-50 border border-red-200 px-3 py-1.5 rounded-lg"
                           >
                             <X size={12} />거절
                           </button>
@@ -310,14 +310,14 @@ export default function InvitationsPage() {
                       {inv.status === 'rejected' && (
                         <button
                           onClick={() => updateInvitationStatus(inv.id, 'pending')}
-                          className="flex items-center gap-1 text-xs font-semibold text-navy bg-offwhite hover:bg-offwhite-200 border border-offwhite-200 px-2.5 py-1.5 rounded-lg transition-colors"
+                          className="flex items-center gap-1 text-xs font-semibold text-navy bg-offwhite border border-offwhite-200 px-3 py-1.5 rounded-lg"
                         >
                           <Send size={12} />재발송
                         </button>
                       )}
                       {inv.status === 'pending' && (
                         <span className="text-xs text-gray-400 flex items-center gap-1">
-                          <Clock size={11} />응답 대기 중
+                          <Clock size={11} />대기 중
                         </span>
                       )}
                       {inv.status === 'confirmed' && (
@@ -328,21 +328,100 @@ export default function InvitationsPage() {
                           {inv.shiftId && (
                             <Link
                               to={`/shifts/${inv.shiftId}`}
-                              className="flex items-center gap-1 text-xs font-semibold text-navy bg-offwhite-100 hover:bg-navy hover:text-white border border-offwhite-200 hover:border-navy px-2.5 py-1.5 rounded-lg transition-colors"
+                              className="flex items-center gap-1 text-xs font-semibold text-navy bg-offwhite-100 border border-offwhite-200 px-2.5 py-1.5 rounded-lg"
                             >
-                              <ExternalLink size={10} />Shift 보기
+                              <ExternalLink size={10} />Shift
                             </Link>
                           )}
                         </div>
                       )}
                     </div>
-                  </td>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* 데스크탑 테이블 */}
+          <Card padding={false} className="hidden md:block">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-offwhite-200 bg-offwhite-100">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">스태프</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Shift · 급여</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">상태</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">발송일</th>
+                  <th className="px-5 py-3" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Card>
+              </thead>
+              <tbody>
+                {filtered.map(inv => (
+                  <tr key={inv.id} className="border-b border-offwhite-100 last:border-0 hover:bg-offwhite-100 transition-colors">
+                    <td className="px-5 py-3.5">
+                      <p className="font-semibold text-navy">{inv.staffName}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{inv.role}</p>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <p className="text-gray-700">{inv.shiftLabel}</p>
+                      <p className="text-xs text-orange font-medium mt-0.5">{inv.wage}</p>
+                    </td>
+                    <td className="px-5 py-3.5"><StatusPill status={inv.status} /></td>
+                    <td className="px-5 py-3.5 text-gray-500 tabular-nums">{inv.sentAt}</td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-2 justify-end">
+                        {inv.status === 'accepted' && (
+                          <>
+                            <button
+                              onClick={() => updateInvitationStatus(inv.id, 'confirmed')}
+                              className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 hover:bg-green-100 border border-green-200 px-2.5 py-1.5 rounded-lg transition-colors"
+                            >
+                              <Check size={12} />확정
+                            </button>
+                            <button
+                              onClick={() => updateInvitationStatus(inv.id, 'rejected')}
+                              className="flex items-center gap-1 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-1.5 rounded-lg transition-colors"
+                            >
+                              <X size={12} />거절
+                            </button>
+                          </>
+                        )}
+                        {inv.status === 'rejected' && (
+                          <button
+                            onClick={() => updateInvitationStatus(inv.id, 'pending')}
+                            className="flex items-center gap-1 text-xs font-semibold text-navy bg-offwhite hover:bg-offwhite-200 border border-offwhite-200 px-2.5 py-1.5 rounded-lg transition-colors"
+                          >
+                            <Send size={12} />재발송
+                          </button>
+                        )}
+                        {inv.status === 'pending' && (
+                          <span className="text-xs text-gray-400 flex items-center gap-1">
+                            <Clock size={11} />응답 대기 중
+                          </span>
+                        )}
+                        {inv.status === 'confirmed' && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-green-600 flex items-center gap-1 font-medium">
+                              <UserCheck size={11} />확정 완료
+                            </span>
+                            {inv.shiftId && (
+                              <Link
+                                to={`/shifts/${inv.shiftId}`}
+                                className="flex items-center gap-1 text-xs font-semibold text-navy bg-offwhite-100 hover:bg-navy hover:text-white border border-offwhite-200 hover:border-navy px-2.5 py-1.5 rounded-lg transition-colors"
+                              >
+                                <ExternalLink size={10} />Shift 보기
+                              </Link>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </>
+      )}
     </div>
   )
 }
