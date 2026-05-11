@@ -2,13 +2,23 @@ package com.example.demo.dto;
 
 public class LoginResponseDto {
 
-    private String token;
+    private String accessToken;
 
-    public LoginResponseDto(String token) {
-        this.token = token;
+    private String refreshToken;
+
+    public LoginResponseDto(
+            String accessToken,
+            String refreshToken
+    ) {
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
     }
 
-    public String getToken() {
-        return token;
+    public String getAccessToken() {
+        return accessToken;
+    }
+
+    public String getRefreshToken() {
+        return refreshToken;
     }
 }

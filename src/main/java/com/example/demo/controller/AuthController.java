@@ -2,12 +2,18 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.LoginRequestDto;
 import com.example.demo.dto.LoginResponseDto;
+import com.example.demo.dto.RefreshTokenRequestDto;
+import com.example.demo.entity.RefreshToken;
 import com.example.demo.entity.User;
 import com.example.demo.jwt.JwtUtil;
+import com.example.demo.repository.RefreshTokenRepository;
 import com.example.demo.repository.UserRepository;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/auth")
@@ -15,10 +21,21 @@ public class AuthController {
 
     private final UserRepository userRepository;
 
-    public AuthController(UserRepository userRepository) {
+    private final RefreshTokenRepository refreshTokenRepository;
+
+    private final PasswordEncoder passwordEncoder;
+
+    public AuthController(
+            UserRepository userRepository,
+            RefreshTokenRepository refreshTokenRepository,
+            PasswordEncoder passwordEncoder
+    ) {
         this.userRepository = userRepository;
+        this.refreshTokenRepository = refreshTokenRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
+    // 로그인
     @PostMapping("/login")
     public ResponseEntity<?> login(
             @RequestBody LoginRequestDto requestDto
@@ -38,35 +55,109 @@ public class AuthController {
                         .body("이메일이 존재하지 않습니다.");
             }
 
-            // 비밀번호 확인
-            if (!user.getPassword()
-                    .equals(requestDto.getPassword())) {
+            // BCrypt 비밀번호 확인
+            if (!passwordEncoder.matches(
+                    requestDto.getPassword(),
+                    user.getPassword()
+            )) {
 
                 return ResponseEntity.badRequest()
                         .body("비밀번호가 틀렸습니다.");
             }
 
-            // 확인용 출력
-            System.out.println(user.getEmail());
-            System.out.println(user.getRole());
-
-            // JWT 생성
-            String token = JwtUtil.createToken(
+            // Access Token 생성
+            String accessToken = JwtUtil.createToken(
                     user.getId(),
                     user.getRole().name()
             );
 
-            // JWT 반환
+            // Refresh Token 생성
+            String refreshTokenValue =
+                    UUID.randomUUID().toString();
+
+            // 기존 RefreshToken 조회
+            RefreshToken refreshToken =
+                    refreshTokenRepository
+                            .findByUserId(user.getId())
+                            .orElse(new RefreshToken());
+
+            // 값 저장
+            refreshToken.setUserId(user.getId());
+            refreshToken.setRefreshToken(
+                    refreshTokenValue
+            );
+
+            // DB 저장
+            refreshTokenRepository.save(refreshToken);
+
+            // 토큰 반환
             return ResponseEntity.ok(
-                    new LoginResponseDto(token)
+                    new LoginResponseDto(
+                            accessToken,
+                            refreshTokenValue
+                    )
             );
 
         } catch (Exception e) {
 
-            // 콘솔에 실제 에러 출력
             e.printStackTrace();
 
-            // 브라우저/Postman에도 에러 출력
+            return ResponseEntity.internalServerError()
+                    .body(e.getMessage());
+        }
+    }
+
+    // Access Token 재발급
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(
+            @RequestBody RefreshTokenRequestDto requestDto
+    ) {
+
+        try {
+
+            // Refresh Token 조회
+            RefreshToken refreshToken =
+                    refreshTokenRepository
+                            .findByRefreshToken(
+                                    requestDto.getRefreshToken()
+                            )
+                            .orElse(null);
+
+            // 없으면 실패
+            if (refreshToken == null) {
+
+                return ResponseEntity.badRequest()
+                        .body("Refresh Token 없음");
+            }
+
+            // 유저 조회
+            User user = userRepository
+                    .findById(refreshToken.getUserId())
+                    .orElse(null);
+
+            // 유저 없으면 실패
+            if (user == null) {
+
+                return ResponseEntity.badRequest()
+                        .body("사용자 없음");
+            }
+
+            // 새 Access Token 발급
+            String newAccessToken =
+                    JwtUtil.createToken(
+                            user.getId(),
+                            user.getRole().name()
+                    );
+
+            // 반환
+            return ResponseEntity.ok(
+                    newAccessToken
+            );
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
             return ResponseEntity.internalServerError()
                     .body(e.getMessage());
         }
