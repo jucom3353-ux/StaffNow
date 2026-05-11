@@ -32,6 +32,17 @@ public class JwtFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
+        // 현재 요청 경로
+        String path = request.getRequestURI();
+
+        // 회원가입/로그인은 필터 통과
+        if (path.startsWith("/users")
+                || path.startsWith("/auth")) {
+
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         // Authorization 헤더 가져오기
         String authorization =
                 request.getHeader("Authorization");
