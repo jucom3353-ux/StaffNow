@@ -4,13 +4,16 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Getter // getContent()를 자동으로 생성해줍니다.
-@Setter // setContent()를 자동으로 생성해줍니다.
+@Getter
+@Setter
 @NoArgsConstructor
 public class JobPost {
 
@@ -18,6 +21,14 @@ public class JobPost {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String title;   // 제목 필드
-    private String content; // 👈 이 필드가 있어야 setContent, getContent 에러가 사라집니다.
+    // 제목
+    private String title;
+
+    // 내용
+    private String content;
+
+    // 작성자
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
 }
