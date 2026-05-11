@@ -3,6 +3,8 @@ package com.example.demo.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import java.util.Optional;
+
 
 @Entity
 @Getter
@@ -36,4 +38,5 @@ public class User {
     // 사용자 역할(USER / COMPANY)
     @Enumerated(EnumType.STRING)
     private Role role;
+    
 }

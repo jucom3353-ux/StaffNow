@@ -1,39 +1,39 @@
 package com.example.demo.controller;
 
+import com.example.demo.entity.User;
 import com.example.demo.service.ApplicationService;
+import com.example.demo.service.UserService;
 
-import lombok.RequiredArgsConstructor;
-
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequiredArgsConstructor
+@RequestMapping("/applications")
 public class ApplicationController {
 
     private final ApplicationService applicationService;
+    private final UserService userService;
 
-    // USER만 지원 가능
-    @PreAuthorize("hasRole('USER')")
-    @PostMapping("/work-sessions/{workSessionId}/apply")
-    public String apply(
-            @PathVariable Long workSessionId
+    public ApplicationController(
+            ApplicationService applicationService,
+            UserService userService
     ) {
-
-        applicationService.apply(workSessionId);
-
-        return "지원 완료";
+        this.applicationService = applicationService;
+        this.userService = userService;
     }
 
-    // COMPANY만 승인 가능
-    @PreAuthorize("hasRole('COMPANY')")
-    @PutMapping("/applications/{applicationId}/approve")
-    public String approve(
-            @PathVariable Long applicationId
+    @PatchMapping("/{id}/complete")
+    public ResponseEntity<String> completeApplication(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails
     ) {
 
-        applicationService.approve(applicationId);
+        User company = userService.findByEmail(userDetails.getUsername());
 
-        return "지원 승인 완료";
+        applicationService.completeApplication(id, company);
+
+        return ResponseEntity.ok("근무 완료 처리");
     }
 }

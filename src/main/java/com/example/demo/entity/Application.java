@@ -2,31 +2,51 @@ package com.example.demo.entity;
 
 import jakarta.persistence.*;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
 @Entity
-@Getter
-@Setter
-@NoArgsConstructor
 public class Application {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 지원 유저
+    // 지원한 작업자
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
 
-    // 지원한 근무회차
+    // 지원한 공고
     @ManyToOne
-    @JoinColumn(name = "work_session_id")
-    private WorkSession workSession;
+    @JoinColumn(name = "job_post_id")
+    private JobPost jobPost;
 
-    // 지원 상태
     @Enumerated(EnumType.STRING)
-    private ApplicationStatus status;
+    private ApplicationStatus status = ApplicationStatus.APPLIED;
+
+    public Long getId() {
+        return id;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public JobPost getJobPost() {
+        return jobPost;
+    }
+
+    public ApplicationStatus getStatus() {
+        return status;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public void setJobPost(JobPost jobPost) {
+        this.jobPost = jobPost;
+    }
+
+    public void setStatus(ApplicationStatus status) {
+        this.status = status;
+    }
 }

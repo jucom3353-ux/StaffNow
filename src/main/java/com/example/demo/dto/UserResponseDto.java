@@ -2,19 +2,27 @@ package com.example.demo.dto;
 
 public class UserResponseDto {
 
-    private String name;
-    private double rating;
+    private Long id;
 
-    public UserResponseDto(String name, double rating) {
+    private String email;
+
+    private String name;
+
+    public UserResponseDto(Long id, String email, String name) {
+        this.id = id;
+        this.email = email;
         this.name = name;
-        this.rating = rating;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getEmail() {
+        return email;
     }
 
     public String getName() {
         return name;
-    }
-
-    public double getRating() {
-        return rating;
     }
 }
