@@ -95,6 +95,7 @@ export default function App() {
               <Route path="/attendance" element={<AttendancePage />} />
               <Route path="/payroll" element={<PayrollPage />} />
               <Route path="/messages" element={<MessagesPage />} />
+              <Route path="/settings" element={<Navigate to="/settings/company" replace />} />
               <Route path="/settings/company" element={<CompanySettingsPage />} />
               <Route path="/settings/members" element={<MemberManagementPage />} />
             </Route>
