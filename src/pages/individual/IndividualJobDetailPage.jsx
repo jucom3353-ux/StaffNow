@@ -1,12 +1,73 @@
-import { ArrowLeft, MapPin, Clock, Bookmark, Send, Building2, Banknote, Calendar, CheckCircle2 } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowLeft, MapPin, Bookmark, Send, Building2, Banknote, Calendar, CheckCircle2, AlertTriangle, X } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { RECOMMENDED_JOBS } from '../../data/mockIndividual'
 import { useIndividualData } from '../../hooks/useIndividualData'
 
+// ── 지원 확인 모달 ─────────────────────────────────────────
+function ApplyConfirmModal({ job, onConfirm, onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4" onClick={e => e.stopPropagation()}>
+
+        {/* 헤더 */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-bold text-navy">지원 확인</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* 공고 정보 */}
+        <div className="bg-offwhite rounded-xl p-3">
+          <p className="text-sm font-bold text-navy line-clamp-1">{job.title}</p>
+          <p className="text-xs text-gray-500 mt-0.5">{job.company} · {job.wage}</p>
+        </div>
+
+        {/* 안내 문구 */}
+        <p className="text-sm text-gray-600 leading-relaxed">
+          위 공고에 지원하시겠습니까?<br />
+          지원 후 합격 시 근무 일정이 확정됩니다.
+        </p>
+
+        {/* 노쇼 경고 */}
+        <div className="flex gap-2.5 bg-red-50 border border-red-100 rounded-xl p-3">
+          <AlertTriangle size={15} className="text-red-400 shrink-0 mt-0.5" />
+          <p className="text-xs text-red-600 leading-relaxed">
+            <span className="font-bold">노쇼(No-Show) 주의</span><br />
+            확정 후 무단 불참 시 발생하는 손해에 대한 책임은
+            지원자 본인에게 있으며, 플랫폼은 이에 대한 책임을
+            지지 않습니다. 신중히 지원해주세요.
+          </p>
+        </div>
+
+        {/* 버튼 */}
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl border border-offwhite-200 text-sm font-semibold text-gray-500 hover:bg-offwhite transition-colors"
+          >
+            취소
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 py-2.5 rounded-xl bg-orange text-white text-sm font-bold hover:bg-orange-600 transition-colors flex items-center justify-center gap-1.5"
+          >
+            <Send size={13} />
+            지원하기
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── 메인 페이지 ─────────────────────────────────────────────
 export default function IndividualJobDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { isSaved, toggleSave, isApplied, applyJob } = useIndividualData()
+  const [showConfirm, setShowConfirm] = useState(false)
 
   const job = RECOMMENDED_JOBS.find(j => j.id === id) ?? {
     id,
@@ -22,12 +83,21 @@ export default function IndividualJobDetailPage() {
   const applied = isApplied(id)
   const saved   = isSaved(id)
 
-  function handleApply() {
+  function handleConfirm() {
     applyJob({ jobId: job.id, jobTitle: job.title, company: job.company, wage: job.wage, location: job.location })
+    setShowConfirm(false)
   }
 
   return (
     <div className="max-w-2xl mx-auto space-y-5">
+      {showConfirm && (
+        <ApplyConfirmModal
+          job={job}
+          onConfirm={handleConfirm}
+          onClose={() => setShowConfirm(false)}
+        />
+      )}
+
       <button
         onClick={() => navigate(-1)}
         className="flex items-center gap-2 text-sm text-gray-500 hover:text-navy transition-colors"
@@ -85,7 +155,7 @@ export default function IndividualJobDetailPage() {
             </div>
           ) : (
             <button
-              onClick={handleApply}
+              onClick={() => setShowConfirm(true)}
               className="w-full py-3 rounded-xl bg-orange text-white font-bold text-sm hover:bg-orange-600 transition-colors flex items-center justify-center gap-2"
             >
               <Send size={15} />
