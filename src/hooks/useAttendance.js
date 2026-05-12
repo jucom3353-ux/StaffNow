@@ -145,7 +145,47 @@ export function useAttendance() {
     })
   }, [_persist])
 
+  // 시간 수정 (제출 전에만 가능)
+  const editRecord = useCallback((shiftId, { checkIn, checkOut }) => {
+    setRecords(prev => {
+      const cur = prev[shiftId] ?? {}
+      const next = {
+        ...prev,
+        [shiftId]: {
+          ...cur,
+          checkIn:  checkIn  ?? cur.checkIn,
+          checkOut: checkOut ?? cur.checkOut,
+          status: 'completed',
+        },
+      }
+      _persist(next)
+      return next
+    })
+  }, [_persist])
+
+  // 기록 삭제 → 예정 상태로 초기화
+  const deleteRecord = useCallback((shiftId) => {
+    setRecords(prev => {
+      const next = { ...prev }
+      delete next[shiftId]
+      _persist(next)
+      return next
+    })
+  }, [_persist])
+
+  // 제출 확정 → 수정 불가 상태로 잠금
+  const submitRecord = useCallback((shiftId) => {
+    setRecords(prev => {
+      const next = {
+        ...prev,
+        [shiftId]: { ...prev[shiftId], status: 'submitted', submittedAt: new Date().toISOString() },
+      }
+      _persist(next)
+      return next
+    })
+  }, [_persist])
+
   const getRecord = useCallback((shiftId) => records[shiftId] ?? null, [records])
 
-  return { records, checkIn, checkOut, getRecord }
+  return { records, checkIn, checkOut, editRecord, deleteRecord, submitRecord, getRecord }
 }
