@@ -144,11 +144,14 @@ function SectionCard({ title, icon: Icon, action, children }) {
   )
 }
 
+const DEMO_EMAIL = 'user@staffnow.kr'
+
 // ─── 메인 컴포넌트 ──────────────────────────────────────────────────────────
 export default function IndividualProfilePage() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const { profile, updateProfile } = useIndividualData()
+  const isDemo = user?.email === DEMO_EMAIL
   const healthFileRef = useRef(null)
   const safetyFileRef = useRef(null)
   const docRefs = { health: healthFileRef, safety: safetyFileRef }
@@ -172,11 +175,12 @@ export default function IndividualProfilePage() {
   const [skillInput, setSkillInput]         = useState('')
 
   function openProfileEdit() {
+    const demoSkills = isDemo ? ['행사 진행', '고객 응대', '엑셀'] : []
     setProfileForm({
       phone:   profile.phone   || '',
       address: profile.address || '',
       bio:     profile.bio     || '',
-      skills:  [...(profile.skills?.length ? profile.skills : ['행사 진행', '고객 응대', '엑셀'])],
+      skills:  [...(profile.skills?.length ? profile.skills : demoSkills)],
     })
     setEditingProfile(true)
   }
@@ -196,7 +200,8 @@ export default function IndividualProfilePage() {
   }
 
   // ── 활동 가능 지역 ──
-  const regions = profile.regions?.length ? profile.regions : ['서울 강남구', '서울 서초구', '경기 성남시']
+  const demoRegions = isDemo ? ['서울 강남구', '서울 서초구', '경기 성남시'] : []
+  const regions = profile.regions?.length ? profile.regions : demoRegions
   const [showRegionInput, setShowRegionInput] = useState(false)
   const [regionSido,      setRegionSido]      = useState('')
   const [regionGungu,     setRegionGungu]     = useState('')
@@ -217,7 +222,7 @@ export default function IndividualProfilePage() {
   }
 
   // ── 선호 업무 시간 ──
-  const preferredTimes = profile.preferredTimes?.length ? profile.preferredTimes : ['주말', '오후']
+  const preferredTimes = profile.preferredTimes?.length ? profile.preferredTimes : (isDemo ? ['주말', '오후'] : [])
 
   function toggleTime(t) {
     const next = preferredTimes.includes(t)
@@ -227,7 +232,7 @@ export default function IndividualProfilePage() {
   }
 
   // ── 정산 계좌 ──
-  const account = profile.account ?? { bank: '국민은행', number: '123-456-7890123' }
+  const account = profile.account ?? (isDemo ? { bank: '국민은행', number: '123-456-7890123' } : null)
   const [editingAccount, setEditingAccount] = useState(false)
   const [accountForm,    setAccountForm]    = useState(account)
 
@@ -279,7 +284,7 @@ export default function IndividualProfilePage() {
 
   const displaySkills = editingProfile
     ? profileForm.skills
-    : (profile.skills?.length ? profile.skills : ['행사 진행', '고객 응대', '엑셀'])
+    : (profile.skills?.length ? profile.skills : (isDemo ? ['행사 진행', '고객 응대', '엑셀'] : []))
 
   // ── 마스킹 계좌번호 ──
   function maskAccount(num) {
@@ -306,7 +311,12 @@ export default function IndividualProfilePage() {
 
       {/* ── 1. Stats 카드 ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {DEMO_STATS.map(s => (
+        {(isDemo ? DEMO_STATS : [
+          { key: 'jobs',   label: '완료한 업무',  value: '0건',   icon: Briefcase,   color: 'text-blue-500',   bg: 'bg-blue-50' },
+          { key: 'hours',  label: '총 근무 시간', value: '0시간', icon: Clock,       color: 'text-purple-500', bg: 'bg-purple-50' },
+          { key: 'rating', label: '평균 별점',    value: '-',     icon: Star,        color: 'text-yellow-500', bg: 'bg-yellow-50', suffix: '/ 5.0' },
+          { key: 'attend', label: '근태 지수',    value: '0회',   icon: ShieldCheck, color: 'text-green-600',  bg: 'bg-green-50', badge: true },
+        ]).map(s => (
           <button
             key={s.label}
             onClick={() => setStatModal(s.key)}
@@ -350,7 +360,7 @@ export default function IndividualProfilePage() {
 
           <div className="text-right shrink-0">
             <p className="text-[10px] text-gray-400">정산 대기 중</p>
-            <p className="text-base font-extrabold text-orange">120,033원</p>
+            <p className="text-base font-extrabold text-orange">{isDemo ? '120,033원' : '0원'}</p>
           </div>
         </div>
 
@@ -606,7 +616,7 @@ export default function IndividualProfilePage() {
                 className="w-full border border-offwhite-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-navy" />
             </div>
           </div>
-        ) : (
+        ) : account ? (
           <div className="flex items-center gap-4 p-4 bg-offwhite rounded-xl">
             <div className="w-10 h-10 rounded-xl bg-navy/10 flex items-center justify-center shrink-0">
               <Banknote size={18} className="text-navy" />
@@ -616,6 +626,11 @@ export default function IndividualProfilePage() {
               <p className="text-sm font-bold text-navy">{account.bank}</p>
               <p className="text-xs text-gray-500 mt-0.5">{maskAccount(account.number)}</p>
             </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 p-4 bg-offwhite rounded-xl text-gray-400">
+            <Banknote size={18} className="text-gray-300 shrink-0" />
+            <p className="text-sm">등록된 계좌가 없습니다. 수정 버튼을 눌러 계좌를 등록하세요.</p>
           </div>
         )}
       </SectionCard>
@@ -722,7 +737,10 @@ export default function IndividualProfilePage() {
 
             <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">경력 사항</h4>
             <div className="space-y-3">
-              {CAREER_LIST.map(c => (
+              {!isDemo && (
+                <p className="text-sm text-gray-400 text-center py-4">등록된 경력이 없습니다.</p>
+              )}
+              {isDemo && CAREER_LIST.map(c => (
                 <div key={c.id} className="flex items-start gap-3 p-3 border border-offwhite-200 rounded-xl hover:border-navy/20 transition-colors">
                   <div className="w-8 h-8 rounded-lg bg-navy/10 flex items-center justify-center shrink-0 mt-0.5">
                     <Briefcase size={14} className="text-navy" />

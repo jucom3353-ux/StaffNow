@@ -245,7 +245,7 @@ function DisputeModal({ shift, onSubmit, onClose }) {
 export default function IndividualAttendancePage() {
   const { user } = useAuth()
   const { checkIn, checkOut, editRecord, deleteRecord, submitRecord, getRecord } = useAttendance()
-  const shifts = getAssignedShifts(user?.name)
+  const shifts = getAssignedShifts(user?.name, user?.email)
   const today = todayStr()
 
   const [confirmAction,  setConfirmAction]  = useState(null)

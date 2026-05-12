@@ -45,8 +45,12 @@ function nowTime() {
   return `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`
 }
 
-// 인력 본인에게 배정된 데모 Shift 목록
-export function getAssignedShifts(userName) {
+// 인력 본인에게 배정된 데모 Shift 목록 (데모 계정 전용)
+const DEMO_EMAIL = 'user@staffnow.kr'
+
+export function getAssignedShifts(userName, email) {
+  // 데모 계정이 아니면 빈 배열 반환 (신규 계정 = 배정된 근무 없음)
+  if (email && email !== DEMO_EMAIL) return []
   const name = userName || '김지원'
   return [
     {

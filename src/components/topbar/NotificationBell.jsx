@@ -1,9 +1,13 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
 import { Bell, Briefcase, UserCheck, Mail, X, PlusCircle } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
 
-const STORAGE_KEY = 'staffnow_notif'
+// 데모 계정 이메일
+const DEMO_IND_EMAIL = 'user@staffnow.kr'
+const DEMO_BIZ_EMAIL = 'biz@staffnow.kr'
 
-const BASE_NOTIFICATIONS = [
+// 기업용 기본 알림
+const BASE_NOTIFICATIONS_BIZ = [
   { id: 1, type: 'job',    text: '공고 "주말 행사 스태프" 마감 3일 전입니다.',           time: '10분 전'  },
   { id: 2, type: 'invite', text: '홍길동님이 Shift 초대를 수락했습니다.',                  time: '32분 전'  },
   { id: 3, type: 'invite', text: '이영희님이 "5월 10일 오전 Shift" 초대를 수락했습니다.', time: '1시간 전' },
@@ -11,50 +15,73 @@ const BASE_NOTIFICATIONS = [
   { id: 5, type: 'job',    text: '공고 "6월 박람회 안내 스태프" 지원자가 8명입니다.',      time: '어제'     },
 ]
 
+// 인력 데모 계정 기본 알림
+const BASE_NOTIFICATIONS_IND = [
+  { id: 10, type: 'invite', text: '브루잉코 마포점에서 근무 초대가 도착했습니다.',  time: '1시간 전' },
+  { id: 11, type: 'job',    text: '내 지역 새 공고 "카페 파트타임"이 등록됐습니다.', time: '2시간 전' },
+  { id: 12, type: 'staff',  text: '지원한 공고 "박람회 스태프" 결과가 발표됐습니다.', time: '어제'   },
+]
+
 const TYPE_ICON = { job: Briefcase, invite: Mail, staff: UserCheck }
 
-function loadSaved() {
+function getStorageKey(email) {
+  return `staffnow_notif_${email?.replace(/[^a-zA-Z0-9]/g, '_') || 'guest'}`
+}
+
+function loadSaved(key) {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
+    return JSON.parse(localStorage.getItem(key) || '{}')
   } catch {
     return {}
   }
 }
 
-function buildInitialNotifications() {
-  const saved = loadSaved()
+function buildInitialNotifications(baseList, key) {
+  const saved = loadSaved(key)
   const readIds      = new Set(saved.readIds      || [])
   const dismissedIds = new Set(saved.dismissedIds || [])
-  return BASE_NOTIFICATIONS
+  return baseList
     .filter(n => !dismissedIds.has(n.id))
     .map(n => ({ ...n, isRead: readIds.has(n.id) }))
 }
 
 export default function NotificationBell() {
+  const { user } = useAuth()
+
+  // 계정 유형 판별: 신규 개인 계정은 알림 없이 시작
+  const isBiz   = !!(user?.company) || user?.role === 'ADMIN'
+  const isInd   = !isBiz
+  const isDemoInd = user?.email === DEMO_IND_EMAIL
+  const isDemoBiz = user?.email === DEMO_BIZ_EMAIL
+
+  const baseList = isBiz
+    ? (isDemoBiz ? BASE_NOTIFICATIONS_BIZ : [])   // 신규 기업: 빈 알림
+    : (isDemoInd ? BASE_NOTIFICATIONS_IND : [])    // 신규 인력: 빈 알림
+
+  const storageKey = getStorageKey(user?.email)
+
   const [open, setOpen] = useState(false)
-  const [notifications, setNotifications] = useState(buildInitialNotifications)
+  const [notifications, setNotifications] = useState(() => buildInitialNotifications(baseList, storageKey))
   const ref = useRef(null)
 
   const unread = notifications.filter(n => !n.isRead).length
 
   // Persist read/dismissed state whenever notifications change
   useEffect(() => {
-    const readIds      = notifications.filter(n => n.isRead).map(n => n.id)
-    // Merge dismissed IDs with what's already saved (dismissed = no longer in state)
-    const saved        = loadSaved()
+    const readIds       = notifications.filter(n => n.isRead).map(n => n.id)
+    const saved         = loadSaved(storageKey)
     const prevDismissed = new Set(saved.dismissedIds || [])
-    const currentIds   = new Set(notifications.map(n => n.id))
-    // IDs that were in BASE_NOTIFICATIONS but are no longer in state = dismissed
-    BASE_NOTIFICATIONS.forEach(n => {
+    const currentIds    = new Set(notifications.map(n => n.id))
+    baseList.forEach(n => {
       if (!currentIds.has(n.id)) prevDismissed.add(n.id)
     })
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      localStorage.setItem(storageKey, JSON.stringify({
         readIds,
         dismissedIds: [...prevDismissed],
       }))
     } catch {}
-  }, [notifications])
+  }, [notifications, storageKey])
 
   // Outside click closes dropdown
   useEffect(() => {
