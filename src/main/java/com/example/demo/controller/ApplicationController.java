@@ -72,6 +72,47 @@ public class ApplicationController {
         return "지원 완료";
     }
 
+    // 지원 취소
+    @DeleteMapping("/{applicationId}")
+    public String cancelApplication(
+            @PathVariable Long applicationId
+    ) {
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        User loginUser =
+                (User) authentication.getPrincipal();
+
+        Application application =
+                applicationRepository.findById(applicationId)
+                        .orElseThrow(() ->
+                                new RuntimeException("지원 없음"));
+
+        // 본인 지원만 취소 가능
+        if (!application.getUser()
+                .getId()
+                .equals(loginUser.getId())) {
+
+            throw new RuntimeException("권한 없음");
+        }
+
+        // 완료된 지원은 취소 불가
+        if (application.getStatus()
+                == ApplicationStatus.COMPLETED) {
+
+            throw new RuntimeException(
+                    "완료된 지원은 취소할 수 없습니다."
+            );
+        }
+
+        applicationRepository.delete(application);
+
+        return "지원 취소 완료";
+    }
+
     // 지원 목록 조회
     @GetMapping("/job-posts/{jobPostId}")
     public List<ApplicationResponseDto> getApplications(
