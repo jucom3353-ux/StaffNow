@@ -36,7 +36,9 @@ const EDIT_WINDOW_MIN = 30 // 수정 가능 시간 (분)
 
 // 퇴근 기록 후 남은 수정 가능 시간 계산
 function getEditWindowInfo(rec, now) {
-  if (!rec?.checkOutAt) return { canEdit: false, remaining: 0 }
+  if (rec?.status !== 'completed') return { canEdit: false, remaining: 0 }
+  // checkOutAt 없는 기존 기록은 수정 허용 (30분 만료 없음)
+  if (!rec?.checkOutAt) return { canEdit: true, remaining: EDIT_WINDOW_MIN }
   const elapsed = (now - new Date(rec.checkOutAt)) / 60000
   const remaining = Math.max(0, EDIT_WINDOW_MIN - elapsed)
   return { canEdit: remaining > 0, remaining: Math.ceil(remaining) }
