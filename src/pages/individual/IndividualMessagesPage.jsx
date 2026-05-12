@@ -465,12 +465,29 @@ export default function IndividualMessagesPage() {
 
   return (
     <div className="h-[calc(100vh-4rem)] -m-6 flex overflow-hidden">
-      <div className={`w-80 shrink-0 border-r border-offwhite-200 bg-white ${mobileView === 'chat' ? 'hidden md:flex' : 'flex'} flex-col`}>
+
+      {/* ── 모바일: 슬라이드 패널 ── */}
+      <div className="relative flex-1 overflow-hidden md:hidden">
+        {/* 목록 패널 */}
+        <div className={`absolute inset-0 bg-white transition-transform duration-300 ease-in-out
+          ${mobileView === 'chat' ? '-translate-x-full' : 'translate-x-0'}`}>
+          {ConvList}
+        </div>
+        {/* 채팅 패널 */}
+        <div className={`absolute inset-0 bg-white transition-transform duration-300 ease-in-out
+          ${mobileView === 'chat' ? 'translate-x-0' : 'translate-x-full'}`}>
+          {ChatPanel}
+        </div>
+      </div>
+
+      {/* ── 데스크탑: 2패널 ── */}
+      <div className="hidden md:flex w-80 shrink-0 border-r border-offwhite-200 bg-white flex-col">
         {ConvList}
       </div>
-      <div className={`flex-1 min-w-0 bg-white ${mobileView === 'list' ? 'hidden md:flex' : 'flex'} flex-col`}>
+      <div className="hidden md:flex flex-1 min-w-0 bg-white flex-col">
         {ChatPanel}
       </div>
+
     </div>
   )
 }
