@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Clock, CheckCircle2, MapPin, ChevronRight, LogIn, LogOut, CalendarDays } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useAttendance, getAssignedShifts } from '../../hooks/useAttendance'
@@ -36,7 +36,13 @@ export default function IndividualAttendancePage() {
   const shifts = getAssignedShifts(user?.name)
   const today = todayStr()
 
-  const [confirmAction, setConfirmAction] = useState(null) // { shiftId, type: 'in'|'out' }
+  const [confirmAction, setConfirmAction] = useState(null)
+  const [now, setNow] = useState(new Date())
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(timer)
+  }, [])
 
   function handleConfirm() {
     if (!confirmAction) return
@@ -50,9 +56,20 @@ export default function IndividualAttendancePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-navy">출퇴근 관리</h1>
-        <p className="text-sm text-gray-500 mt-1">배정된 근무를 확인하고 출퇴근을 기록하세요.</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-navy">출퇴근 관리</h1>
+          <p className="text-sm text-gray-500 mt-1">배정된 근무를 확인하고 출퇴근을 기록하세요.</p>
+        </div>
+        <div className="flex flex-col items-end shrink-0 bg-white border border-offwhite-200 rounded-2xl px-4 py-2.5">
+          <span className="text-[11px] text-gray-400 font-medium">현재 시각</span>
+          <span className="text-xl font-bold text-navy tabular-nums tracking-tight">
+            {now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+          </span>
+          <span className="text-[11px] text-gray-400">
+            {now.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}
+          </span>
+        </div>
       </div>
 
       {/* 오늘의 근무 */}
