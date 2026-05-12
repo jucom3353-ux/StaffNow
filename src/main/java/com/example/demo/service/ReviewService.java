@@ -2,15 +2,14 @@ package com.example.demo.service;
 
 import com.example.demo.dto.ReviewRequestDto;
 import com.example.demo.dto.WorkerRatingResponseDto;
+
 import com.example.demo.entity.Application;
-import com.example.demo.entity.ApplicationStatus;
 import com.example.demo.entity.Review;
 import com.example.demo.entity.User;
+
 import com.example.demo.repository.ApplicationRepository;
 import com.example.demo.repository.ReviewRepository;
 import com.example.demo.repository.UserRepository;
-
-import jakarta.transaction.Transactional;
 
 import org.springframework.stereotype.Service;
 
@@ -20,7 +19,9 @@ import java.util.List;
 public class ReviewService {
 
     private final ReviewRepository reviewRepository;
+
     private final ApplicationRepository applicationRepository;
+
     private final UserRepository userRepository;
 
     public ReviewService(
@@ -34,51 +35,44 @@ public class ReviewService {
     }
 
     // 리뷰 생성
-    @Transactional
     public void createReview(
+
             Long applicationId,
+
             ReviewRequestDto requestDto,
+
             User company
     ) {
 
-        Application application = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException("지원 정보 없음"));
+        Application application =
+                applicationRepository.findById(applicationId)
+                        .orElseThrow(() ->
+                                new RuntimeException("지원 없음"));
 
-        System.out.println("========== 리뷰 디버깅 ==========");
+        // 공고 작성자 확인
+        if (!application.getJobPost()
+                .getUser()
+                .getId()
+                .equals(company.getId())) {
 
-        System.out.println(
-                "로그인 회사 ID = " + company.getId()
-        );
-
-        System.out.println(
-                "공고 작성 회사 ID = "
-                        + application.getJobPost().getUser().getId()
-        );
-
-        System.out.println(
-                "현재 지원 상태 = "
-                        + application.getStatus()
-        );
-
-        System.out.println("================================");
-
-        // 회사 권한 체크
-        if (!application.getJobPost().getUser().getId().equals(company.getId())) {
             throw new RuntimeException("권한 없음");
         }
 
-        // 근무 완료 체크
-        if (application.getStatus() != ApplicationStatus.COMPLETED) {
-            throw new RuntimeException("근무 완료 후 평가 가능");
+        // 리뷰 중복 방지
+        if (reviewRepository.existsByApplicationId(applicationId)) {
+
+            throw new RuntimeException(
+                    "이미 리뷰 작성 완료"
+            );
         }
+
+        User worker = application.getUser();
 
         Review review = new Review();
 
         review.setApplication(application);
 
-        review.setCompany(company);
-
-        review.setWorker(application.getUser());
+        review.setWorker(worker);
 
         review.setRating(requestDto.getRating());
 
@@ -86,33 +80,41 @@ public class ReviewService {
 
         reviewRepository.save(review);
 
-        System.out.println("리뷰 저장 완료");
+        // 평균 별점 계산
+        List<Review> reviews =
+                reviewRepository.findByWorker(worker);
+
+        double average =
+                reviews.stream()
+                        .mapToInt(Review::getRating)
+                        .average()
+                        .orElse(0);
+
+        worker.setRating(average);
+
+        userRepository.save(worker);
     }
 
     // 작업자 평균 별점 조회
-    public WorkerRatingResponseDto getWorkerRating(Long workerId) {
+    public WorkerRatingResponseDto
+    getWorkerRating(Long workerId) {
 
-        User worker = userRepository.findById(workerId)
-                .orElseThrow(() -> new RuntimeException("작업자 없음"));
+        User worker =
+                userRepository.findById(workerId)
+                        .orElseThrow(() ->
+                                new RuntimeException("작업자 없음"));
 
-        List<Review> reviews = reviewRepository.findByWorker(worker);
+        List<Review> reviews =
+                reviewRepository.findByWorker(worker);
 
-        if (reviews.isEmpty()) {
-
-            return new WorkerRatingResponseDto(
-                    workerId,
-                    0.0,
-                    0
-            );
-        }
-
-        double average = reviews.stream()
-                .mapToInt(Review::getRating)
-                .average()
-                .orElse(0.0);
+        double average =
+                reviews.stream()
+                        .mapToInt(Review::getRating)
+                        .average()
+                        .orElse(0);
 
         return new WorkerRatingResponseDto(
-                workerId,
+                worker.getId(),
                 average,
                 reviews.size()
         );
