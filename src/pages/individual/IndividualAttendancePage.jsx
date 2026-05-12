@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
   Clock, CheckCircle2, MapPin, ChevronRight, LogIn, LogOut,
-  CalendarDays, Pencil, Trash2, Send, X, AlertTriangle,
+  CalendarDays, Pencil, Trash2, Send, X, AlertTriangle, History,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useAttendance, getAssignedShifts } from '../../hooks/useAttendance'
@@ -30,6 +30,55 @@ const STATUS = {
   in_progress: { label: '근무 중', color: 'bg-blue-100 text-blue-600' },
   completed:   { label: '완료',    color: 'bg-green-100 text-green-600' },
   submitted:   { label: '제출됨',  color: 'bg-navy/10 text-navy' },
+}
+
+const EDIT_WINDOW_MIN = 30 // 수정 가능 시간 (분)
+
+// 퇴근 기록 후 남은 수정 가능 시간 계산
+function getEditWindowInfo(rec, now) {
+  if (!rec?.checkOutAt) return { canEdit: false, remaining: 0 }
+  const elapsed = (now - new Date(rec.checkOutAt)) / 60000
+  const remaining = Math.max(0, EDIT_WINDOW_MIN - elapsed)
+  return { canEdit: remaining > 0, remaining: Math.ceil(remaining) }
+}
+
+// 수정 이력 표시
+function EditHistory({ history }) {
+  const [open, setOpen] = useState(false)
+  if (!history?.length) return null
+  return (
+    <div className="pt-2 border-t border-offwhite-100">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-navy transition-colors"
+      >
+        <History size={11} />
+        수정 이력 {history.length}건
+        <ChevronRight size={11} className={`transition-transform ${open ? 'rotate-90' : ''}`} />
+      </button>
+      {open && (
+        <div className="mt-2 space-y-1.5">
+          {history.map((h, i) => (
+            <div key={i} className="text-[11px] bg-gray-50 rounded-lg px-3 py-2 text-gray-500">
+              <span className="text-gray-400">
+                {new Date(h.editedAt).toLocaleString('ko-KR', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', hour12: false })}
+              </span>
+              <div className="mt-0.5">
+                출근 <span className="line-through text-gray-400">{h.from.checkIn ?? '—'}</span>
+                {' → '}
+                <span className="font-semibold text-navy">{h.to.checkIn ?? '—'}</span>
+                {h.from.checkOut !== h.to.checkOut && (
+                  <> &nbsp; 퇴근 <span className="line-through text-gray-400">{h.from.checkOut ?? '—'}</span>
+                  {' → '}
+                  <span className="font-semibold text-navy">{h.to.checkOut ?? '—'}</span></>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 // ── 출퇴근 기록 수정 모달 ────────────────────────────────────
@@ -243,8 +292,9 @@ export default function IndividualAttendancePage() {
             const meta = STATUS[status] ?? STATUS.scheduled
             const canCheckIn  = status === 'scheduled'
             const canCheckOut = status === 'in_progress'
-            const canEdit     = status === 'completed'
             const isSubmitted = status === 'submitted'
+            const { canEdit, remaining } = getEditWindowInfo(rec, now)
+            const editExpired  = status === 'completed' && !canEdit
             const worked = calcDuration(rec?.checkIn, rec?.checkOut)
 
             return (
@@ -285,23 +335,37 @@ export default function IndividualAttendancePage() {
                       )}
                     </div>
 
-                    {/* 수정/삭제 버튼 (completed 상태) */}
+                    {/* 수정/삭제 버튼 + 남은 시간 */}
                     {canEdit && (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setEditTarget({ shiftId: shift.shiftId, record: rec })}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-offwhite-200 text-xs font-semibold text-gray-500 hover:bg-offwhite hover:text-navy transition-colors"
-                        >
-                          <Pencil size={12} />수정
-                        </button>
-                        <button
-                          onClick={() => setDeleteTarget(shift.shiftId)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-offwhite-200 text-xs font-semibold text-gray-500 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors"
-                        >
-                          <Trash2 size={12} />삭제
-                        </button>
+                      <div className="space-y-2">
+                        <p className="text-[11px] text-orange font-semibold flex items-center gap-1">
+                          <Clock size={11} />수정 가능 시간 {remaining}분 남음
+                        </p>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setEditTarget({ shiftId: shift.shiftId, record: rec })}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-offwhite-200 text-xs font-semibold text-gray-500 hover:bg-offwhite hover:text-navy transition-colors"
+                          >
+                            <Pencil size={12} />수정
+                          </button>
+                          <button
+                            onClick={() => setDeleteTarget(shift.shiftId)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-offwhite-200 text-xs font-semibold text-gray-500 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors"
+                          >
+                            <Trash2 size={12} />삭제
+                          </button>
+                        </div>
                       </div>
                     )}
+                    {/* 수정 기간 만료 안내 */}
+                    {editExpired && (
+                      <p className="text-[11px] text-gray-400 flex items-center gap-1">
+                        <AlertTriangle size={11} className="text-gray-300" />
+                        수정 가능 시간(30분)이 지났습니다. 제출만 가능합니다.
+                      </p>
+                    )}
+                    {/* 수정 이력 */}
+                    <EditHistory history={rec?.editHistory} />
                   </div>
                 )}
 
@@ -420,31 +484,53 @@ export default function IndividualAttendancePage() {
                         )}
                       </div>
 
-                      {/* 지난 근무 수정/삭제/제출 (completed 상태) */}
-                      {rec.status === 'completed' && (
-                        <div className="flex gap-2 flex-wrap">
-                          <button
-                            onClick={() => setEditTarget({ shiftId: shift.shiftId, record: rec })}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-offwhite-200 text-xs font-semibold text-gray-500 hover:bg-offwhite hover:text-navy transition-colors"
-                          >
-                            <Pencil size={12} />수정
-                          </button>
-                          <button
-                            onClick={() => setDeleteTarget(shift.shiftId)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-offwhite-200 text-xs font-semibold text-gray-500 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors"
-                          >
-                            <Trash2 size={12} />삭제
-                          </button>
-                          {rec.checkOut && (
-                            <button
-                              onClick={() => setSubmitTarget({ shift, record: rec })}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-navy text-white text-xs font-bold hover:bg-navy/80 transition-colors"
-                            >
-                              <Send size={12} />제출하기
-                            </button>
-                          )}
-                        </div>
-                      )}
+                      {/* 지난 근무 수정/삭제/제출 */}
+                      {rec.status === 'completed' && (() => {
+                        const { canEdit: pastCanEdit, remaining: pastRemaining } = getEditWindowInfo(rec, now)
+                        const pastExpired = !pastCanEdit
+                        return (
+                          <div className="space-y-2">
+                            {pastCanEdit && (
+                              <p className="text-[11px] text-orange font-semibold flex items-center gap-1">
+                                <Clock size={11} />수정 가능 시간 {pastRemaining}분 남음
+                              </p>
+                            )}
+                            {pastExpired && (
+                              <p className="text-[11px] text-gray-400 flex items-center gap-1">
+                                <AlertTriangle size={11} className="text-gray-300" />
+                                수정 가능 시간(30분)이 지났습니다. 제출만 가능합니다.
+                              </p>
+                            )}
+                            <div className="flex gap-2 flex-wrap">
+                              {pastCanEdit && (
+                                <>
+                                  <button
+                                    onClick={() => setEditTarget({ shiftId: shift.shiftId, record: rec })}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-offwhite-200 text-xs font-semibold text-gray-500 hover:bg-offwhite hover:text-navy transition-colors"
+                                  >
+                                    <Pencil size={12} />수정
+                                  </button>
+                                  <button
+                                    onClick={() => setDeleteTarget(shift.shiftId)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-offwhite-200 text-xs font-semibold text-gray-500 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors"
+                                  >
+                                    <Trash2 size={12} />삭제
+                                  </button>
+                                </>
+                              )}
+                              {rec.checkOut && (
+                                <button
+                                  onClick={() => setSubmitTarget({ shift, record: rec })}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-navy text-white text-xs font-bold hover:bg-navy/80 transition-colors"
+                                >
+                                  <Send size={12} />제출하기
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })()}
+                      <EditHistory history={rec?.editHistory} />
                     </div>
                   )}
                 </div>

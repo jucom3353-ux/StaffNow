@@ -131,7 +131,15 @@ export function useAttendance() {
 
   const checkIn = useCallback((shiftId) => {
     setRecords(prev => {
-      const next = { ...prev, [shiftId]: { ...prev[shiftId], checkIn: nowTime(), status: 'in_progress' } }
+      const next = {
+        ...prev,
+        [shiftId]: {
+          ...prev[shiftId],
+          checkIn: nowTime(),
+          checkInAt: new Date().toISOString(),
+          status: 'in_progress',
+        },
+      }
       _persist(next)
       return next
     })
@@ -139,23 +147,38 @@ export function useAttendance() {
 
   const checkOut = useCallback((shiftId) => {
     setRecords(prev => {
-      const next = { ...prev, [shiftId]: { ...prev[shiftId], checkOut: nowTime(), status: 'completed' } }
+      const next = {
+        ...prev,
+        [shiftId]: {
+          ...prev[shiftId],
+          checkOut: nowTime(),
+          checkOutAt: new Date().toISOString(),
+          status: 'completed',
+        },
+      }
       _persist(next)
       return next
     })
   }, [_persist])
 
-  // 시간 수정 (제출 전에만 가능)
+  // 시간 수정 — 수정 이력 누적 저장
   const editRecord = useCallback((shiftId, { checkIn, checkOut }) => {
     setRecords(prev => {
       const cur = prev[shiftId] ?? {}
+      const historyEntry = {
+        from: { checkIn: cur.checkIn ?? null, checkOut: cur.checkOut ?? null },
+        to:   { checkIn: checkIn ?? cur.checkIn, checkOut: checkOut ?? cur.checkOut },
+        editedAt: new Date().toISOString(),
+      }
       const next = {
         ...prev,
         [shiftId]: {
           ...cur,
-          checkIn:  checkIn  ?? cur.checkIn,
-          checkOut: checkOut ?? cur.checkOut,
-          status: 'completed',
+          checkIn:     checkIn  ?? cur.checkIn,
+          checkOut:    checkOut ?? cur.checkOut,
+          checkOutAt:  cur.checkOutAt, // 원본 퇴근 기록 시각 유지
+          status:      'completed',
+          editHistory: [...(cur.editHistory ?? []), historyEntry],
         },
       }
       _persist(next)
