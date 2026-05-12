@@ -94,7 +94,8 @@ public class AuthController {
             return ResponseEntity.ok(
                     new LoginResponseDto(
                             accessToken,
-                            refreshTokenValue
+                            refreshTokenValue,
+                            user.getRole().name()
                     )
             );
 
@@ -151,7 +152,11 @@ public class AuthController {
 
             // 반환
             return ResponseEntity.ok(
-                    newAccessToken
+                    new LoginResponseDto(
+                            newAccessToken,
+                            refreshToken.getRefreshToken(),
+                            user.getRole().name()
+                    )
             );
 
         } catch (Exception e) {

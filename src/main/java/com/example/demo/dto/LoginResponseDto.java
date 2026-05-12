@@ -6,12 +6,16 @@ public class LoginResponseDto {
 
     private String refreshToken;
 
+    private String role;
+
     public LoginResponseDto(
             String accessToken,
-            String refreshToken
+            String refreshToken,
+            String role
     ) {
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
+        this.role = role;
     }
 
     public String getAccessToken() {
@@ -20,5 +24,9 @@ public class LoginResponseDto {
 
     public String getRefreshToken() {
         return refreshToken;
+    }
+
+    public String getRole() {
+        return role;
     }
 }

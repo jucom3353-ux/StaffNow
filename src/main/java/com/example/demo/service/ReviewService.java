@@ -44,6 +44,24 @@ public class ReviewService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new RuntimeException("지원 정보 없음"));
 
+        System.out.println("========== 리뷰 디버깅 ==========");
+
+        System.out.println(
+                "로그인 회사 ID = " + company.getId()
+        );
+
+        System.out.println(
+                "공고 작성 회사 ID = "
+                        + application.getJobPost().getUser().getId()
+        );
+
+        System.out.println(
+                "현재 지원 상태 = "
+                        + application.getStatus()
+        );
+
+        System.out.println("================================");
+
         // 회사 권한 체크
         if (!application.getJobPost().getUser().getId().equals(company.getId())) {
             throw new RuntimeException("권한 없음");
@@ -57,13 +75,18 @@ public class ReviewService {
         Review review = new Review();
 
         review.setApplication(application);
+
         review.setCompany(company);
+
         review.setWorker(application.getUser());
 
         review.setRating(requestDto.getRating());
+
         review.setComment(requestDto.getComment());
 
         reviewRepository.save(review);
+
+        System.out.println("리뷰 저장 완료");
     }
 
     // 작업자 평균 별점 조회

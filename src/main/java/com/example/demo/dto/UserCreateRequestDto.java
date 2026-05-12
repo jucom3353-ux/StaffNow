@@ -1,37 +1,34 @@
 package com.example.demo.dto;
 
-import com.example.demo.entity.Role;
-
 public class UserCreateRequestDto {
-
-    private String name;
 
     private String email;
 
-    private String phone;
-
     private String password;
 
-    // USER / COMPANY
-    private Role role;
+    private String name;
 
-    public String getName() {
-        return name;
-    }
+    private String phone;
+
+    private String role;
 
     public String getEmail() {
         return email;
-    }
-
-    public String getPhone() {
-        return phone;
     }
 
     public String getPassword() {
         return password;
     }
 
-    public Role getRole() {
+    public String getName() {
+        return name;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public String getRole() {
         return role;
     }
 }

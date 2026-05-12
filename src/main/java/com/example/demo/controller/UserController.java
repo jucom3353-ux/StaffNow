@@ -1,38 +1,44 @@
 package com.example.demo.controller;
 
 import com.example.demo.dto.UserCreateRequestDto;
-import com.example.demo.dto.UserResponseDto;
 import com.example.demo.service.UserService;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
+@RequestMapping("/users")
 public class UserController {
 
     private final UserService userService;
 
-    // 생성자 주입
-    public UserController(UserService userService) {
+    public UserController(
+            UserService userService
+    ) {
         this.userService = userService;
     }
 
-    // 회원 목록 조회
-    @GetMapping("/users")
-    public List<UserResponseDto> getUsers() {
+    // 회원가입
+    @PostMapping
+    public ResponseEntity<?> createUser(
 
-        return userService.getUsers();
-    }
-
-    // 회원가입 API
-    @PostMapping("/users")
-    public String createUser(
             @RequestBody UserCreateRequestDto requestDto
     ) {
 
-        // Service 호출
-        userService.createUser(requestDto);
+        try {
 
-        return "회원가입 완료";
+            userService.createUser(requestDto);
+
+            return ResponseEntity.ok(
+                    "회원가입 완료"
+            );
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
+            return ResponseEntity.internalServerError()
+                    .body(e.getMessage());
+        }
     }
 }

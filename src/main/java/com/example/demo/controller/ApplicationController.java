@@ -5,8 +5,9 @@ import com.example.demo.service.ApplicationService;
 import com.example.demo.service.UserService;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+
+import org.springframework.security.core.Authentication;
+
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 public class ApplicationController {
 
     private final ApplicationService applicationService;
+
     private final UserService userService;
 
     public ApplicationController(
@@ -24,16 +26,47 @@ public class ApplicationController {
         this.userService = userService;
     }
 
-    @PatchMapping("/{id}/complete")
-    public ResponseEntity<String> completeApplication(
-            @PathVariable Long id,
-            @AuthenticationPrincipal UserDetails userDetails
+    // 지원 생성
+    @PostMapping("/{jobPostId}")
+    public ResponseEntity<String> apply(
+
+            @PathVariable Long jobPostId,
+
+            Authentication authentication
     ) {
 
-        User company = userService.findByEmail(userDetails.getUsername());
+        User user =
+                (User) authentication.getPrincipal();
 
-        applicationService.completeApplication(id, company);
+        applicationService.apply(
+                jobPostId,
+                user
+        );
 
-        return ResponseEntity.ok("근무 완료 처리");
+        return ResponseEntity.ok(
+                "지원 완료"
+        );
+    }
+
+    // 근무 완료 처리
+    @PatchMapping("/{id}/complete")
+    public ResponseEntity<String> completeApplication(
+
+            @PathVariable Long id,
+
+            Authentication authentication
+    ) {
+
+        User company =
+                (User) authentication.getPrincipal();
+
+        applicationService.completeApplication(
+                id,
+                company
+        );
+
+        return ResponseEntity.ok(
+                "근무 완료 처리"
+        );
     }
 }

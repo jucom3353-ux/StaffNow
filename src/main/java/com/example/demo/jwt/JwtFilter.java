@@ -3,16 +3,17 @@ package com.example.demo.jwt;
 import com.example.demo.entity.User;
 import com.example.demo.repository.UserRepository;
 
+import io.jsonwebtoken.Claims;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import lombok.RequiredArgsConstructor;
-
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -20,10 +21,24 @@ import java.io.IOException;
 import java.util.List;
 
 @Component
-@RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
 
     private final UserRepository userRepository;
+
+    public JwtFilter(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    @Override
+    protected boolean shouldNotFilter(
+            HttpServletRequest request
+    ) {
+
+        String path = request.getServletPath();
+
+        return path.startsWith("/auth")
+                || path.startsWith("/users");
+    }
 
     @Override
     protected void doFilterInternal(
@@ -32,66 +47,61 @@ public class JwtFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        // 현재 요청 경로
-        String path = request.getRequestURI();
+        try {
 
-        // 회원가입/로그인은 필터 통과
-        if (path.startsWith("/users")
-                || path.startsWith("/auth")) {
+            String authHeader =
+                    request.getHeader("Authorization");
 
-            filterChain.doFilter(request, response);
+            // 토큰 없으면 그냥 통과
+            if (authHeader == null ||
+                    !authHeader.startsWith("Bearer ")) {
+
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            String token =
+                    authHeader.substring(7);
+
+            Claims claims =
+                    JwtUtil.extractClaims(token);
+
+            Long userId =
+                    claims.get("userId", Long.class);
+
+            User user =
+                    userRepository.findById(userId)
+                            .orElse(null);
+
+            if (user == null) {
+
+                response.setStatus(403);
+                return;
+            }
+
+            SimpleGrantedAuthority authority =
+                    new SimpleGrantedAuthority(
+                            "ROLE_" + user.getRole().name()
+                    );
+
+            UsernamePasswordAuthenticationToken authToken =
+                    new UsernamePasswordAuthenticationToken(
+                            user,
+                            null,
+                            List.of(authority)
+                    );
+
+            SecurityContextHolder.getContext()
+                    .setAuthentication(authToken);
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
+            response.setStatus(403);
             return;
         }
 
-        // Authorization 헤더 가져오기
-        String authorization =
-                request.getHeader("Authorization");
-
-        // Bearer 토큰인지 확인
-        if (authorization != null
-                && authorization.startsWith("Bearer ")) {
-
-            // "Bearer " 제거
-            String token =
-                    authorization.substring(7);
-
-            try {
-
-                // JWT에서 userId 추출
-                Long userId =
-                        JwtUtil.getUserId(token);
-
-                // DB에서 사용자 조회
-                User user = userRepository
-                        .findById(userId)
-                        .orElse(null);
-
-                // 사용자가 존재하면 인증 처리
-                if (user != null) {
-
-                    UsernamePasswordAuthenticationToken auth =
-                            new UsernamePasswordAuthenticationToken(
-                                    user,
-                                    null,
-                                    List.of(
-                                            new SimpleGrantedAuthority(
-                                                    "ROLE_" + user.getRole().name()
-                                            )
-                                    )
-                            );
-
-                    // Spring Security에 인증 정보 저장
-                    SecurityContextHolder.getContext()
-                            .setAuthentication(auth);
-                }
-
-            } catch (Exception e) {
-
-                e.printStackTrace();
-            }
-        }
-
-        // 다음 필터로 진행
         filterChain.doFilter(request, response);
     }
 }

@@ -1,54 +1,69 @@
 package com.example.demo.service;
 
 import com.example.demo.dto.UserCreateRequestDto;
-import com.example.demo.dto.UserResponseDto;
+
 import com.example.demo.entity.User;
+import com.example.demo.entity.Role;
+
 import com.example.demo.repository.UserRepository;
 
-import org.springframework.stereotype.Service;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import org.springframework.stereotype.Service;
 
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
 
-    public UserService(UserRepository userRepository) {
+    private final PasswordEncoder passwordEncoder;
+
+    public UserService(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder
+    ) {
         this.userRepository = userRepository;
-    }
-
-    // 전체 유저 조회
-    public List<UserResponseDto> getUsers() {
-
-        List<User> users = userRepository.findAll();
-
-        return users.stream()
-                .map(user -> new UserResponseDto(
-                        user.getId(),
-                        user.getEmail(),
-                        user.getName()
-                ))
-                .collect(Collectors.toList());
+        this.passwordEncoder = passwordEncoder;
     }
 
     // 회원가입
-    public void createUser(UserCreateRequestDto dto) {
+    public void createUser(
+            UserCreateRequestDto dto
+    ) {
 
         User user = new User();
 
         user.setEmail(dto.getEmail());
-        user.setPassword(dto.getPassword());
+
+        // BCrypt 암호화
+        user.setPassword(
+                passwordEncoder.encode(
+                        dto.getPassword()
+                )
+        );
+
         user.setName(dto.getName());
 
+        user.setPhone(dto.getPhone());
+
+        // ROLE 저장
+        user.setRole(
+                Role.valueOf(dto.getRole())
+        );
+
         userRepository.save(user);
+
+        System.out.println("회원가입 완료");
     }
 
-    // 이메일로 유저 조회
-    public User findByEmail(String email) {
+    // 이메일로 유저 찾기
+    public User findByEmail(
+            String email
+    ) {
 
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("유저 없음"));
+                .orElseThrow(() ->
+                        new RuntimeException("유저 없음")
+                );
     }
 }
