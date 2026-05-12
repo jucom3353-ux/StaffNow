@@ -50,7 +50,6 @@ export default function NotificationBell() {
 
   // 계정 유형 판별: 신규 개인 계정은 알림 없이 시작
   const isBiz   = !!(user?.company) || user?.role === 'ADMIN'
-  const isInd   = !isBiz
   const isDemoInd = user?.email === DEMO_IND_EMAIL
   const isDemoBiz = user?.email === DEMO_BIZ_EMAIL
 
@@ -80,7 +79,7 @@ export default function NotificationBell() {
         readIds,
         dismissedIds: [...prevDismissed],
       }))
-    } catch {}
+    } catch { /* no-op */ }
   }, [notifications, storageKey])
 
   // Outside click closes dropdown

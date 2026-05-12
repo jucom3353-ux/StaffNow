@@ -10,7 +10,17 @@ export function loadDisputes() {
   try { const r = localStorage.getItem(DISPUTES_KEY); return r ? JSON.parse(r) : [] } catch { return [] }
 }
 export function saveDisputes(list) {
-  try { localStorage.setItem(DISPUTES_KEY, JSON.stringify(list)) } catch {}
+  try { localStorage.setItem(DISPUTES_KEY, JSON.stringify(list)) } catch { /* no-op */ }
+}
+
+// ── 지각 시간수정 요청 (인력 → 기업 공유) ──────────────────
+export const LATE_REQUESTS_KEY = 'staffnow_late_requests'
+
+export function loadLateRequests() {
+  try { const r = localStorage.getItem(LATE_REQUESTS_KEY); return r ? JSON.parse(r) : [] } catch { return [] }
+}
+export function saveLateRequests(list) {
+  try { localStorage.setItem(LATE_REQUESTS_KEY, JSON.stringify(list)) } catch { /* no-op */ }
 }
 
 function getPersonalKey(user) {
@@ -22,12 +32,12 @@ function loadJSON(key, fallback) {
   try {
     const raw = localStorage.getItem(key)
     if (raw) return JSON.parse(raw)
-  } catch {}
+  } catch { /* no-op */ }
   return fallback
 }
 
 function saveJSON(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)) } catch {}
+  try { localStorage.setItem(key, JSON.stringify(value)) } catch { /* no-op */ }
 }
 
 function todayStr() {
@@ -142,7 +152,7 @@ export function useAttendance() {
     saveJSON(SHARED_ATTENDANCE_KEY, shared)
   }, [personalKey, user])
 
-  const checkIn = useCallback((shiftId) => {
+  const checkIn = useCallback((shiftId, location = null) => {
     setRecords(prev => {
       const next = {
         ...prev,
@@ -150,6 +160,7 @@ export function useAttendance() {
           ...prev[shiftId],
           checkIn: nowTime(),
           checkInAt: new Date().toISOString(),
+          checkInLocation: location,
           status: 'in_progress',
         },
       }
@@ -158,7 +169,7 @@ export function useAttendance() {
     })
   }, [_persist])
 
-  const checkOut = useCallback((shiftId) => {
+  const checkOut = useCallback((shiftId, location = null) => {
     setRecords(prev => {
       const next = {
         ...prev,
@@ -166,6 +177,7 @@ export function useAttendance() {
           ...prev[shiftId],
           checkOut: nowTime(),
           checkOutAt: new Date().toISOString(),
+          checkOutLocation: location,
           status: 'completed',
         },
       }

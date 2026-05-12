@@ -1,21 +1,8 @@
 const GRACE_PERIOD_MINS = 5   // 유예 기간 (분) — 백엔드 설계 기준 5분
-const NOSHOW_CUTOFF_MINS = 30 // 노쇼 판정 기준 (분)
 
-/**
- * 시간 문자열 "HH:MM" → 분(number)
- */
 function toMins(timeStr) {
   const [h, m] = timeStr.split(':').map(Number)
   return h * 60 + m
-}
-
-/**
- * 분(number) → "HH:MM"
- */
-function fromMins(mins) {
-  const h = Math.floor(mins / 60) % 24
-  const m = mins % 60
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
 /**

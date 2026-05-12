@@ -10,7 +10,6 @@ const AppDataContext = createContext(null)
 // ── localStorage 키 ───────────────────────────────────────
 const SHIFTS_KEY = 'staffnow_shifts_v1'
 const INVITATIONS_KEY = 'staffnow_invitations_v1'
-const MESSAGES_KEY = 'staffnow_messages_v1'
 
 function loadFromStorage(key) {
   try {

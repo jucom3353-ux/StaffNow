@@ -6,7 +6,7 @@ import EmptyState from '../../components/ui/EmptyState'
 import { useAppData } from '../../context/AppDataContext'
 import { useAuth } from '../../context/AuthContext'
 import { MOCK_APPLICANTS } from '../../data/mockApplicants'
-import { SHARED_ATTENDANCE_KEY, loadDisputes, saveDisputes } from '../../hooks/useAttendance'
+import { SHARED_ATTENDANCE_KEY, loadDisputes, saveDisputes, loadLateRequests, saveLateRequests } from '../../hooks/useAttendance'
 
 function loadLiveAttendance() {
   try {
@@ -18,12 +18,13 @@ function loadLiveAttendance() {
 const applicantMap = Object.fromEntries(MOCK_APPLICANTS.map(a => [a.id, a]))
 
 const TABS = [
-  { key: 'all',         label: '전체' },
-  { key: 'in_progress', label: '출근 중' },
-  { key: 'completed',   label: '완료' },
-  { key: 'absent',      label: '결근' },
-  { key: 'scheduled',   label: '예정' },
-  { key: 'disputes',    label: '이의신청' },
+  { key: 'all',          label: '전체' },
+  { key: 'in_progress',  label: '출근 중' },
+  { key: 'completed',    label: '완료' },
+  { key: 'absent',       label: '결근' },
+  { key: 'scheduled',    label: '예정' },
+  { key: 'disputes',     label: '이의신청' },
+  { key: 'late_requests', label: '시간수정 요청' },
 ]
 
 const STATUS_META = {
@@ -180,7 +181,8 @@ export default function AttendancePage() {
   const { user } = useAuth()
   const [tab, setTab] = useState('all')
   const [sort, setSort] = useState({ key: null, dir: 'asc' })
-  const [disputes, setDisputes] = useState(() => loadDisputes())
+  const [disputes,     setDisputes]     = useState(() => loadDisputes())
+  const [lateRequests, setLateRequests] = useState(() => loadLateRequests())
 
   function handleDispute(shiftId, action) {
     const next = disputes.map(d =>
@@ -192,7 +194,18 @@ export default function AttendancePage() {
     setDisputes(next)
   }
 
-  const pendingDisputeCount = disputes.filter(d => d.status === 'pending').length
+  function handleLateRequest(id, action) {
+    const next = lateRequests.map(r =>
+      r.id === id
+        ? { ...r, status: action, reviewedAt: new Date().toISOString() }
+        : r
+    )
+    saveLateRequests(next)
+    setLateRequests(next)
+  }
+
+  const pendingDisputeCount    = disputes.filter(d => d.status === 'pending').length
+  const pendingLateCount       = lateRequests.filter(r => r.status === 'pending').length
 
   function handleSort(key) {
     setSort(prev =>
@@ -290,11 +303,12 @@ export default function AttendancePage() {
   }, [dayRecords, tab, sort])
 
   const counts = {
-    in_progress: dayRecords.filter(a => a.status === 'in_progress').length,
-    completed:   dayRecords.filter(a => a.status === 'completed').length,
-    absent:      dayRecords.filter(a => a.status === 'absent').length,
-    scheduled:   dayRecords.filter(a => a.status === 'scheduled').length,
-    disputes:    disputes.length,
+    in_progress:   dayRecords.filter(a => a.status === 'in_progress').length,
+    completed:     dayRecords.filter(a => a.status === 'completed').length,
+    absent:        dayRecords.filter(a => a.status === 'absent').length,
+    scheduled:     dayRecords.filter(a => a.status === 'scheduled').length,
+    disputes:      disputes.length,
+    late_requests: lateRequests.length,
   }
 
   const selectedLabel = selectedDate
@@ -358,6 +372,9 @@ export default function AttendancePage() {
       <div className="flex gap-1 border-b border-offwhite-200 overflow-x-auto scrollbar-hide">
         {TABS.map(t => {
           const cnt = t.key === 'all' ? dayRecords.length : (counts[t.key] ?? 0)
+          const pendingBadge =
+            t.key === 'disputes'     ? pendingDisputeCount :
+            t.key === 'late_requests' ? pendingLateCount    : 0
           return (
             <button
               key={t.key}
@@ -367,12 +384,12 @@ export default function AttendancePage() {
               }`}
             >
               {t.label}
-              {t.key === 'disputes' && pendingDisputeCount > 0 && (
+              {pendingBadge > 0 && (
                 <span className="w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-                  {pendingDisputeCount}
+                  {pendingBadge}
                 </span>
               )}
-              {t.key !== 'disputes' && cnt > 0 && (
+              {pendingBadge === 0 && cnt > 0 && (
                 <span className={`text-xs tabular-nums px-1.5 rounded-md ${tab === t.key ? 'bg-orange/10 text-orange' : 'bg-offwhite-200 text-gray-500'}`}>
                   {cnt}
                 </span>
@@ -439,8 +456,82 @@ export default function AttendancePage() {
         </div>
       )}
 
+      {/* ── 시간수정 요청 탭 ── */}
+      {tab === 'late_requests' && (
+        <div className="space-y-3">
+          {lateRequests.length === 0 ? (
+            <Card>
+              <EmptyState icon={Clock} title="시간수정 요청이 없습니다" description="인력이 지각 사유를 제출하면 여기에 표시됩니다" />
+            </Card>
+          ) : lateRequests.map(r => (
+            <Card key={r.id} padding={false}>
+              <div className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-navy">{r.userName}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{r.jobTitle} · {r.company}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{r.shiftDate}</p>
+                  </div>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border shrink-0 ${
+                    r.status === 'pending'  ? 'text-amber-600 bg-amber-50 border-amber-200' :
+                    r.status === 'approved' ? 'text-green-600 bg-green-50 border-green-200' :
+                                              'text-red-500 bg-red-50 border-red-200'
+                  }`}>
+                    {r.status === 'pending' ? '검토 중' : r.status === 'approved' ? '승인됨' : '거절됨'}
+                  </span>
+                </div>
+
+                {/* 지각 정보 */}
+                <div className="flex gap-4 bg-offwhite rounded-xl px-3 py-2.5 text-xs text-gray-600">
+                  <div>
+                    <p className="text-[10px] text-gray-400 mb-0.5">예정 출근</p>
+                    <p className="font-semibold text-navy tabular-nums">{r.scheduledStart}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-400 mb-0.5">실제 출근</p>
+                    <p className="font-semibold text-orange tabular-nums">{r.actualCheckIn}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-400 mb-0.5">지각</p>
+                    <p className="font-semibold text-red-500">{r.lateMinutes}분</p>
+                  </div>
+                </div>
+
+                {/* 지각 사유 */}
+                <div className="bg-offwhite rounded-xl px-3 py-2.5 text-xs text-gray-600">
+                  <span className="font-semibold text-gray-400 uppercase tracking-wide text-[10px]">지각 사유</span>
+                  <p className="mt-1">{r.reason}</p>
+                </div>
+
+                <p className="text-[11px] text-gray-400">
+                  제출일: {new Date(r.submittedAt).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}
+                  {r.reviewedAt && ` · 처리일: ${new Date(r.reviewedAt).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}`}
+                </p>
+
+                {r.status === 'pending' && (
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={() => handleLateRequest(r.id, 'rejected')}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-red-200 text-xs font-bold text-red-500 hover:bg-red-50 transition-colors"
+                    >
+                      <X size={13} />거절
+                    </button>
+                    <button
+                      onClick={() => handleLateRequest(r.id, 'approved')}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-green-500 text-white text-xs font-bold hover:bg-green-600 transition-colors"
+                    >
+                      <Check size={13} />승인 (시간수정 허용)
+                    </button>
+                  </div>
+                )}
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
       {/* 근태 목록 */}
-      {tab !== 'disputes' && filtered.length === 0 ? (
+      {tab !== 'disputes' && tab !== 'late_requests' && filtered.length === 0 ? (
         <Card>
           <EmptyState
             icon={Clock}
@@ -448,7 +539,7 @@ export default function AttendancePage() {
             description="Shift를 완료·확정하면 근태 기록이 표시됩니다"
           />
         </Card>
-      ) : tab !== 'disputes' && (
+      ) : tab !== 'disputes' && tab !== 'late_requests' && (
         <>
           {/* 모바일 카드 뷰 */}
           <div className="md:hidden space-y-2">

@@ -4,7 +4,6 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import ToastContainer from './components/ui/Toast'
 
 import AppShell from './layouts/AppShell'
-import AuthLayout from './layouts/AuthLayout'
 import IndividualLayout from './layouts/IndividualLayout'
 import AdminLayout from './layouts/AdminLayout'
 

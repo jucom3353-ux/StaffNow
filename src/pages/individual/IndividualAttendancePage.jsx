@@ -1,11 +1,33 @@
 import { useState, useEffect, useRef } from 'react'
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet'
+import L from 'leaflet'
 import {
   Clock, CheckCircle2, MapPin, ChevronRight, LogIn, LogOut,
   CalendarDays, Pencil, Trash2, Send, X, AlertTriangle, History,
-  Camera, Wifi, ImageIcon,
+  Camera, Wifi, ImageIcon, Navigation,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
-import { useAttendance, getAssignedShifts, loadDisputes } from '../../hooks/useAttendance'
+import { useAttendance, getAssignedShifts, loadDisputes, loadLateRequests, saveLateRequests } from '../../hooks/useAttendance'
+
+// ── Leaflet 사용자 위치 마커 (MapView.jsx 패턴 동일) ──────────
+const userLocationIcon = L.divIcon({
+  className: '',
+  html: `<div style="
+    width:16px;height:16px;
+    background:#3B82F6;border:3px solid white;
+    border-radius:50%;box-shadow:0 2px 6px rgba(59,130,246,0.6);
+  "></div>`,
+  iconSize: [16, 16],
+  iconAnchor: [8, 8],
+})
+
+function FlyToLocation({ pos }) {
+  const map = useMap()
+  useEffect(() => {
+    if (pos) map.flyTo([pos.lat, pos.lng], 16, { duration: 1 })
+  }, [pos, map])
+  return null
+}
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10)
@@ -47,6 +69,27 @@ function getEditWindowInfo(rec, now) {
   const elapsed = (now - new Date(rec.checkOutAt)) / 60000
   const remaining = Math.max(0, EDIT_WINDOW_MIN - elapsed)
   return { canEdit: remaining > 0, remaining: Math.ceil(remaining) }
+}
+
+// ── 위치 배지 ──────────────────────────────────────────────
+function LocationBadge({ checkInLocation, checkOutLocation }) {
+  if (!checkInLocation && !checkOutLocation) return null
+  return (
+    <div className="flex flex-wrap gap-2">
+      {checkInLocation && (
+        <span className="inline-flex items-center gap-1 text-[11px] bg-blue-50 border border-blue-100 text-blue-600 rounded-full px-2.5 py-1">
+          <Navigation size={10} />
+          출근 위치 {checkInLocation.lat.toFixed(4)}°N {checkInLocation.lng.toFixed(4)}°E
+        </span>
+      )}
+      {checkOutLocation && (
+        <span className="inline-flex items-center gap-1 text-[11px] bg-green-50 border border-green-100 text-green-600 rounded-full px-2.5 py-1">
+          <Navigation size={10} />
+          퇴근 위치 {checkOutLocation.lat.toFixed(4)}°N {checkOutLocation.lng.toFixed(4)}°E
+        </span>
+      )}
+    </div>
+  )
 }
 
 // ── 수정 이력 ──────────────────────────────────────────────
@@ -212,15 +255,33 @@ function DisputeModal({ shift, onSubmit, onClose }) {
   )
 }
 
-// ── 출/퇴근 인증 플로우 모달 (사진 + 지각사유 + 기업 전달) ──
+// ── 출/퇴근 인증 플로우 모달 (사진 + 지각사유 + 현재위치 + 기업 전달) ──
 function AttendanceFlowModal({ type, shift, now, onRecord, onClose }) {
   const fileInputRef = useRef(null)
   const [photo, setPhoto]           = useState(null)   // { url }
   const [lateReason, setLateReason] = useState('')
   const [step, setStep]             = useState('upload') // 'upload' | 'sending' | 'done'
 
+  // 위치 상태 (MapView.jsx 패턴 동일)
+  const [userPos,    setUserPos]    = useState(null)   // { lat, lng, accuracy }
+  const [locLoading, setLocLoading] = useState(false)
+  const [locError,   setLocError]   = useState(false)
+
   const lateMinutes = type === 'in' ? getLateMinutes(shift.scheduledStart, now) : 0
   const isLate      = lateMinutes > 5
+
+  function handleLocate() {
+    if (!navigator.geolocation) { setLocError(true); return }
+    setLocLoading(true); setLocError(false)
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: Math.round(pos.coords.accuracy) })
+        setLocLoading(false)
+      },
+      () => { setLocError(true); setLocLoading(false) },
+      { timeout: 8000 }
+    )
+  }
 
   function handleFileChange(e) {
     const file = e.target.files?.[0]
@@ -229,7 +290,7 @@ function AttendanceFlowModal({ type, shift, now, onRecord, onClose }) {
   }
 
   function handleRecord() {
-    onRecord({ photo: photo?.url ?? null, lateReason: isLate ? lateReason : '' })
+    onRecord({ photo: photo?.url ?? null, lateReason: isLate ? lateReason : '', location: userPos })
     setStep('sending')
     setTimeout(() => setStep('done'), 1800)
   }
@@ -368,6 +429,60 @@ function AttendanceFlowModal({ type, shift, now, onRecord, onClose }) {
             )}
           </div>
 
+          {/* 현재 위치 */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">현재 위치</span>
+              <span className="text-[11px] text-gray-400 bg-gray-50 border border-offwhite-200 px-2 py-0.5 rounded-full">선택</span>
+            </div>
+
+            {userPos ? (
+              <div className="space-y-2">
+                {/* 소형 Leaflet 지도 */}
+                <div className="rounded-xl overflow-hidden border border-offwhite-200" style={{ height: 160 }}>
+                  <MapContainer
+                    center={[userPos.lat, userPos.lng]}
+                    zoom={16}
+                    style={{ width: '100%', height: '100%' }}
+                    zoomControl={false}
+                    attributionControl={false}
+                  >
+                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                    <Marker position={[userPos.lat, userPos.lng]} icon={userLocationIcon} />
+                    <FlyToLocation pos={userPos} />
+                  </MapContainer>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] text-blue-600 flex items-center gap-1">
+                    <Navigation size={11} />
+                    {userPos.lat.toFixed(5)}°N, {userPos.lng.toFixed(5)}°E
+                    {userPos.accuracy && <span className="text-gray-400 ml-1">(±{userPos.accuracy}m)</span>}
+                  </p>
+                  <button
+                    onClick={handleLocate}
+                    className="text-[11px] text-gray-400 hover:text-navy underline underline-offset-2"
+                  >
+                    다시 확인
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={handleLocate}
+                disabled={locLoading}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-offwhite-200 text-sm text-gray-400 hover:border-navy/30 hover:text-navy/60 disabled:opacity-60 transition-colors"
+              >
+                <Navigation size={16} className={locLoading ? 'animate-spin' : ''} />
+                {locLoading ? '위치 확인 중...' : '현재 위치 확인하기'}
+              </button>
+            )}
+            {locError && (
+              <p className="text-[11px] text-red-500 flex items-center gap-1">
+                <AlertTriangle size={11} />위치 권한을 허용해주세요
+              </p>
+            )}
+          </div>
+
           {/* 지각 사유 (지각 시 필수) */}
           {isLate && (
             <div className="space-y-1.5">
@@ -427,10 +542,12 @@ export default function IndividualAttendancePage() {
   const [now,           setNow]           = useState(new Date())
 
   // 출/퇴근 인증 플로우
-  const [flowTarget,    setFlowTarget]    = useState(null)  // { type: 'in'|'out', shift }
-  // 사진 / 지각 사유 임시 저장 (데모: 새로고침 시 초기화)
-  const [photoMap,      setPhotoMap]      = useState({})    // { [shiftId_in|out]: url }
-  const [lateReasonMap, setLateReasonMap] = useState({})    // { [shiftId]: string }
+  // 출/퇴근 인증 플로우
+  const [flowTarget,      setFlowTarget]      = useState(null)
+  const [photoMap,        setPhotoMap]        = useState({})
+  const [lateReasonMap,   setLateReasonMap]   = useState({})
+  // 지각 시간수정 요청 (localStorage와 동기화)
+  const [lateRequests,    setLateRequestsState] = useState(() => loadLateRequests())
 
   function getDispute(shiftId) { return disputes.find(d => d.shiftId === shiftId) ?? null }
 
@@ -445,12 +562,38 @@ export default function IndividualAttendancePage() {
   }, [])
 
   // 인증 완료 후 실제 기록
-  function handleAttendanceRecord({ photo, lateReason }) {
+  function handleAttendanceRecord({ photo, lateReason, location }) {
     const { type, shift } = flowTarget
     if (photo)      setPhotoMap(prev      => ({ ...prev, [`${shift.shiftId}_${type}`]: photo }))
     if (lateReason) setLateReasonMap(prev => ({ ...prev, [shift.shiftId]: lateReason }))
-    if (type === 'in') checkIn(shift.shiftId)
-    else               checkOut(shift.shiftId)
+    if (type === 'in') {
+      checkIn(shift.shiftId, location ?? null)
+      if (lateReason) {
+        const nowDate = new Date()
+        const nowStr  = `${String(nowDate.getHours()).padStart(2, '0')}:${String(nowDate.getMinutes()).padStart(2, '0')}`
+        const existing = loadLateRequests()
+        const newReq = {
+          id:             `late-${Date.now()}`,
+          shiftId:        shift.shiftId,
+          userName:       user?.name ?? '—',
+          userEmail:      user?.email ?? '',
+          jobTitle:       shift.jobTitle,
+          company:        shift.company,
+          shiftDate:      shift.shiftDate,
+          scheduledStart: shift.scheduledStart,
+          actualCheckIn:  nowStr,
+          lateMinutes:    getLateMinutes(shift.scheduledStart, nowDate),
+          reason:         lateReason,
+          status:         'pending',
+          submittedAt:    nowDate.toISOString(),
+          reviewedAt:     null,
+        }
+        saveLateRequests([...existing.filter(r => r.shiftId !== shift.shiftId), newReq])
+        setLateRequestsState(loadLateRequests())
+      }
+    } else {
+      checkOut(shift.shiftId, location ?? null)
+    }
   }
 
   const todayShifts    = shifts.filter(s => s.shiftDate === today)
@@ -549,7 +692,10 @@ export default function IndividualAttendancePage() {
             const canCheckIn  = status === 'scheduled'
             const canCheckOut = status === 'in_progress'
             const isSubmitted = status === 'submitted'
-            const { canEdit, remaining } = getEditWindowInfo(rec, now)
+            const { canEdit: canEditWindow, remaining } = getEditWindowInfo(rec, now)
+            const lateReq     = lateRequests.find(r => r.shiftId === shift.shiftId) ?? null
+            const lateApproved = lateReq?.status === 'approved'
+            const canEdit     = canEditWindow || (lateApproved && status === 'completed' && !isSubmitted)
             const editExpired = status === 'completed' && !canEdit
             const worked      = calcDuration(rec?.checkIn, rec?.checkOut)
             const photoIn     = photoMap[`${shift.shiftId}_in`]
@@ -594,6 +740,11 @@ export default function IndividualAttendancePage() {
                       )}
                     </div>
 
+                    <LocationBadge
+                      checkInLocation={rec?.checkInLocation}
+                      checkOutLocation={rec?.checkOutLocation}
+                    />
+
                     {/* 인증 사진 썸네일 */}
                     {(photoIn || photoOut) && (
                       <div className="flex gap-3">
@@ -623,12 +774,28 @@ export default function IndividualAttendancePage() {
                       </div>
                     )}
 
+                    {/* 지각 시간수정 요청 상태 */}
+                    {lateReq && (
+                      <div className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold ${
+                        lateReq.status === 'pending'  ? 'bg-amber-50 border border-amber-100 text-amber-600' :
+                        lateReq.status === 'approved' ? 'bg-green-50 border border-green-100 text-green-600' :
+                                                        'bg-red-50 border border-red-100 text-red-500'
+                      }`}>
+                        <Clock size={11} className="shrink-0" />
+                        {lateReq.status === 'pending'  ? '기업 검토 중 — 승인 시 시간 수정 가능' :
+                         lateReq.status === 'approved' ? '승인됨 — 시간 수정이 허용되었습니다' :
+                                                         '거절됨 — 시간 수정이 허용되지 않았습니다'}
+                      </div>
+                    )}
+
                     {/* 수정/삭제 버튼 */}
                     {canEdit && (
                       <div className="space-y-2">
-                        <p className="text-[11px] text-orange font-semibold flex items-center gap-1">
-                          <Clock size={11} />수정 가능 시간 {remaining}분 남음
-                        </p>
+                        {canEditWindow && (
+                          <p className="text-[11px] text-orange font-semibold flex items-center gap-1">
+                            <Clock size={11} />수정 가능 시간 {remaining}분 남음
+                          </p>
+                        )}
                         <div className="flex gap-2">
                           <button onClick={() => setEditTarget({ shiftId: shift.shiftId, record: rec })}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-offwhite-200 text-xs font-semibold text-gray-500 hover:bg-offwhite hover:text-navy transition-colors">
@@ -730,6 +897,7 @@ export default function IndividualAttendancePage() {
               const photoIn     = photoMap[`${shift.shiftId}_in`]
               const photoOut    = photoMap[`${shift.shiftId}_out`]
               const lateReason  = lateReasonMap[shift.shiftId]
+              const pastLateReq = lateRequests.find(r => r.shiftId === shift.shiftId) ?? null
 
               return (
                 <div key={shift.shiftId} className="bg-white rounded-2xl border border-offwhite-200 px-5 py-4">
@@ -797,6 +965,11 @@ export default function IndividualAttendancePage() {
                         {worked && <div><p className="text-xs text-gray-400 mb-0.5">근무 시간</p><p className="font-semibold text-green-600">{worked}</p></div>}
                       </div>
 
+                      <LocationBadge
+                        checkInLocation={rec?.checkInLocation}
+                        checkOutLocation={rec?.checkOutLocation}
+                      />
+
                       {/* 인증 사진 */}
                       {(photoIn || photoOut) && (
                         <div className="flex gap-3">
@@ -826,12 +999,27 @@ export default function IndividualAttendancePage() {
                         </div>
                       )}
 
+                      {/* 지각 시간수정 요청 상태 */}
+                      {pastLateReq && (
+                        <div className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold ${
+                          pastLateReq.status === 'pending'  ? 'bg-amber-50 border border-amber-100 text-amber-600' :
+                          pastLateReq.status === 'approved' ? 'bg-green-50 border border-green-100 text-green-600' :
+                                                              'bg-red-50 border border-red-100 text-red-500'
+                        }`}>
+                          <Clock size={11} className="shrink-0" />
+                          {pastLateReq.status === 'pending'  ? '기업 검토 중 — 승인 시 시간 수정 가능' :
+                           pastLateReq.status === 'approved' ? '승인됨 — 시간 수정이 허용되었습니다' :
+                                                               '거절됨 — 시간 수정이 허용되지 않았습니다'}
+                        </div>
+                      )}
+
                       {rec.status === 'completed' && (() => {
-                        const { canEdit: pastCanEdit, remaining: pastRemaining } = getEditWindowInfo(rec, now)
+                        const { canEdit: pastCanEditWindow, remaining: pastRemaining } = getEditWindowInfo(rec, now)
+                        const pastCanEdit = pastCanEditWindow || (pastLateReq?.status === 'approved')
                         const pastExpired = !pastCanEdit
                         return (
                           <div className="space-y-2">
-                            {pastCanEdit && (
+                            {pastCanEditWindow && (
                               <p className="text-[11px] text-orange font-semibold flex items-center gap-1">
                                 <Clock size={11} />수정 가능 시간 {pastRemaining}분 남음
                               </p>
