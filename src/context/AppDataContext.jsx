@@ -204,13 +204,56 @@ export function AppDataProvider({ children }) {
   }, [addToast])
 
   const addInvitation = useCallback((data) => {
+    const invId = `inv-${Date.now()}`
     const newInv = {
-      id: `inv-${Date.now()}`,
+      id: invId,
       status: 'pending',
       sentAt: new Date().toISOString().slice(0, 10),
       ...data,
     }
     setInvitations(prev => [newInv, ...prev])
+
+    // ── 인력 메시지함에 초대 카드 전달 ──────────────────────
+    try {
+      const companyName = data.companyName || '기업'
+      const inviteMsg = {
+        id: `m-${invId}`,
+        from: 'company',
+        text: '',
+        type: 'invite',
+        invite: {
+          inviteId: invId,
+          role: data.role,
+          shiftLabel: data.shiftLabel,
+          wage: data.wage,
+          companyName,
+          status: 'pending',
+        },
+        time: new Date().toISOString(),
+        read: false,
+        deleted: false,
+        file: null,
+      }
+      // 인력 데모 계정 inbox key: user@staffnow.kr
+      const indKey = 'staffnow_ind_messages_user_staffnow_kr'
+      const raw = localStorage.getItem(indKey)
+      const convs = raw ? JSON.parse(raw) : []
+      const convIdx = convs.findIndex(c => c.companyName === companyName)
+      if (convIdx >= 0) {
+        convs[convIdx] = { ...convs[convIdx], messages: [...convs[convIdx].messages, inviteMsg] }
+      } else {
+        convs.unshift({
+          id: `ic-${invId}`,
+          companyName,
+          online: true,
+          blocked: false,
+          left: false,
+          messages: [inviteMsg],
+        })
+      }
+      localStorage.setItem(indKey, JSON.stringify(convs))
+    } catch {}
+
     addToast({ type: 'success', message: `${data.staffName}님께 초대를 발송했습니다` })
     return newInv
   }, [addToast])

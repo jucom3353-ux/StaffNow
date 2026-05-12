@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Star, X, Send } from 'lucide-react'
+import { Star, X, Send, ChevronLeft, Check } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import { MOCK_APPLICANTS } from '../../data/mockApplicants'
@@ -42,105 +42,149 @@ function StarRow({ rating }) {
   )
 }
 
-// ── 초대 발송 미니 모달 ────────────────────────────────────
-function InviteModal({ person, myShifts, onSend, onClose }) {
+// ── 초대 발송 모달 (2단계: 작성 → 미리보기 → 발송) ──────────
+function InviteModal({ person, myShifts, onSend, onClose, companyName }) {
+  const [step, setStep] = useState(1)
   const [shiftId, setShiftId] = useState('')
   const [role, setRole] = useState('')
   const [wage, setWage] = useState('시급 13,000원')
 
   const selectedShift = myShifts.find(s => s.id === shiftId)
+  const d = selectedShift ? new Date(selectedShift.date + 'T00:00:00') : null
+  const shiftLabel = selectedShift
+    ? `${selectedShift.jobTitle} · ${d.getMonth() + 1}월 ${d.getDate()}일 ${selectedShift.startTime}–${selectedShift.endTime}`
+    : ''
+  const canNext = shiftId && role.trim()
 
   function handleSend() {
     if (!shiftId || !role.trim()) return
-    const d = new Date(selectedShift.date + 'T00:00:00')
-    onSend({
-      staffId: person.id,
-      staffName: person.name,
-      role,
-      shiftId,
-      shiftLabel: `${selectedShift.jobTitle} · ${d.getMonth() + 1}월 ${d.getDate()}일 ${selectedShift.startTime}–${selectedShift.endTime}`,
-      jobId: selectedShift.jobId,
-      wage,
-    })
+    onSend({ staffId: person.id, staffName: person.name, role, shiftId, shiftLabel, jobId: selectedShift.jobId, wage, companyName })
   }
 
+  const personIdx = MOCK_APPLICANTS.indexOf(person)
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 space-y-4" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4" onClick={e => e.stopPropagation()}>
+
+        {/* 헤더 */}
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-navy">초대 발송</h2>
+          <div className="flex items-center gap-1.5">
+            {step === 2 && (
+              <button onClick={() => setStep(1)} className="text-gray-400 hover:text-navy transition-colors -ml-1 p-1">
+                <ChevronLeft size={18} />
+              </button>
+            )}
+            <h2 className="text-base font-bold text-navy">
+              {step === 1 ? '초대 발송' : '발송 미리보기'}
+            </h2>
+          </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
         </div>
 
-        {/* 대상 스태프 */}
-        <div className="flex items-center gap-3 p-3 bg-offwhite rounded-xl">
-          <div className={`w-9 h-9 rounded-full ${AVATAR_COLORS[MOCK_APPLICANTS.indexOf(person) % AVATAR_COLORS.length]} flex items-center justify-center shrink-0`}>
-            <span className="text-white text-sm font-bold">{person.name[0]}</span>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-navy">{person.name}</p>
-            <p className="text-xs text-gray-400">{person.age}세 · {person.region} · ★{person.rating ?? '신규'}</p>
-          </div>
-        </div>
+        {/* ── STEP 1: 작성 폼 ── */}
+        {step === 1 && (
+          <>
+            {/* 대상 스태프 */}
+            <div className="flex items-center gap-3 p-3 bg-offwhite rounded-xl">
+              <div className={`w-9 h-9 rounded-full ${AVATAR_COLORS[personIdx % AVATAR_COLORS.length]} flex items-center justify-center shrink-0`}>
+                <span className="text-white text-sm font-bold">{person.name[0]}</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-navy">{person.name}</p>
+                <p className="text-xs text-gray-400">{person.age}세 · {person.region} · ★{person.rating ?? '신규'}</p>
+              </div>
+            </div>
 
-        {/* Shift 선택 */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Shift 선택 *</label>
-          <select
-            value={shiftId}
-            onChange={e => setShiftId(e.target.value)}
-            className="w-full border border-offwhite-200 rounded-lg px-3 py-2 text-sm text-navy outline-none focus:border-navy bg-white"
-          >
-            <option value="">Shift를 선택하세요</option>
-            {myShifts.map(s => {
-              const d = new Date(s.date + 'T00:00:00')
-              return (
-                <option key={s.id} value={s.id}>
-                  {s.jobTitle} · {d.getMonth() + 1}월 {d.getDate()}일 {s.startTime}–{s.endTime}
-                </option>
-              )
-            })}
-          </select>
-        </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Shift 선택 *</label>
+              <select value={shiftId} onChange={e => setShiftId(e.target.value)}
+                className="w-full border border-offwhite-200 rounded-lg px-3 py-2 text-sm text-navy outline-none focus:border-navy bg-white">
+                <option value="">Shift를 선택하세요</option>
+                {myShifts.map(s => {
+                  const sd = new Date(s.date + 'T00:00:00')
+                  return <option key={s.id} value={s.id}>{s.jobTitle} · {sd.getMonth() + 1}월 {sd.getDate()}일 {s.startTime}–{s.endTime}</option>
+                })}
+              </select>
+            </div>
 
-        {/* 역할 */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">역할 *</label>
-          <input
-            type="text"
-            placeholder="예: 행사 안내 스태프"
-            value={role}
-            onChange={e => setRole(e.target.value)}
-            className="w-full border border-offwhite-200 rounded-lg px-3 py-2 text-sm text-navy outline-none focus:border-navy"
-          />
-        </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">역할 *</label>
+              <input type="text" placeholder="예: 행사 안내 스태프" value={role} onChange={e => setRole(e.target.value)}
+                className="w-full border border-offwhite-200 rounded-lg px-3 py-2 text-sm text-navy outline-none focus:border-navy" />
+            </div>
 
-        {/* 급여 */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">급여</label>
-          <input
-            type="text"
-            value={wage}
-            onChange={e => setWage(e.target.value)}
-            className="w-full border border-offwhite-200 rounded-lg px-3 py-2 text-sm text-navy outline-none focus:border-navy"
-          />
-        </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">급여</label>
+              <input type="text" value={wage} onChange={e => setWage(e.target.value)}
+                className="w-full border border-offwhite-200 rounded-lg px-3 py-2 text-sm text-navy outline-none focus:border-navy" />
+            </div>
 
-        <div className="flex gap-2 pt-1">
-          <button
-            onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl border border-offwhite-200 text-sm font-semibold text-gray-500 hover:bg-offwhite transition-colors"
-          >
-            취소
-          </button>
-          <button
-            onClick={handleSend}
-            disabled={!shiftId || !role.trim()}
-            className="flex-1 py-2.5 rounded-xl bg-orange text-white text-sm font-bold hover:bg-orange-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            <Send size={14} />발송
-          </button>
-        </div>
+            <div className="flex gap-2 pt-1">
+              <button onClick={onClose}
+                className="flex-1 py-2.5 rounded-xl border border-offwhite-200 text-sm font-semibold text-gray-500 hover:bg-offwhite transition-colors">
+                취소
+              </button>
+              <button onClick={() => setStep(2)} disabled={!canNext}
+                className="flex-1 py-2.5 rounded-xl bg-navy text-white text-sm font-bold hover:bg-navy/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5">
+                미리보기 →
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ── STEP 2: 미리보기 ── */}
+        {step === 2 && (
+          <>
+            <p className="text-xs text-gray-500">
+              <span className="font-semibold text-navy">{person.name}</span>님의 메시지함에 아래와 같이 전달됩니다.
+            </p>
+
+            {/* 인력이 받는 초대 카드 미리보기 */}
+            <div className="border border-offwhite-200 rounded-2xl overflow-hidden shadow-sm">
+              <div className="bg-offwhite px-4 py-2 border-b border-offwhite-200 flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-navy/10 text-navy text-xs font-bold flex items-center justify-center shrink-0">
+                  {companyName?.[0] ?? '기'}
+                </div>
+                <span className="text-xs text-gray-500 font-medium">{companyName}</span>
+              </div>
+              <div className="px-4 pt-3 pb-2">
+                <span className="text-[11px] font-bold text-orange bg-orange/10 px-2 py-0.5 rounded-full">📋 근무 초대</span>
+              </div>
+              <div className="px-4 pb-3 space-y-2">
+                {[
+                  { label: '역할', value: role },
+                  { label: '일정', value: shiftLabel },
+                  { label: '급여', value: wage, highlight: true },
+                ].map(row => (
+                  <div key={row.label} className="flex gap-3 text-sm">
+                    <span className="text-gray-400 text-xs w-8 shrink-0 pt-0.5">{row.label}</span>
+                    <span className={`text-xs font-semibold leading-snug ${row.highlight ? 'text-orange' : 'text-navy'}`}>{row.value}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-2 px-4 pb-4">
+                <div className="py-2 rounded-xl bg-navy/10 text-navy text-xs font-bold text-center flex items-center justify-center gap-1">
+                  <Check size={11} />수락
+                </div>
+                <div className="py-2 rounded-xl bg-red-50 border border-red-100 text-red-400 text-xs font-bold text-center flex items-center justify-center gap-1">
+                  <X size={11} />거절
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => setStep(1)}
+                className="flex-1 py-2.5 rounded-xl border border-offwhite-200 text-sm font-semibold text-gray-500 hover:bg-offwhite transition-colors">
+                수정
+              </button>
+              <button onClick={handleSend}
+                className="flex-1 py-2.5 rounded-xl bg-orange text-white text-sm font-bold hover:bg-orange-600 transition-colors flex items-center justify-center gap-2">
+                <Send size={14} />발송 확정
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
@@ -182,6 +226,7 @@ export default function StaffRecommendationsPage() {
           myShifts={myShifts}
           onSend={handleSend}
           onClose={() => setInviteTarget(null)}
+          companyName={user?.company || user?.name || '기업'}
         />
       )}
 

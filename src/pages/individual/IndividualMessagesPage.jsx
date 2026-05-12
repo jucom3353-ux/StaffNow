@@ -241,6 +241,28 @@ export default function IndividualMessagesPage() {
     typingTimer.current = setTimeout(() => setTyping(false), 2000)
   }
 
+  // ── 초대 수락/거절 ────────────────────────────────────────
+  const handleInviteResponse = useCallback((convId, msgId, inviteId, response) => {
+    // 내 메시지함 상태 업데이트
+    setConversations(prev => prev.map(c => c.id === convId ? {
+      ...c,
+      messages: c.messages.map(m => m.id === msgId && m.type === 'invite'
+        ? { ...m, invite: { ...m.invite, status: response } }
+        : m
+      ),
+    } : c))
+    // 기업 초대 현황(invitations_v1)에도 반영
+    try {
+      const raw = localStorage.getItem('staffnow_invitations_v1')
+      if (raw) {
+        const invs = JSON.parse(raw)
+        localStorage.setItem('staffnow_invitations_v1', JSON.stringify(
+          invs.map(i => i.id === inviteId ? { ...i, status: response } : i)
+        ))
+      }
+    } catch {}
+  }, [])
+
   function startEdit(msg) { setEditingId(msg.id); setEditText(msg.text) }
   function confirmEdit() {
     if (!editText.trim() || !selectedId) return
@@ -393,6 +415,64 @@ export default function IndividualMessagesPage() {
               <p className="text-xs italic text-gray-400 px-4 py-2 bg-gray-50 rounded-2xl border border-gray-100">삭제된 메시지입니다</p>
             </div>
           )
+
+          // ── 초대 카드 ───────────────────────────────────────
+          if (msg.type === 'invite' && msg.invite) {
+            const inv = msg.invite
+            const isPending = inv.status === 'pending'
+            return (
+              <div key={msg.id} className={`flex flex-row items-end gap-2 ${prevSame ? 'mt-0.5' : 'mt-3'}`}>
+                {!prevSame
+                  ? <Avatar name={selected.companyName} online={false} />
+                  : <div className="w-9 shrink-0" />
+                }
+                <div className="max-w-[75%]">
+                  <div className="bg-white border border-offwhite-200 rounded-2xl rounded-bl-sm overflow-hidden shadow-sm">
+                    {/* 카드 헤더 */}
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-orange/5 border-b border-orange/10">
+                      <span className="text-[11px] font-bold text-orange">📋 근무 초대</span>
+                    </div>
+                    {/* 상세 정보 */}
+                    <div className="px-4 py-3 space-y-2">
+                      {[
+                        { label: '역할', value: inv.role },
+                        { label: '일정', value: inv.shiftLabel },
+                        { label: '급여', value: inv.wage, orange: true },
+                      ].map(row => (
+                        <div key={row.label} className="flex gap-2.5 text-xs">
+                          <span className="text-gray-400 w-8 shrink-0 pt-0.5">{row.label}</span>
+                          <span className={`font-semibold leading-snug ${row.orange ? 'text-orange' : 'text-navy'}`}>{row.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {/* 수락/거절 or 결과 */}
+                    {isPending ? (
+                      <div className="grid grid-cols-2 gap-2 px-4 pb-4">
+                        <button
+                          onClick={() => handleInviteResponse(selected.id, msg.id, inv.inviteId, 'accepted')}
+                          className="py-2.5 rounded-xl bg-navy text-white text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-navy/80 transition-colors"
+                        >
+                          <Check size={12} />수락
+                        </button>
+                        <button
+                          onClick={() => handleInviteResponse(selected.id, msg.id, inv.inviteId, 'rejected')}
+                          className="py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-500 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-red-100 transition-colors"
+                        >
+                          <X size={12} />거절
+                        </button>
+                      </div>
+                    ) : (
+                      <div className={`mx-4 mb-4 py-2.5 rounded-xl text-xs font-bold text-center
+                        ${inv.status === 'accepted' ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-gray-50 text-gray-400 border border-gray-200'}`}>
+                        {inv.status === 'accepted' ? '✓ 수락하였습니다' : '✕ 거절하였습니다'}
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-[11px] text-gray-400 px-1 mt-0.5 block">{formatFull(msg.time)}</span>
+                </div>
+              </div>
+            )
+          }
 
           return (
             <div key={msg.id}
