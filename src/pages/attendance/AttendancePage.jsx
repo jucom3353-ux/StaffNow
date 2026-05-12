@@ -1,12 +1,14 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Clock, CheckCircle2, AlertCircle, Users, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, DollarSign, MessageSquareWarning, Check, X } from 'lucide-react'
+import { Clock, CheckCircle2, AlertCircle, Users, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, DollarSign, MessageSquareWarning, Check, X, Star } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import EmptyState from '../../components/ui/EmptyState'
 import { useAppData } from '../../context/AppDataContext'
 import { useAuth } from '../../context/AuthContext'
 import { MOCK_APPLICANTS } from '../../data/mockApplicants'
 import { SHARED_ATTENDANCE_KEY, loadDisputes, saveDisputes, loadLateRequests, saveLateRequests } from '../../hooks/useAttendance'
+import { useRatings } from '../../hooks/useRatings'
+import RatingModal from '../../components/ratings/RatingModal'
 
 function loadLiveAttendance() {
   try {
@@ -183,6 +185,19 @@ export default function AttendancePage() {
   const [sort, setSort] = useState({ key: null, dir: 'asc' })
   const [disputes,     setDisputes]     = useState(() => loadDisputes())
   const [lateRequests, setLateRequests] = useState(() => loadLateRequests())
+  const { addRating, hasRated } = useRatings()
+  const [ratingTarget, setRatingTarget] = useState(null)
+
+  function handleRating({ stars, comment }) {
+    addRating({
+      recordId: ratingTarget.id,
+      staffName: ratingTarget.staff,
+      shiftLabel: ratingTarget.shift,
+      stars,
+      comment,
+    })
+    setRatingTarget(null)
+  }
 
   function handleDispute(shiftId, action) {
     const next = disputes.map(d =>
@@ -317,6 +332,13 @@ export default function AttendancePage() {
 
   return (
     <div className="space-y-5">
+      {ratingTarget && (
+        <RatingModal
+          record={ratingTarget}
+          onSubmit={handleRating}
+          onClose={() => setRatingTarget(null)}
+        />
+      )}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-xl font-bold text-navy">근태 관리</h1>
@@ -570,6 +592,22 @@ export default function AttendancePage() {
                       </div>
                     )}
                   </div>
+                  {a.status === 'completed' && (
+                    <div className="mt-2.5 pt-2.5 border-t border-offwhite-100">
+                      {hasRated(a.id) ? (
+                        <span className="flex items-center gap-1 text-xs text-yellow-600 font-semibold">
+                          <Star size={12} className="fill-yellow-400 text-yellow-400" />평가 완료
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => setRatingTarget(a)}
+                          className="flex items-center gap-1.5 text-xs font-semibold text-orange hover:underline"
+                        >
+                          <Star size={12} />별점 남기기
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </Card>
             ))}
@@ -586,6 +624,7 @@ export default function AttendancePage() {
                   <SortableHeader label="체크아웃" sortKey="checkOut"  sort={sort} onSort={handleSort} />
                   <SortableHeader label="근무 시간" sortKey="workHours" sort={sort} onSort={handleSort} />
                   <SortableHeader label="상태"     sortKey="status"    sort={sort} onSort={handleSort} />
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">평가</th>
                 </tr>
               </thead>
               <tbody>
@@ -602,6 +641,22 @@ export default function AttendancePage() {
                       {a.workHours ? <span className="font-medium text-navy">{a.workHours}</span> : '—'}
                     </td>
                     <td className="px-5 py-3.5"><StatusPill status={a.status} /></td>
+                    <td className="px-5 py-3.5">
+                      {a.status === 'completed' && (
+                        hasRated(a.id) ? (
+                          <span className="flex items-center gap-1 text-xs text-yellow-600 font-semibold">
+                            <Star size={12} className="fill-yellow-400 text-yellow-400" />완료
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => setRatingTarget(a)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-orange text-orange hover:bg-orange hover:text-white transition-colors"
+                          >
+                            <Star size={11} />별점
+                          </button>
+                        )
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

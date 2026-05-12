@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useIndividualData } from '../../hooks/useIndividualData'
+import { useRatings } from '../../hooks/useRatings'
 
 // ─── 하드코딩 데모 데이터 ────────────────────────────────────────────────────
 const DEMO_STATS = [
@@ -162,6 +163,20 @@ export default function IndividualProfilePage() {
   const navigate = useNavigate()
   const { profile, updateProfile } = useIndividualData()
   const isDemo = user?.email === DEMO_EMAIL
+  const { getStaffRatings } = useRatings()
+  const myActualRatings = getStaffRatings(user?.name ?? '')
+  const ratingItems = isDemo
+    ? DEMO_RATINGS.map(r => ({ key: r.company, title: r.company, date: r.date, stars: r.rating, comment: r.comment }))
+    : myActualRatings.map(r => ({
+        key: r.id,
+        title: r.shiftLabel,
+        date: new Date(r.createdAt).toLocaleDateString('ko-KR'),
+        stars: r.stars,
+        comment: r.comment,
+      }))
+  const avgRatingDisplay = ratingItems.length > 0
+    ? (ratingItems.reduce((s, r) => s + r.stars, 0) / ratingItems.length).toFixed(1)
+    : '-'
   const healthFileRef = useRef(null)
   const safetyFileRef = useRef(null)
   const docRefs = { health: healthFileRef, safety: safetyFileRef }
@@ -337,7 +352,7 @@ export default function IndividualProfilePage() {
         {(isDemo ? DEMO_STATS : [
           { key: 'jobs',   label: '완료한 업무',  value: '0건',   icon: Briefcase,   color: 'text-blue-500',   bg: 'bg-blue-50' },
           { key: 'hours',  label: '총 근무 시간', value: '0시간', icon: Clock,       color: 'text-purple-500', bg: 'bg-purple-50' },
-          { key: 'rating', label: '평균 별점',    value: '-',     icon: Star,        color: 'text-yellow-500', bg: 'bg-yellow-50', suffix: '/ 5.0' },
+          { key: 'rating', label: '평균 별점',    value: avgRatingDisplay, icon: Star, color: 'text-yellow-500', bg: 'bg-yellow-50', suffix: '/ 5.0' },
           { key: 'attend', label: '근태 지수',    value: '0회',   icon: ShieldCheck, color: 'text-green-600',  bg: 'bg-green-50', badge: true },
         ]).map(s => (
           <button
@@ -1014,31 +1029,31 @@ export default function IndividualProfilePage() {
               </button>
             </div>
             <div className="overflow-y-auto flex-1 divide-y divide-offwhite-200">
-              {DEMO_RATINGS.sort((a, b) => b.rating - a.rating).map(r => (
-                <div key={r.company} className="px-5 py-4 hover:bg-offwhite-100 transition-colors">
+              {ratingItems.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-10">아직 받은 평가가 없습니다.</p>
+              ) : [...ratingItems].sort((a, b) => b.stars - a.stars).map(r => (
+                <div key={r.key} className="px-5 py-4 hover:bg-offwhite-100 transition-colors">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-bold text-navy">{r.company}</p>
+                        <p className="text-sm font-bold text-navy">{r.title}</p>
                         <span className="text-xs text-gray-400">{r.date}</span>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{r.comment}</p>
+                      <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{r.comment || '코멘트 없음'}</p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <Star size={14} className="text-yellow-400 fill-yellow-400" />
-                      <span className="text-base font-extrabold text-navy tabular-nums">{r.rating.toFixed(1)}</span>
+                      <span className="text-base font-extrabold text-navy tabular-nums">{r.stars.toFixed(1)}</span>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
             <div className="px-5 py-3 bg-offwhite-100 border-t border-offwhite-200 flex items-center justify-between shrink-0">
-              <span className="text-xs text-gray-500">총 {DEMO_RATINGS.length}개 평가 · 평균</span>
+              <span className="text-xs text-gray-500">총 {ratingItems.length}개 평가 · 평균</span>
               <div className="flex items-center gap-1">
                 <Star size={13} className="text-yellow-400 fill-yellow-400" />
-                <span className="text-sm font-extrabold text-navy">
-                  {(DEMO_RATINGS.reduce((s, r) => s + r.rating, 0) / DEMO_RATINGS.length).toFixed(1)}
-                </span>
+                <span className="text-sm font-extrabold text-navy">{avgRatingDisplay}</span>
                 <span className="text-xs text-gray-400">/ 5.0</span>
               </div>
             </div>

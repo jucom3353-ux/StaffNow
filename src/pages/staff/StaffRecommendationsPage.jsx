@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Star, X, Send, ChevronLeft, Check } from 'lucide-react'
+import { useRatings } from '../../hooks/useRatings'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import { MOCK_APPLICANTS } from '../../data/mockApplicants'
@@ -194,6 +195,7 @@ function InviteModal({ person, myShifts, onSend, onClose, companyName }) {
 export default function StaffRecommendationsPage() {
   const { addInvitation, shifts, jobs } = useAppData()
   const { user } = useAuth()
+  const { getAverageRating } = useRatings()
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [inviteTarget, setInviteTarget] = useState(null)
@@ -204,11 +206,12 @@ export default function StaffRecommendationsPage() {
     .filter(s => s.status === 'scheduled' || s.status === 'in_progress')
 
   const visible = MOCK_APPLICANTS.filter(p => {
+    const eff = getAverageRating(p.name) ?? p.rating
     const tierMatch =
       filter === 'all' ||
-      (filter === 'top' && getTier(p.rating) === 'top') ||
-      (filter === 'mid' && getTier(p.rating) === 'mid') ||
-      (filter === 'new' && getTier(p.rating) === 'new')
+      (filter === 'top' && getTier(eff) === 'top') ||
+      (filter === 'mid' && getTier(eff) === 'mid') ||
+      (filter === 'new' && getTier(eff) === 'new')
     const searchMatch = !search || p.name.includes(search) || p.region.includes(search)
     return tierMatch && searchMatch
   })
@@ -249,11 +252,12 @@ export default function StaffRecommendationsPage() {
         {TIER_FILTERS.map(t => {
           const count = t.key === 'all'
             ? MOCK_APPLICANTS.length
-            : MOCK_APPLICANTS.filter(p =>
-                t.key === 'top' ? getTier(p.rating) === 'top' :
-                t.key === 'mid' ? getTier(p.rating) === 'mid' :
-                getTier(p.rating) === 'new'
-              ).length
+            : MOCK_APPLICANTS.filter(p => {
+                const eff = getAverageRating(p.name) ?? p.rating
+                return t.key === 'top' ? getTier(eff) === 'top' :
+                       t.key === 'mid' ? getTier(eff) === 'mid' :
+                       getTier(eff) === 'new'
+              }).length
           return (
             <button
               key={t.key}
@@ -277,41 +281,44 @@ export default function StaffRecommendationsPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {visible.map((person, idx) => (
-            <Card key={person.id}>
-              <div className="flex items-start gap-3">
-                <div className={`w-10 h-10 rounded-full ${AVATAR_COLORS[idx % AVATAR_COLORS.length]} flex items-center justify-center shrink-0`}>
-                  <span className="text-white text-sm font-bold">{person.name[0]}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-1">
-                    <p className="font-semibold text-navy text-sm">{person.name}</p>
-                    {person.rating !== null && (
-                      <span className="text-xs text-yellow-600 font-semibold shrink-0">★{person.rating}</span>
-                    )}
+          {visible.map((person, idx) => {
+            const effectiveRating = getAverageRating(person.name) ?? person.rating
+            return (
+              <Card key={person.id}>
+                <div className="flex items-start gap-3">
+                  <div className={`w-10 h-10 rounded-full ${AVATAR_COLORS[idx % AVATAR_COLORS.length]} flex items-center justify-center shrink-0`}>
+                    <span className="text-white text-sm font-bold">{person.name[0]}</span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {person.age}세 · {person.gender} · {person.region}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <StarRow rating={person.rating} />
-                    {person.hireCount > 0 && (
-                      <span className="text-xs text-orange font-semibold">고용 {person.hireCount}회</span>
-                    )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="font-semibold text-navy text-sm">{person.name}</p>
+                      {effectiveRating !== null && (
+                        <span className="text-xs text-yellow-600 font-semibold shrink-0">★{effectiveRating}</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {person.age}세 · {person.gender} · {person.region}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <StarRow rating={effectiveRating} />
+                      {person.hireCount > 0 && (
+                        <span className="text-xs text-orange font-semibold">고용 {person.hireCount}회</span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="mt-3 pt-3 border-t border-offwhite-200">
-                <Button
-                  size="sm"
-                  className="w-full justify-center"
-                  onClick={() => setInviteTarget(person)}
-                >
-                  초대 보내기
-                </Button>
-              </div>
-            </Card>
-          ))}
+                <div className="mt-3 pt-3 border-t border-offwhite-200">
+                  <Button
+                    size="sm"
+                    className="w-full justify-center"
+                    onClick={() => setInviteTarget(person)}
+                  >
+                    초대 보내기
+                  </Button>
+                </div>
+              </Card>
+            )
+          })}
         </div>
       )}
     </div>
