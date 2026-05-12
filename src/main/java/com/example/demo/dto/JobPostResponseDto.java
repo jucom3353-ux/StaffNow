@@ -1,13 +1,50 @@
 package com.example.demo.dto;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-
-@Getter
-@NoArgsConstructor // 👈 이게 없으면 JSON 변환 시 에러가 날 수 있습니다.
-@AllArgsConstructor // 모든 필드를 인자로 받는 생성자
 public class JobPostResponseDto {
+
+    private Long id;
+
     private String title;
+
     private String content;
+
+    private String companyName;
+
+    // 공고 목록 조회용
+    public JobPostResponseDto(
+            Long id,
+            String title,
+            String content,
+            String companyName
+    ) {
+        this.id = id;
+        this.title = title;
+        this.content = content;
+        this.companyName = companyName;
+    }
+
+    // 공고 단순 조회용
+    public JobPostResponseDto(
+            String title,
+            String content
+    ) {
+        this.title = title;
+        this.content = content;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public String getCompanyName() {
+        return companyName;
+    }
 }
