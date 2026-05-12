@@ -143,57 +143,82 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1.5 w-80 bg-white rounded-xl border border-offwhite-200 shadow-lg z-50 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-offwhite-200">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-navy text-sm">알림</span>
-              {unread > 0 && (
-                <span className="text-xs bg-orange text-white font-bold px-1.5 py-0.5 rounded-full">{unread}</span>
+        <>
+          {/* 모바일 백드롭 */}
+          <div
+            className="fixed inset-0 z-[149] sm:hidden"
+            onClick={() => setOpen(false)}
+          />
+
+          {/* 드롭다운 패널
+              모바일: fixed 포지션, 헤더 바로 아래 좌우 여백 8px
+              데스크탑(sm+): absolute, 벨 버튼 기준 right-0
+          */}
+          <div className="
+            fixed left-2 right-2 top-[4.25rem]
+            sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-1.5 sm:w-80
+            bg-white rounded-xl border border-offwhite-200 shadow-xl z-[150] overflow-hidden
+          ">
+            {/* 헤더 */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-offwhite-200">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-navy text-sm">알림</span>
+                {unread > 0 && (
+                  <span className="text-xs bg-orange text-white font-bold px-1.5 py-0.5 rounded-full">{unread}</span>
+                )}
+              </div>
+              {/* 모바일에서 닫기 버튼 */}
+              <button
+                onClick={() => setOpen(false)}
+                className="sm:hidden p-1 rounded-lg text-gray-400 hover:bg-offwhite hover:text-gray-600 transition-colors"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            {/* 알림 목록 */}
+            <div className="max-h-[60vh] sm:max-h-72 overflow-y-auto divide-y divide-offwhite-200">
+              {notifications.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-8">알림이 없습니다.</p>
+              ) : (
+                notifications.map(n => {
+                  const Icon = TYPE_ICON[n.type] ?? Bell
+                  return (
+                    <div
+                      key={n.id}
+                      onClick={() => markOneRead(n.id)}
+                      className={`flex items-start gap-3 px-4 py-3.5 hover:bg-offwhite-100 transition-colors cursor-pointer ${!n.isRead ? 'bg-orange-50/40' : ''}`}
+                    >
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${!n.isRead ? 'bg-orange-100 text-orange' : 'bg-offwhite text-gray-400'}`}>
+                        <Icon size={15} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm leading-snug ${!n.isRead ? 'text-navy font-medium' : 'text-gray-600'}`}>{n.text}</p>
+                        <p className="text-xs text-gray-400 mt-1">{n.time}</p>
+                      </div>
+                      <button
+                        onClick={e => { e.stopPropagation(); dismiss(n.id) }}
+                        className="p-1 rounded-lg hover:bg-offwhite text-gray-300 hover:text-gray-500 shrink-0 mt-0.5"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )
+                })
               )}
             </div>
-          </div>
 
-          <div className="max-h-72 overflow-y-auto divide-y divide-offwhite-200">
-            {notifications.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-8">알림이 없습니다.</p>
-            ) : (
-              notifications.map(n => {
-                const Icon = TYPE_ICON[n.type] ?? Bell
-                return (
-                  <div
-                    key={n.id}
-                    onClick={() => markOneRead(n.id)}
-                    className={`flex items-start gap-3 px-4 py-3 hover:bg-offwhite-100 transition-colors cursor-pointer ${!n.isRead ? 'bg-orange-50/40' : ''}`}
-                  >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${!n.isRead ? 'bg-orange-100 text-orange' : 'bg-offwhite text-gray-400'}`}>
-                      <Icon size={14} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-xs leading-relaxed ${!n.isRead ? 'text-navy font-medium' : 'text-gray-600'}`}>{n.text}</p>
-                      <p className="text-[11px] text-gray-400 mt-0.5">{n.time}</p>
-                    </div>
-                    <button
-                      onClick={e => { e.stopPropagation(); dismiss(n.id) }}
-                      className="p-0.5 rounded hover:bg-offwhite text-gray-300 hover:text-gray-500 shrink-0 mt-0.5"
-                    >
-                      <X size={13} />
-                    </button>
-                  </div>
-                )
-              })
-            )}
+            {/* 데모용: 새 알림 생성 버튼 */}
+            <div className="px-4 py-3 border-t border-offwhite-200">
+              <button
+                onClick={addDemoNotification}
+                className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-semibold text-gray-500 hover:bg-offwhite-100 hover:text-navy border border-dashed border-offwhite-200 transition-colors"
+              >
+                <PlusCircle size={13} />테스트 알림 추가
+              </button>
+            </div>
           </div>
-
-          {/* 데모용: 새 알림 생성 버튼 */}
-          <div className="px-4 py-2.5 border-t border-offwhite-200">
-            <button
-              onClick={addDemoNotification}
-              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold text-gray-500 hover:bg-offwhite-100 hover:text-navy border border-dashed border-offwhite-200 transition-colors"
-            >
-              <PlusCircle size={13} />테스트 알림 추가
-            </button>
-          </div>
-        </div>
+        </>
       )}
     </div>
   )

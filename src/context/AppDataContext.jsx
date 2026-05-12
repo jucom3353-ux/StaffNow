@@ -22,26 +22,34 @@ function loadFromStorage(key) {
 
 function buildInitialShifts() {
   const saved = loadFromStorage(SHIFTS_KEY)
-  if (!saved?.length) return MOCK_SHIFTS
-  const savedMap = new Map(saved.map(s => [s.id, s]))
-  const merged = MOCK_SHIFTS.map(s =>
-    savedMap.has(s.id) ? { ...s, ...savedMap.get(s.id) } : s
-  )
-  const mockIds = new Set(MOCK_SHIFTS.map(s => s.id))
-  saved.forEach(s => { if (!mockIds.has(s.id)) merged.push(s) })
-  return merged
+  if (isDemoUser()) {
+    if (!saved?.length) return MOCK_SHIFTS
+    const savedMap = new Map(saved.map(s => [s.id, s]))
+    const merged = MOCK_SHIFTS.map(s =>
+      savedMap.has(s.id) ? { ...s, ...savedMap.get(s.id) } : s
+    )
+    const mockIds = new Set(MOCK_SHIFTS.map(s => s.id))
+    saved.forEach(s => { if (!mockIds.has(s.id)) merged.push(s) })
+    return merged
+  }
+  // 신규 기업 계정: 저장된 자기 데이터만, 없으면 빈 배열
+  return saved ?? []
 }
 
 function buildInitialInvitations() {
   const saved = loadFromStorage(INVITATIONS_KEY)
-  if (!saved?.length) return MOCK_INVITATIONS
-  const savedMap = new Map(saved.map(i => [i.id, i]))
-  const merged = MOCK_INVITATIONS.map(i =>
-    savedMap.has(i.id) ? { ...i, ...savedMap.get(i.id) } : i
-  )
-  const mockIds = new Set(MOCK_INVITATIONS.map(i => i.id))
-  saved.forEach(i => { if (!mockIds.has(i.id)) merged.push(i) })
-  return merged
+  if (isDemoUser()) {
+    if (!saved?.length) return MOCK_INVITATIONS
+    const savedMap = new Map(saved.map(i => [i.id, i]))
+    const merged = MOCK_INVITATIONS.map(i =>
+      savedMap.has(i.id) ? { ...i, ...savedMap.get(i.id) } : i
+    )
+    const mockIds = new Set(MOCK_INVITATIONS.map(i => i.id))
+    saved.forEach(i => { if (!mockIds.has(i.id)) merged.push(i) })
+    return merged
+  }
+  // 신규 기업 계정: 저장된 자기 데이터만, 없으면 빈 배열
+  return saved ?? []
 }
 
 const DEMO_BIZ_EMAIL = 'biz@staffnow.kr'
@@ -83,9 +91,9 @@ function buildInitialConversations() {
 }
 
 export function AppDataProvider({ children }) {
-  const [jobs, setJobs] = useState(MOCK_JOBS)
+  const [jobs, setJobs] = useState(() => isDemoUser() ? MOCK_JOBS : [])
   const [shifts, setShifts] = useState(buildInitialShifts)
-  const [activities, setActivities] = useState(RECENT_ACTIVITIES)
+  const [activities, setActivities] = useState(() => isDemoUser() ? RECENT_ACTIVITIES : [])
   const [invitations, setInvitations] = useState(buildInitialInvitations)
   const [conversations, setConversations] = useState(buildInitialConversations)
   const [toasts, setToasts] = useState([])
