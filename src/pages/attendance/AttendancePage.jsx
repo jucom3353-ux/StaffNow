@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Clock, CheckCircle2, AlertCircle, Users, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, DollarSign } from 'lucide-react'
+import { Clock, CheckCircle2, AlertCircle, Users, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, DollarSign, MessageSquareWarning, Check, X } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import EmptyState from '../../components/ui/EmptyState'
 import { useAppData } from '../../context/AppDataContext'
 import { useAuth } from '../../context/AuthContext'
 import { MOCK_APPLICANTS } from '../../data/mockApplicants'
-import { SHARED_ATTENDANCE_KEY } from '../../hooks/useAttendance'
+import { SHARED_ATTENDANCE_KEY, loadDisputes, saveDisputes } from '../../hooks/useAttendance'
 
 function loadLiveAttendance() {
   try {
@@ -23,6 +23,7 @@ const TABS = [
   { key: 'completed',   label: '완료' },
   { key: 'absent',      label: '결근' },
   { key: 'scheduled',   label: '예정' },
+  { key: 'disputes',    label: '이의신청' },
 ]
 
 const STATUS_META = {
@@ -179,6 +180,19 @@ export default function AttendancePage() {
   const { user } = useAuth()
   const [tab, setTab] = useState('all')
   const [sort, setSort] = useState({ key: null, dir: 'asc' })
+  const [disputes, setDisputes] = useState(() => loadDisputes())
+
+  function handleDispute(shiftId, action) {
+    const next = disputes.map(d =>
+      d.shiftId === shiftId
+        ? { ...d, status: action, resolvedAt: new Date().toISOString() }
+        : d
+    )
+    saveDisputes(next)
+    setDisputes(next)
+  }
+
+  const pendingDisputeCount = disputes.filter(d => d.status === 'pending').length
 
   function handleSort(key) {
     setSort(prev =>
@@ -280,6 +294,7 @@ export default function AttendancePage() {
     completed:   dayRecords.filter(a => a.status === 'completed').length,
     absent:      dayRecords.filter(a => a.status === 'absent').length,
     scheduled:   dayRecords.filter(a => a.status === 'scheduled').length,
+    disputes:    disputes.length,
   }
 
   const selectedLabel = selectedDate
@@ -352,7 +367,12 @@ export default function AttendancePage() {
               }`}
             >
               {t.label}
-              {cnt > 0 && (
+              {t.key === 'disputes' && pendingDisputeCount > 0 && (
+                <span className="w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                  {pendingDisputeCount}
+                </span>
+              )}
+              {t.key !== 'disputes' && cnt > 0 && (
                 <span className={`text-xs tabular-nums px-1.5 rounded-md ${tab === t.key ? 'bg-orange/10 text-orange' : 'bg-offwhite-200 text-gray-500'}`}>
                   {cnt}
                 </span>
@@ -362,8 +382,65 @@ export default function AttendancePage() {
         })}
       </div>
 
+      {/* ── 이의신청 탭 콘텐츠 ── */}
+      {tab === 'disputes' && (
+        <div className="space-y-3">
+          {disputes.length === 0 ? (
+            <Card>
+              <EmptyState icon={MessageSquareWarning} title="이의신청 내역이 없습니다" description="스태프가 미기록 근무에 대해 이의를 신청하면 여기에 표시됩니다" />
+            </Card>
+          ) : disputes.map(d => (
+            <Card key={d.shiftId} padding={false}>
+              <div className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-navy">{d.userName}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{d.jobTitle} · {d.company}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{d.shiftDate}</p>
+                  </div>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border shrink-0 ${
+                    d.status === 'pending'  ? 'text-amber-600 bg-amber-50 border-amber-200' :
+                    d.status === 'approved' ? 'text-green-600 bg-green-50 border-green-200' :
+                                              'text-red-500 bg-red-50 border-red-200'
+                  }`}>
+                    {d.status === 'pending' ? '검토 중' : d.status === 'approved' ? '승인됨' : '거절됨'}
+                  </span>
+                </div>
+
+                <div className="bg-offwhite rounded-xl px-3 py-2.5 text-xs text-gray-600">
+                  <span className="font-semibold text-gray-400 uppercase tracking-wide text-[10px]">신청 사유</span>
+                  <p className="mt-1">{d.note}</p>
+                </div>
+
+                <p className="text-[11px] text-gray-400">
+                  신청일: {new Date(d.submittedAt).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}
+                  {d.resolvedAt && ` · 처리일: ${new Date(d.resolvedAt).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}`}
+                </p>
+
+                {d.status === 'pending' && (
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={() => handleDispute(d.shiftId, 'rejected')}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-red-200 text-xs font-bold text-red-500 hover:bg-red-50 transition-colors"
+                    >
+                      <X size={13} />거절
+                    </button>
+                    <button
+                      onClick={() => handleDispute(d.shiftId, 'approved')}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-green-500 text-white text-xs font-bold hover:bg-green-600 transition-colors"
+                    >
+                      <Check size={13} />승인
+                    </button>
+                  </div>
+                )}
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
       {/* 근태 목록 */}
-      {filtered.length === 0 ? (
+      {tab !== 'disputes' && filtered.length === 0 ? (
         <Card>
           <EmptyState
             icon={Clock}
@@ -371,7 +448,7 @@ export default function AttendancePage() {
             description="Shift를 완료·확정하면 근태 기록이 표시됩니다"
           />
         </Card>
-      ) : (
+      ) : tab !== 'disputes' && (
         <>
           {/* 모바일 카드 뷰 */}
           <div className="md:hidden space-y-2">

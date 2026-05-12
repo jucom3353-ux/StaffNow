@@ -3,6 +3,15 @@ import { useAuth } from '../context/AuthContext'
 
 // 개인-기업 공유 localStorage 키 (같은 브라우저에서 양쪽이 읽음)
 export const SHARED_ATTENDANCE_KEY = 'staffnow_live_attendance'
+export const DISPUTES_KEY          = 'staffnow_disputes'
+
+// 이의신청 유틸
+export function loadDisputes() {
+  try { const r = localStorage.getItem(DISPUTES_KEY); return r ? JSON.parse(r) : [] } catch { return [] }
+}
+export function saveDisputes(list) {
+  try { localStorage.setItem(DISPUTES_KEY, JSON.stringify(list)) } catch {}
+}
 
 function getPersonalKey(user) {
   const email = user?.email?.replace(/[^a-zA-Z0-9]/g, '_') || 'anon'
@@ -210,5 +219,23 @@ export function useAttendance() {
 
   const getRecord = useCallback((shiftId) => records[shiftId] ?? null, [records])
 
-  return { records, checkIn, checkOut, editRecord, deleteRecord, submitRecord, getRecord }
+  // 이의신청 제출
+  const submitDispute = useCallback((shift, { note }) => {
+    const existing = loadDisputes()
+    const entry = {
+      shiftId:    shift.shiftId,
+      userName:   user?.name ?? '—',
+      userEmail:  user?.email ?? '',
+      jobTitle:   shift.jobTitle,
+      company:    shift.company,
+      shiftDate:  shift.shiftDate,
+      note,
+      status:     'pending',
+      submittedAt: new Date().toISOString(),
+    }
+    const next = [...existing.filter(d => d.shiftId !== shift.shiftId), entry]
+    saveDisputes(next)
+  }, [user])
+
+  return { records, checkIn, checkOut, editRecord, deleteRecord, submitRecord, submitDispute, getRecord }
 }
