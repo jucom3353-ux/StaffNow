@@ -88,6 +88,16 @@ const BANKS = ['국민은행', '신한은행', '하나은행', '우리은행', '
 
 const TIME_OPTIONS = ['주말', '평일', '새벽', '오전', '오후', '저녁']
 
+const SKILL_SUGGESTIONS = [
+  '카페/음료 제조', '바리스타', '행사 진행', '고객 응대', '포스(POS) 조작',
+  '주방 보조', '음식 서빙', '홀 서빙', '엑셀/스프레드시트', '파워포인트',
+  '영어 회화', '중국어 회화', '일본어 회화', '운전면허', '지게차 운전',
+  '홍보/마케팅', '팝업스토어 운영', '물류/포장 작업', '입출고 관리', '사무 보조',
+  '사진 촬영', '영상 편집', 'SNS 콘텐츠 관리', '도소매 판매',
+]
+
+const DEMO_SKILLS = ['행사 진행', '고객 응대', '엑셀/스프레드시트']
+
 // ─── 행정구역 데이터 ─────────────────────────────────────────────────────────
 const REGIONS = {
   '서울': ['강남구','강동구','강북구','강서구','관악구','광진구','구로구','금천구','노원구','도봉구','동대문구','동작구','마포구','서대문구','서초구','성동구','성북구','송파구','양천구','영등포구','용산구','은평구','종로구','중구','중랑구'],
@@ -172,15 +182,16 @@ export default function IndividualProfilePage() {
   // ── 프로필 편집 ──
   const [editingProfile, setEditingProfile] = useState(false)
   const [profileForm, setProfileForm]       = useState(null)
-  const [skillInput, setSkillInput]         = useState('')
+  const [skillInput,     setSkillInput]     = useState('')
+  const [showSkillInput, setShowSkillInput] = useState(false)
 
   function openProfileEdit() {
-    const demoSkills = isDemo ? ['행사 진행', '고객 응대', '엑셀'] : []
+    const baseSkills = profile.skills?.length ? profile.skills : (isDemo ? DEMO_SKILLS : [])
     setProfileForm({
       phone:   profile.phone   || '',
       address: profile.address || '',
       bio:     profile.bio     || '',
-      skills:  [...(profile.skills?.length ? profile.skills : demoSkills)],
+      skills:  [...baseSkills],
     })
     setEditingProfile(true)
   }
@@ -191,12 +202,24 @@ export default function IndividualProfilePage() {
     showToast('프로필이 저장되었습니다.')
   }
 
-  function addSkill() {
-    const s = skillInput.trim()
-    if (s && !profileForm.skills.includes(s)) {
-      setProfileForm(p => ({ ...p, skills: [...p.skills, s] }))
+  // 스킬 직접 편집 (편집 모드 여부에 따라 target 분기)
+  function handleRemoveSkill(s) {
+    if (editingProfile) {
+      setProfileForm(p => ({ ...p, skills: p.skills.filter(x => x !== s) }))
+    } else {
+      const cur = profile.skills?.length ? profile.skills : (isDemo ? DEMO_SKILLS : [])
+      updateProfile({ skills: cur.filter(x => x !== s) })
     }
-    setSkillInput('')
+  }
+
+  function handleAddSkill(s) {
+    if (!s) return
+    if (editingProfile) {
+      if (!profileForm.skills.includes(s)) setProfileForm(p => ({ ...p, skills: [...p.skills, s] }))
+    } else {
+      const cur = profile.skills?.length ? profile.skills : (isDemo ? DEMO_SKILLS : [])
+      if (!cur.includes(s)) updateProfile({ skills: [...cur, s] })
+    }
   }
 
   // ── 활동 가능 지역 ──
@@ -284,7 +307,7 @@ export default function IndividualProfilePage() {
 
   const displaySkills = editingProfile
     ? profileForm.skills
-    : (profile.skills?.length ? profile.skills : (isDemo ? ['행사 진행', '고객 응대', '엑셀'] : []))
+    : (profile.skills?.length ? profile.skills : (isDemo ? DEMO_SKILLS : []))
 
   // ── 마스킹 계좌번호 ──
   function maskAccount(num) {
@@ -451,33 +474,72 @@ export default function IndividualProfilePage() {
       </div>
 
       {/* ── 3. 보유 스킬 ── */}
-      <SectionCard title="보유 스킬" icon={Star}>
+      <SectionCard title="보유 스킬" icon={Star}
+        action={
+          <button
+            onClick={() => setShowSkillInput(v => !v)}
+            className="flex items-center gap-1 text-xs font-semibold text-orange hover:underline"
+          >
+            <Plus size={13} />{showSkillInput ? '닫기' : '스킬 추가'}
+          </button>
+        }
+      >
+        {/* 등록된 스킬 — 항상 X 버튼 표시 */}
         <div className="flex flex-wrap gap-2 mb-3">
           {displaySkills.map(s => (
             <span key={s} className="flex items-center gap-1 text-sm bg-offwhite px-3 py-1.5 rounded-full text-gray-600 border border-offwhite-200">
               {s}
-              {editingProfile && (
-                <button onClick={() => setProfileForm(p => ({ ...p, skills: p.skills.filter(x => x !== s) }))}
-                  className="hover:text-red-500 transition-colors ml-0.5">
-                  <X size={11} />
-                </button>
-              )}
+              <button
+                onClick={() => handleRemoveSkill(s)}
+                className="hover:text-red-500 transition-colors ml-0.5"
+              >
+                <X size={11} />
+              </button>
             </span>
           ))}
-          {displaySkills.length === 0 && !editingProfile && (
-            <p className="text-sm text-gray-400">등록된 스킬이 없습니다.</p>
+          {displaySkills.length === 0 && (
+            <p className="text-sm text-gray-400">등록된 스킬이 없습니다. 오른쪽 버튼을 눌러 추가하세요.</p>
           )}
         </div>
-        {editingProfile && (
-          <div className="flex gap-2">
-            <input type="text" placeholder="스킬 추가" value={skillInput}
-              onChange={e => setSkillInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && addSkill()}
-              className="flex-1 border border-offwhite-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-navy" />
-            <button onClick={addSkill}
-              className="flex items-center gap-1 px-3 py-2 bg-navy text-white text-sm font-semibold rounded-lg hover:bg-navy-700 transition-colors">
-              <Plus size={13} />추가
-            </button>
+
+        {/* 스킬 추가 패널 */}
+        {showSkillInput && (
+          <div className="space-y-3 pt-1">
+            {/* 직접 입력 */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="직접 입력 후 Enter"
+                value={skillInput}
+                onChange={e => setSkillInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') { handleAddSkill(skillInput.trim()); setSkillInput('') }
+                }}
+                className="flex-1 border border-offwhite-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-navy"
+              />
+              <button
+                onClick={() => { handleAddSkill(skillInput.trim()); setSkillInput('') }}
+                className="flex items-center gap-1 px-3 py-2 bg-navy text-white text-sm font-semibold rounded-lg hover:bg-navy/80 transition-colors"
+              >
+                <Plus size={13} />추가
+              </button>
+            </div>
+
+            {/* 추천 스킬 버튼 */}
+            <div>
+              <p className="text-[11px] text-gray-400 mb-2">추천 스킬 (클릭하여 바로 추가)</p>
+              <div className="flex flex-wrap gap-1.5">
+                {SKILL_SUGGESTIONS.filter(s => !displaySkills.includes(s)).map(s => (
+                  <button
+                    key={s}
+                    onClick={() => handleAddSkill(s)}
+                    className="text-xs bg-blue-50 border border-blue-100 text-blue-600 px-2.5 py-1 rounded-full hover:bg-blue-100 active:scale-95 transition-all font-medium"
+                  >
+                    + {s}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </SectionCard>

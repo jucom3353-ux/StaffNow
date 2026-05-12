@@ -9,24 +9,54 @@ import {
 import { useAuth } from '../../context/AuthContext'
 import { useAttendance, getAssignedShifts, loadDisputes, loadLateRequests, saveLateRequests } from '../../hooks/useAttendance'
 
-// ── Leaflet 사용자 위치 마커 (MapView.jsx 패턴 동일) ──────────
+// ── Leaflet 마커 아이콘 ────────────────────────────────────
 const userLocationIcon = L.divIcon({
   className: '',
-  html: `<div style="
-    width:16px;height:16px;
-    background:#3B82F6;border:3px solid white;
-    border-radius:50%;box-shadow:0 2px 6px rgba(59,130,246,0.6);
-  "></div>`,
+  html: `<div style="width:16px;height:16px;background:#3B82F6;border:3px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(59,130,246,0.6);"></div>`,
   iconSize: [16, 16],
   iconAnchor: [8, 8],
 })
 
-function FlyToLocation({ pos }) {
+const worksiteIcon = L.divIcon({
+  className: '',
+  html: `<div style="width:22px;height:22px;background:#f97316;border:3px solid white;border-radius:6px;box-shadow:0 2px 6px rgba(249,115,22,0.5);display:flex;align-items:center;justify-content:center;"><svg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='white'><path d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/></svg></div>`,
+  iconSize: [22, 22],
+  iconAnchor: [11, 11],
+})
+
+// 두 마커를 모두 포함하도록 지도 범위 조정
+function FitMapBounds({ userPos, shiftPos }) {
   const map = useMap()
   useEffect(() => {
-    if (pos) map.flyTo([pos.lat, pos.lng], 16, { duration: 1 })
-  }, [pos, map])
+    if (userPos && shiftPos) {
+      map.fitBounds(
+        [[userPos.lat, userPos.lng], [shiftPos.lat, shiftPos.lng]],
+        { padding: [30, 30], maxZoom: 16, animate: true }
+      )
+    } else if (userPos) {
+      map.flyTo([userPos.lat, userPos.lng], 16, { duration: 1 })
+    }
+  }, [userPos, shiftPos, map])
   return null
+}
+
+// 거리 배지
+function DistanceBadge({ distanceM }) {
+  if (distanceM < 300) return (
+    <span className="inline-flex items-center gap-1 text-[11px] bg-green-50 border border-green-200 text-green-700 rounded-full px-2.5 py-1 font-semibold">
+      <CheckCircle2 size={10} />근무지 근처 ({Math.round(distanceM)}m)
+    </span>
+  )
+  if (distanceM < 1000) return (
+    <span className="inline-flex items-center gap-1 text-[11px] bg-amber-50 border border-amber-200 text-amber-700 rounded-full px-2.5 py-1 font-semibold">
+      <AlertTriangle size={10} />{Math.round(distanceM)}m 거리
+    </span>
+  )
+  return (
+    <span className="inline-flex items-center gap-1 text-[11px] bg-red-50 border border-red-200 text-red-600 rounded-full px-2.5 py-1 font-semibold">
+      <AlertTriangle size={10} />위치 불일치 ({(distanceM / 1000).toFixed(1)}km)
+    </span>
+  )
 }
 
 function todayStr() {
@@ -52,6 +82,15 @@ function getLateMinutes(scheduledStart, now) {
   const scheduled = h * 60 + m
   const current = now.getHours() * 60 + now.getMinutes()
   return Math.max(0, current - scheduled)
+}
+
+function haversineDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371000
+  const toRad = x => x * Math.PI / 180
+  const dLat = toRad(lat2 - lat1)
+  const dLng = toRad(lng2 - lng1)
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
 const STATUS = {
@@ -438,7 +477,7 @@ function AttendanceFlowModal({ type, shift, now, onRecord, onClose }) {
 
             {userPos ? (
               <div className="space-y-2">
-                {/* 소형 Leaflet 지도 */}
+                {/* 소형 Leaflet 지도 — 내 위치(파랑) + 근무지(주황) */}
                 <div className="rounded-xl overflow-hidden border border-offwhite-200" style={{ height: 160 }}>
                   <MapContainer
                     center={[userPos.lat, userPos.lng]}
@@ -449,9 +488,27 @@ function AttendanceFlowModal({ type, shift, now, onRecord, onClose }) {
                   >
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                     <Marker position={[userPos.lat, userPos.lng]} icon={userLocationIcon} />
-                    <FlyToLocation pos={userPos} />
+                    {shift.shiftLat && shift.shiftLng && (
+                      <Marker position={[shift.shiftLat, shift.shiftLng]} icon={worksiteIcon} />
+                    )}
+                    <FitMapBounds
+                      userPos={userPos}
+                      shiftPos={shift.shiftLat ? { lat: shift.shiftLat, lng: shift.shiftLng } : null}
+                    />
                   </MapContainer>
                 </div>
+
+                {/* 거리 배지 */}
+                {shift.shiftLat && shift.shiftLng && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <DistanceBadge distanceM={haversineDistance(userPos.lat, userPos.lng, shift.shiftLat, shift.shiftLng)} />
+                    <span className="text-[10px] text-gray-400">
+                      <span className="inline-block w-3 h-3 rounded-sm bg-orange align-middle mr-0.5" style={{verticalAlign:'middle'}} />근무지
+                      <span className="ml-2 inline-block w-3 h-3 rounded-full bg-blue-500 align-middle mr-0.5" style={{verticalAlign:'middle'}} />내 위치
+                    </span>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between">
                   <p className="text-[11px] text-blue-600 flex items-center gap-1">
                     <Navigation size={11} />

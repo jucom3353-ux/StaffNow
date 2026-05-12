@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { Home, Search, ClipboardList, Heart, MessageSquare, User, ChevronLeft, Clock, Menu, X } from 'lucide-react'
+import { Home, Search, ClipboardList, Heart, MessageSquare, User, ChevronLeft, Clock, Menu, X, Banknote } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuth } from '../context/AuthContext'
 import NotificationBell from '../components/topbar/NotificationBell'
@@ -15,6 +15,7 @@ const NAV = [
   { to: '/individual/attendance',   icon: Clock,         label: '출퇴근 관리' },
   { to: '/individual/messages',     icon: MessageSquare, label: '메시지' },
   { to: '/individual/profile',      icon: User,          label: '내 프로필' },
+  { to: '/individual/payroll',      icon: Banknote,      label: '급여 명세' },
 ]
 
 export default function IndividualLayout() {
