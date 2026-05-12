@@ -43,6 +43,12 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
+                        // Swagger 허용
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**"
+                        ).permitAll()
+
                         // 허용
                         .requestMatchers(
                                 "/auth/**",
