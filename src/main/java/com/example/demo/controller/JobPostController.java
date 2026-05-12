@@ -8,6 +8,9 @@ import com.example.demo.entity.User;
 
 import com.example.demo.repository.JobPostRepository;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.core.Authentication;
@@ -17,6 +20,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(
+        name = "공고 API",
+        description = "공고 생성 및 조회 기능"
+)
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/job-posts")
@@ -25,6 +32,7 @@ public class JobPostController {
     private final JobPostRepository jobPostRepository;
 
     // 공고 목록 조회
+    @Operation(summary = "전체 공고 조회")
     @GetMapping
     public List<JobPostResponseDto> getJobPosts() {
 
@@ -40,6 +48,7 @@ public class JobPostController {
     }
 
     // 내 공고 조회
+    @Operation(summary = "내 공고 조회")
     @GetMapping("/my")
     public List<JobPostResponseDto> getMyJobPosts() {
 
@@ -67,6 +76,7 @@ public class JobPostController {
     }
 
     // 공고 생성
+    @Operation(summary = "공고 생성")
     @PostMapping
     public String createJobPost(
             @RequestBody JobPostCreateRequestDto requestDto
@@ -94,6 +104,7 @@ public class JobPostController {
     }
 
     // 공고 수정
+    @Operation(summary = "공고 수정")
     @PutMapping("/{id}")
     public String updateJobPost(
             @PathVariable Long id,

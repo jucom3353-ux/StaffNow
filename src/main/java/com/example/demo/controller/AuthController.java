@@ -3,18 +3,30 @@ package com.example.demo.controller;
 import com.example.demo.dto.LoginRequestDto;
 import com.example.demo.dto.LoginResponseDto;
 import com.example.demo.dto.RefreshTokenRequestDto;
+
 import com.example.demo.entity.RefreshToken;
 import com.example.demo.entity.User;
+
 import com.example.demo.jwt.JwtUtil;
+
 import com.example.demo.repository.RefreshTokenRepository;
 import com.example.demo.repository.UserRepository;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import org.springframework.http.ResponseEntity;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
+
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+@Tag(
+        name = "인증 API",
+        description = "로그인 및 JWT 토큰 관리 기능"
+)
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
@@ -36,6 +48,7 @@ public class AuthController {
     }
 
     // 로그인
+    @Operation(summary = "로그인")
     @PostMapping("/login")
     public ResponseEntity<?> login(
             @RequestBody LoginRequestDto requestDto
@@ -109,6 +122,7 @@ public class AuthController {
     }
 
     // Access Token 재발급
+    @Operation(summary = "Access Token 재발급")
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(
             @RequestBody RefreshTokenRequestDto requestDto
