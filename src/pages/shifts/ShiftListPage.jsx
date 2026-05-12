@@ -85,77 +85,73 @@ export default function ShiftListPage() {
               <div key={shift.id} className="space-y-0">
                 <Link to={`/shifts/${shift.id}`}>
                 <Card className="hover:border-navy-100 hover:shadow-[0_2px_8px_rgba(27,43,72,0.1)] transition-all cursor-pointer group">
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
                     {/* 날짜 뱃지 */}
-                    <div className="w-12 h-12 rounded-xl bg-navy-50 flex flex-col items-center justify-center shrink-0 border border-navy-100">
-                      <span className="text-base font-extrabold text-navy leading-none tabular-nums">
+                    <div className="w-11 h-11 rounded-xl bg-navy-50 flex flex-col items-center justify-center shrink-0 border border-navy-100">
+                      <span className="text-sm font-extrabold text-navy leading-none tabular-nums">
                         {d.getDate()}
                       </span>
-                      <span className="text-xs text-navy-200 leading-none mt-0.5 font-medium">
+                      <span className="text-[10px] text-navy-200 leading-none mt-0.5 font-medium">
                         {d.toLocaleString('ko', { month: 'short' })}
                       </span>
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
                         <p className="font-semibold text-navy text-sm group-hover:text-orange transition-colors truncate min-w-0">
                           {shift.jobTitle}
                         </p>
-                        <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="flex items-center gap-1 shrink-0">
                           <StatusBadge status={shift.status} size="sm" />
                           {isOver && (
                             <span className="whitespace-nowrap text-xs font-bold text-orange bg-orange-50 border border-orange/20 px-1.5 py-0.5 rounded-full">
-                              마감 초과
+                              초과
                             </span>
                           )}
                         </div>
                       </div>
-                      <p className="text-xs text-gray-400 mt-2 truncate">
+                      <p className="text-xs text-gray-400 mt-1 truncate">
                         {shift.startTime}–{shift.endTime}
-                        {shift.location && <><span className="mx-1.5">·</span>{shift.location}</>}
+                        {shift.location && <><span className="mx-1">·</span>{shift.location}</>}
                       </p>
                       {/* 진행률 바 */}
-                      <div className="flex items-center gap-2 mt-2">
+                      <div className="flex items-center gap-2 mt-1.5">
                         <div className="flex-1 h-1.5 bg-offwhite-200 rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all ${isOver ? 'bg-orange' : 'bg-navy'}`}
                             style={{ width: `${isOver ? 100 : fillRatio * 100}%` }}
                           />
                         </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <span className={`text-xs font-bold px-1.5 py-0.5 rounded-md leading-none
-                            ${isOver ? 'bg-orange text-white' : 'bg-navy/10 text-navy'}`}>
-                            지원
-                          </span>
-                          <span className={`text-xs tabular-nums font-semibold ${isOver ? 'text-orange' : 'text-gray-500'}`}>
-                            {displayCount} / {shift.requiredStaff}명
-                          </span>
-                        </div>
+                        <span className={`text-xs tabular-nums font-semibold shrink-0 ${isOver ? 'text-orange' : 'text-gray-500'}`}>
+                          {displayCount}/{shift.requiredStaff}명
+                        </span>
                       </div>
                     </div>
 
                     <ChevronRight size={16} className="text-gray-300 group-hover:text-navy transition-colors shrink-0" />
                   </div>
+
+                  {/* 완료 Shift 빠른 링크 — 카드 안에 포함 */}
+                  {isCompleted && (
+                    <div className="flex gap-2 mt-3 pt-3 border-t border-offwhite-100" onClick={e => e.preventDefault()}>
+                      <Link
+                        to="/attendance"
+                        onClick={e => e.stopPropagation()}
+                        className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        <ClipboardList size={11} />근태 관리
+                      </Link>
+                      <Link
+                        to="/contracts"
+                        onClick={e => e.stopPropagation()}
+                        className="flex items-center gap-1.5 text-xs font-semibold text-green-600 bg-green-50 hover:bg-green-100 border border-green-200 px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        <FileCheck size={11} />계약 보기
+                      </Link>
+                    </div>
+                  )}
                 </Card>
                 </Link>
-                {isCompleted && (
-                  <div className="flex gap-2 px-1 pb-1 -mt-1">
-                    <Link
-                      to="/attendance"
-                      onClick={e => e.stopPropagation()}
-                      className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 rounded-b-lg transition-colors"
-                    >
-                      <ClipboardList size={11} />근태 관리
-                    </Link>
-                    <Link
-                      to="/contracts"
-                      onClick={e => e.stopPropagation()}
-                      className="flex items-center gap-1.5 text-xs font-semibold text-green-600 bg-green-50 hover:bg-green-100 border border-green-200 px-3 py-1.5 rounded-b-lg transition-colors"
-                    >
-                      <FileCheck size={11} />계약 보기
-                    </Link>
-                  </div>
-                )}
               </div>
             )
           })}

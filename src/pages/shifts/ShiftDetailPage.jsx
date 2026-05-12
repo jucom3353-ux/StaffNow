@@ -145,7 +145,7 @@ function SideDrawer({ applicant, index, onClose, onPin, onHire, onReject }) {
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="absolute right-0 top-0 h-full w-[380px] bg-white shadow-2xl flex flex-col">
+      <div className="absolute right-0 top-0 h-full w-full sm:w-[380px] bg-white shadow-2xl flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-offwhite-200">
           <span className="text-sm font-bold text-navy">지원자 상세</span>
           <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-offwhite hover:text-navy transition-colors">
@@ -463,8 +463,8 @@ export default function ShiftDetailPage() {
           </div>
 
           {/* 오른쪽: [지원] 총수 + [확정] 핵심 지표 */}
-          <div className="flex gap-4 md:flex-col md:items-end md:gap-3 shrink-0">
-            <div className="text-right">
+          <div className="grid grid-cols-2 md:flex md:flex-col md:items-end gap-3 md:gap-3 shrink-0 pt-1 md:pt-0 border-t border-offwhite-100 md:border-0">
+            <div className="md:text-right">
               <div className="flex items-center gap-1.5 md:justify-end">
                 <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md tracking-wide">지원</span>
                 <span className="text-2xl font-extrabold text-gray-400 tabular-nums leading-none">{totalApplicants}</span>
@@ -473,22 +473,22 @@ export default function ShiftDetailPage() {
               <p className="text-xs text-gray-400 mt-0.5">총 지원 / 모집 정원</p>
             </div>
 
-            <div className="text-right">
+            <div className="md:text-right">
               <div className="flex items-center gap-1.5 md:justify-end">
                 <span className={`text-xs font-extrabold px-2 py-0.5 rounded-md tracking-wide
                   ${isComplete ? 'bg-green-500 text-white' : 'bg-orange text-white'}`}>
                   확정
                 </span>
-                <span className={`text-4xl font-extrabold tabular-nums leading-none
+                <span className={`text-3xl md:text-4xl font-extrabold tabular-nums leading-none
                   ${isComplete ? 'text-green-600' : 'text-navy'}`}>
                   {hiredCount}
                 </span>
-                <span className="text-xl font-bold text-gray-400">/ {shift.requiredStaff}명</span>
+                <span className="text-base md:text-xl font-bold text-gray-400">/ {shift.requiredStaff}명</span>
               </div>
               <p className="text-xs text-gray-500 mt-0.5">채용 확정 현황</p>
             </div>
 
-            <div className="flex items-center gap-1.5 flex-wrap md:justify-end">
+            <div className="col-span-2 md:col-auto flex items-center gap-1.5 flex-wrap md:justify-end">
               {pendingCount > 0 && (
                 <span className="text-xs bg-amber-50 text-amber-600 border border-amber-200 font-semibold px-2 py-0.5 rounded-full">
                   미결정 {pendingCount}
@@ -508,15 +508,16 @@ export default function ShiftDetailPage() {
       {applicants.length > 0 ? (
         <div className="space-y-3">
           {/* 컨트롤 바 */}
-          <div className="flex flex-wrap items-center gap-3 justify-between">
-            <div className="flex items-center gap-1.5">
-              <ArrowUpDown size={14} className="text-gray-400" />
-              <span className="text-xs text-gray-500 font-medium mr-0.5">정렬</span>
+          <div className="space-y-2">
+            {/* 정렬 */}
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-0.5">
+              <ArrowUpDown size={14} className="text-gray-400 shrink-0" />
+              <span className="text-xs text-gray-500 font-medium mr-0.5 shrink-0">정렬</span>
               {SORT_OPTIONS.map(opt => (
                 <button
                   key={opt.key}
                   onClick={() => setSortBy(opt.key)}
-                  className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all ${
+                  className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all ${
                     sortBy === opt.key
                       ? 'bg-navy text-white border-navy'
                       : 'bg-white text-gray-500 border-offwhite-200 hover:border-navy hover:text-navy'
@@ -527,9 +528,10 @@ export default function ShiftDetailPage() {
               ))}
             </div>
 
-            <div className="flex items-center gap-1.5">
-              <SlidersHorizontal size={14} className="text-gray-400" />
-              <span className="text-xs text-gray-500 font-medium mr-0.5">필터</span>
+            {/* 필터 */}
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-0.5">
+              <SlidersHorizontal size={14} className="text-gray-400 shrink-0" />
+              <span className="text-xs text-gray-500 font-medium mr-0.5 shrink-0">필터</span>
               {FILTER_OPTIONS.map(opt => {
                 const cnt = opt.key === 'all'
                   ? applicants.length
@@ -538,7 +540,7 @@ export default function ShiftDetailPage() {
                   <button
                     key={opt.key}
                     onClick={() => setFilterBy(opt.key)}
-                    className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all ${
+                    className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all ${
                       filterBy === opt.key
                         ? 'bg-orange text-white border-orange'
                         : 'bg-white text-gray-500 border-offwhite-200 hover:border-orange hover:text-orange'
@@ -562,14 +564,15 @@ export default function ShiftDetailPage() {
                   return (
                     <div
                       key={a.id}
-                      className={`flex items-center gap-3 px-4 py-3 transition-colors
+                      className={`flex items-center gap-2 px-3 py-3 transition-colors
                         ${a.status === 'hired'    ? 'bg-green-50/60' :
                           a.status === 'rejected' ? 'bg-red-50/30'   : 'hover:bg-offwhite-100/60'}
                         ${a.pinned ? 'border-l-2 border-yellow-400' : 'border-l-2 border-transparent'}`}
                     >
+                      {/* 별표 (모바일에서 숨김) */}
                       <button
                         onClick={() => togglePin(a.id)}
-                        className={`shrink-0 transition-colors ${
+                        className={`shrink-0 transition-colors hidden sm:block ${
                           a.pinned ? 'text-yellow-400' : 'text-gray-200 hover:text-yellow-300'
                         }`}
                         title={a.pinned ? '고정 해제' : '별표 고정'}
@@ -579,15 +582,18 @@ export default function ShiftDetailPage() {
 
                       <Avatar name={a.name} index={origIdx} />
 
+                      {/* 이름·정보 */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-navy text-sm">{a.name}</span>
-                          <span className="text-xs text-gray-400">{a.age}세 · {a.gender}</span>
-                          <span className="text-xs text-gray-400 hidden sm:inline">· {a.region}</span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {a.pinned && (
+                            <Star size={11} className="text-yellow-400 sm:hidden shrink-0" fill="currentColor" />
+                          )}
+                          <span className="font-semibold text-navy text-sm truncate">{a.name}</span>
+                          <span className="text-xs text-gray-400 whitespace-nowrap">{a.age}세 · {a.gender}</span>
                         </div>
-                        <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                        <div className="flex items-center gap-2 mt-0.5">
                           <StarRating rating={a.rating} />
-                          <span className={`text-xs font-semibold
+                          <span className={`text-xs font-semibold hidden sm:inline
                             ${a.hireCount >= 15 ? 'text-orange' :
                               a.hireCount >= 5  ? 'text-blue-600' : 'text-gray-400'}`}>
                             고용 {a.hireCount}회
@@ -595,24 +601,25 @@ export default function ShiftDetailPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-1.5 shrink-0">
+                      {/* 상태 버튼 */}
+                      <div className="flex items-center gap-1 shrink-0">
                         {a.status === 'pending' ? (
                           <>
                             <button
                               onClick={() => setStatus(a.id, 'hired')}
-                              className="flex items-center gap-1 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 px-2.5 py-1.5 rounded-lg transition-colors"
+                              className="flex items-center gap-0.5 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 px-2 py-1.5 rounded-lg transition-colors"
                             >
-                              <Check size={11} />채용
+                              <Check size={11} /><span className="hidden sm:inline">채용</span>
                             </button>
                             <button
                               onClick={() => setStatus(a.id, 'rejected')}
-                              className="flex items-center gap-1 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-1.5 rounded-lg transition-colors"
+                              className="flex items-center gap-0.5 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 border border-red-200 px-2 py-1.5 rounded-lg transition-colors"
                             >
-                              <UserX size={11} />거절
+                              <UserX size={11} /><span className="hidden sm:inline">거절</span>
                             </button>
                           </>
                         ) : (
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1">
                             <StatusChip status={a.status} />
                             <button
                               onClick={() => setStatus(a.id, 'pending')}
@@ -681,33 +688,37 @@ export default function ShiftDetailPage() {
 
       {/* ── Sticky 하단 액션 푸터 ─────────────────────────── */}
       {applicants.length > 0 && (
-        <div className="sticky bottom-0 -mx-6 px-6 py-3 bg-white border-t border-offwhite-200 shadow-[0_-2px_12px_rgba(27,43,72,0.08)]">
-          <div className="max-w-5xl flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-xs text-gray-400">
-              <span className="tabular-nums">
-                확정 <strong className={isComplete ? 'text-green-600' : 'text-navy'}>{hiredCount}</strong> / {shift.requiredStaff}명
+        <div className="sticky bottom-0 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2.5 bg-white border-t border-offwhite-200 shadow-[0_-2px_12px_rgba(27,43,72,0.08)]">
+          <div className="max-w-5xl flex items-center justify-between gap-2">
+            {/* 왼쪽 현황 */}
+            <div className="flex items-center gap-1.5 text-xs text-gray-400 min-w-0">
+              <span className="tabular-nums font-medium whitespace-nowrap">
+                확정 <strong className={isComplete ? 'text-green-600' : 'text-navy'}>{hiredCount}</strong>/{shift.requiredStaff}명
               </span>
-              {pendingCount > 0 && <span>· 미결정 {pendingCount}명</span>}
+              {pendingCount > 0 && (
+                <span className="hidden sm:inline whitespace-nowrap">· 미결정 {pendingCount}명</span>
+              )}
             </div>
-            <div className="flex items-center gap-2">
+            {/* 오른쪽 버튼 */}
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 onClick={() => setModal('reset')}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-offwhite-200 text-gray-500 text-sm font-semibold hover:border-red-200 hover:text-red-500 transition-colors"
+                className="flex items-center gap-1 px-2.5 sm:px-4 py-2 rounded-lg border border-offwhite-200 text-gray-500 text-xs sm:text-sm font-semibold hover:border-red-200 hover:text-red-500 transition-colors"
               >
-                <RotateCcw size={13} />초기화
+                <RotateCcw size={12} /><span className="hidden sm:inline">초기화</span>
               </button>
               <button
                 onClick={handleSave}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-navy/20 text-navy text-sm font-semibold hover:bg-navy/5 transition-colors"
+                className="flex items-center gap-1 px-2.5 sm:px-4 py-2 rounded-lg border border-navy/20 text-navy text-xs sm:text-sm font-semibold hover:bg-navy/5 transition-colors"
               >
-                <Save size={13} />임시 저장
+                <Save size={12} /><span className="hidden sm:inline">임시 저장</span><span className="sm:hidden">저장</span>
               </button>
               <button
                 onClick={() => setModal('finalize')}
-                className={`flex items-center gap-1.5 px-5 py-2 rounded-lg text-white text-sm font-bold transition-colors
+                className={`flex items-center gap-1 px-3 sm:px-5 py-2 rounded-lg text-white text-xs sm:text-sm font-bold transition-colors
                   ${isComplete ? 'bg-green-600 hover:bg-green-700' : 'bg-orange hover:bg-orange-600'}`}
               >
-                <CheckSquare size={13} />완료 / 확정
+                <CheckSquare size={12} />완료/확정
               </button>
             </div>
           </div>

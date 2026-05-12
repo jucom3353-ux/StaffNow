@@ -45,25 +45,30 @@ export default function JobDetailPage() {
   return (
     <div className="max-w-3xl space-y-5">
       {/* 헤더 */}
-      <div className="flex items-start gap-3">
-        <Link
-          to="/jobs"
-          className="w-8 h-8 rounded-lg border border-offwhite-200 flex items-center justify-center text-gray-500 hover:bg-offwhite-100 transition-colors shrink-0 mt-0.5"
-        >
-          <ChevronLeft size={18} />
-        </Link>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl font-bold text-navy">{job.title}</h1>
-            <StatusSelector
-                      status={job.status}
-                      options={JOB_STATUS_OPTIONS}
-                      onChange={val => updateJobStatus(id, val)}
-                    />
+      <div className="space-y-3">
+        {/* 1행: 뒤로가기 + 제목 */}
+        <div className="flex items-start gap-3">
+          <Link
+            to="/jobs"
+            className="w-8 h-8 rounded-lg border border-offwhite-200 flex items-center justify-center text-gray-500 hover:bg-offwhite-100 transition-colors shrink-0 mt-0.5"
+          >
+            <ChevronLeft size={18} />
+          </Link>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl font-bold text-navy leading-tight">{job.title}</h1>
+              <StatusSelector
+                status={job.status}
+                options={JOB_STATUS_OPTIONS}
+                onChange={val => updateJobStatus(id, val)}
+              />
+            </div>
+            <p className="text-sm text-gray-500 mt-0.5">{job.location} · {job.createdAt} 생성</p>
           </div>
-          <p className="text-sm text-gray-500 mt-0.5">{job.location} · {job.createdAt} 생성</p>
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* 2행: 액션 버튼들 (모바일에서도 한 줄에 배치) */}
+        <div className="flex items-center gap-2 flex-wrap pl-11">
           {isAdmin && !isAuthor && (
             <span className="flex items-center gap-1 text-xs font-bold text-purple-600 bg-purple-50 border border-purple-200 px-2 py-1 rounded-full">
               <ShieldCheck size={11} />관리자 권한
@@ -87,7 +92,7 @@ export default function JobDetailPage() {
 
       {/* 기본 정보 */}
       <Card header={<span className="text-sm font-bold text-navy">공고 정보</span>}>
-        <dl className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
+        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
           <div>
             <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-0.5">근무 지역</dt>
             <dd className="font-semibold text-navy">{job.location}</dd>
