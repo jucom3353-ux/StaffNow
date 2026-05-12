@@ -602,20 +602,20 @@ export default function ShiftDetailPage() {
                       </div>
 
                       {/* 상태 버튼 */}
-                      <div className="flex items-center gap-1 shrink-0">
+                      <div className="flex items-center gap-1.5 shrink-0">
                         {a.status === 'pending' ? (
                           <>
                             <button
                               onClick={() => setStatus(a.id, 'hired')}
-                              className="flex items-center gap-0.5 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 px-2 py-1.5 rounded-lg transition-colors"
+                              className="flex items-center gap-1 text-xs font-bold text-white bg-green-600 hover:bg-green-700 px-3 py-2 rounded-xl transition-colors min-w-[52px] justify-center"
                             >
-                              <Check size={11} /><span className="hidden sm:inline">채용</span>
+                              <Check size={13} />채용
                             </button>
                             <button
                               onClick={() => setStatus(a.id, 'rejected')}
-                              className="flex items-center gap-0.5 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 border border-red-200 px-2 py-1.5 rounded-lg transition-colors"
+                              className="flex items-center gap-1 text-xs font-bold text-red-500 bg-red-50 hover:bg-red-100 border border-red-200 px-3 py-2 rounded-xl transition-colors min-w-[52px] justify-center"
                             >
-                              <UserX size={11} /><span className="hidden sm:inline">거절</span>
+                              <UserX size={13} />거절
                             </button>
                           </>
                         ) : (
