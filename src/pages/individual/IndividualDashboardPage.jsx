@@ -42,17 +42,17 @@ export default function IndividualDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="space-y-3">
         <div>
           <h1 className="text-2xl font-bold text-navy">안녕하세요, {user?.name}님 👋</h1>
           <p className="text-gray-500 text-sm mt-1">오늘도 좋은 공고를 찾아보세요.</p>
         </div>
         <button
           onClick={() => navigate('/individual/jobs')}
-          className="flex items-center gap-2 bg-orange text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-orange-600 transition-colors"
+          className="w-full flex items-center gap-3 bg-white border border-offwhite-200 rounded-2xl px-4 py-3 text-sm text-gray-400 hover:border-orange transition-colors shadow-sm"
         >
-          <Search size={15} />
-          공고 검색
+          <Search size={16} className="text-gray-300 shrink-0" />
+          공고 검색 (직종, 지역, 키워드...)
         </button>
       </div>
 

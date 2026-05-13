@@ -29,8 +29,8 @@ export default function TopBar({ onOpenMobile }) {
         </button>
       )}
       <PageBreadcrumb />
-      <div className="flex-1" />
-      <form onSubmit={handleSearch} className="hidden md:flex items-center gap-2 bg-offwhite rounded-lg px-3 py-1.5 w-56">
+      <div className="flex-1 hidden md:block" />
+      <form onSubmit={handleSearch} className="flex flex-1 md:flex-none md:w-80 items-center gap-2 bg-offwhite rounded-lg px-3 py-1.5">
         <Search size={15} className="text-gray-400 shrink-0" />
         <input
           type="text"
