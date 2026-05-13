@@ -339,8 +339,8 @@ export default function RegisterPage() {
 
   // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-offwhite flex items-start justify-center py-10 px-6">
-      <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-lg">
+    <div className="min-h-screen bg-offwhite flex items-start justify-center py-10 px-4 sm:px-6">
+      <div className="bg-white rounded-2xl shadow-lg p-5 sm:p-8 w-full max-w-lg">
 
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
@@ -448,7 +448,7 @@ export default function RegisterPage() {
               <label className="flex items-center gap-1.5 text-sm font-semibold text-navy mb-2">
                 <Phone size={13} />휴대폰 인증
               </label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   value={form.phone}
                   onChange={e => setForm(f => ({ ...f, phone: formatPhone(e.target.value) }))}
@@ -460,7 +460,7 @@ export default function RegisterPage() {
                   <button
                     onClick={sendPhoneCode}
                     disabled={!form.phone.trim() || phoneSending || phoneCodeSent}
-                    className="px-4 py-2.5 text-sm font-semibold text-white bg-navy rounded-xl hover:bg-navy-700 disabled:opacity-50 transition-colors whitespace-nowrap flex items-center gap-2"
+                    className="w-full sm:w-auto px-4 py-2.5 text-sm font-semibold text-white bg-navy rounded-xl hover:bg-navy-700 disabled:opacity-50 transition-colors whitespace-nowrap flex items-center justify-center gap-2"
                   >
                     {phoneSending ? <Spinner /> : '인증번호 전송'}
                   </button>
@@ -481,7 +481,7 @@ export default function RegisterPage() {
               <label className="flex items-center gap-1.5 text-sm font-semibold text-navy mb-2">
                 <Shield size={13} />사업자등록번호 인증
               </label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   value={form.bizNumber}
                   onChange={setField('bizNumber')}
@@ -493,7 +493,7 @@ export default function RegisterPage() {
                   <button
                     onClick={verifyBizNumber}
                     disabled={!form.bizNumber.trim() || bizVerifying}
-                    className="px-4 py-2.5 text-sm font-semibold text-white bg-navy rounded-xl hover:bg-navy-700 disabled:opacity-50 transition-colors whitespace-nowrap flex items-center gap-2"
+                    className="w-full sm:w-auto px-4 py-2.5 text-sm font-semibold text-white bg-navy rounded-xl hover:bg-navy-700 disabled:opacity-50 transition-colors whitespace-nowrap flex items-center justify-center gap-2"
                   >
                     {bizVerifying ? <Spinner /> : '확인'}
                   </button>
@@ -692,7 +692,7 @@ export default function RegisterPage() {
               <label className="flex items-center gap-1.5 text-sm font-semibold text-navy mb-1.5">
                 <Phone size={13} />휴대폰 인증
               </label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   value={form.phone}
                   onChange={e => {
@@ -710,7 +710,7 @@ export default function RegisterPage() {
                     type="button"
                     onClick={sendIndPhoneCode}
                     disabled={!form.phone.trim() || phoneSending || phoneCodeSent}
-                    className="px-4 py-2.5 text-sm font-semibold text-white bg-navy rounded-xl hover:bg-navy-700 disabled:opacity-50 transition-colors whitespace-nowrap flex items-center gap-2"
+                    className="w-full sm:w-auto px-4 py-2.5 text-sm font-semibold text-white bg-navy rounded-xl hover:bg-navy-700 disabled:opacity-50 transition-colors whitespace-nowrap flex items-center justify-center gap-2"
                   >
                     {phoneSending ? <Spinner /> : phoneCodeSent ? '전송됨' : '인증번호 전송'}
                   </button>
@@ -726,7 +726,7 @@ export default function RegisterPage() {
                     인증번호가 발송되었습니다. 문자를 확인해 주세요.
                     <span className="ml-auto text-gray-400 text-[11px]">(데모: 임의 6자리 입력)</span>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       value={form.phoneCode}
                       onChange={e => {
@@ -743,7 +743,7 @@ export default function RegisterPage() {
                       type="button"
                       onClick={confirmIndPhoneCode}
                       disabled={form.phoneCode.length !== 6}
-                      className="px-4 py-2.5 text-sm font-semibold text-white bg-navy rounded-xl hover:bg-navy-700 disabled:opacity-50 transition-colors whitespace-nowrap"
+                      className="w-full sm:w-auto px-4 py-2.5 text-sm font-semibold text-white bg-navy rounded-xl hover:bg-navy-700 disabled:opacity-50 transition-colors whitespace-nowrap"
                     >
                       확인
                     </button>
