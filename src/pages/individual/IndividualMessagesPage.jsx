@@ -26,41 +26,6 @@ function formatFileSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`
 }
 
-const MOCK_CONVS = [
-  {
-    id: 'ic-001',
-    companyName: '(주)스태프나우',
-    online: true,
-    blocked: false,
-    left: false,
-    messages: [
-      { id: 'm1', from: 'company', text: '안녕하세요! 지원해 주셔서 감사합니다.', time: new Date(Date.now() - 3600000 * 2).toISOString(), read: true, deleted: false, file: null },
-      { id: 'm2', from: 'me',      text: '안녕하세요, 관심 있게 봐주셔서 감사합니다.', time: new Date(Date.now() - 3600000).toISOString(), read: true, deleted: false, file: null },
-      { id: 'm3', from: 'company', text: '검토 후 연락드리겠습니다. 잘 부탁드립니다!', time: new Date(Date.now() - 1800000).toISOString(), read: false, deleted: false, file: null },
-    ],
-  },
-  {
-    id: 'ic-002',
-    companyName: '킨텍스',
-    online: false,
-    blocked: false,
-    left: false,
-    messages: [
-      { id: 'm4', from: 'company', text: '합격을 축하합니다! 근무 일정을 확인해 주세요.', time: new Date(Date.now() - 86400000).toISOString(), read: true, deleted: false, file: null },
-    ],
-  },
-  {
-    id: 'ic-003',
-    companyName: '브랜드X',
-    online: false,
-    blocked: false,
-    left: false,
-    messages: [
-      { id: 'm5', from: 'company', text: '이번에는 함께하지 못하게 되어 아쉽습니다.', time: new Date(Date.now() - 86400000 * 7).toISOString(), read: true, deleted: false, file: null },
-    ],
-  },
-]
-
 function getKey(email) {
   const safe = email?.replace(/[^a-zA-Z0-9]/g, '_') || 'anon'
   return `staffnow_ind_messages_${safe}`
@@ -71,7 +36,7 @@ function loadConvs(email) {
     const raw = localStorage.getItem(getKey(email))
     if (raw) return JSON.parse(raw)
   } catch {}
-  return email === 'user@staffnow.kr' ? MOCK_CONVS : []
+  return []
 }
 
 function saveConvs(email, convs) {

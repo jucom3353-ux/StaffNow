@@ -1,10 +1,7 @@
 import { useMemo } from 'react'
-import { Banknote, Clock, CheckCircle2, TrendingUp, AlertCircle, Calendar } from 'lucide-react'
-import { useAuth } from '../../context/AuthContext'
+import { Banknote, Clock, CheckCircle2, TrendingUp, Calendar } from 'lucide-react'
 import { useAttendance, getAssignedShifts } from '../../hooks/useAttendance'
 import { calcBillableHours, hoursLabel } from '../../utils/payrollUtils'
-
-const DEMO_EMAIL = 'user@staffnow.kr'
 
 function parseWageNum(wageStr) {
   if (!wageStr) return 0
@@ -64,14 +61,9 @@ function SummaryCard({ icon: Icon, label, value, sub, accent }) {
 }
 
 export default function IndividualPayrollPage() {
-  const { user } = useAuth()
   const { getRecord } = useAttendance()
-  const isDemo = user?.email === DEMO_EMAIL
 
-  const shifts = useMemo(
-    () => getAssignedShifts(user?.name, user?.email),
-    [user?.name, user?.email]
-  )
+  const shifts = useMemo(() => getAssignedShifts(), [])
 
   const today = todayStr()
 
@@ -112,7 +104,7 @@ export default function IndividualPayrollPage() {
   const pendingRows    = rows.filter(r => r.status === 'completed')
 
   const totalThisMonth = completedRows.reduce((s, r) => s + (r.earnedWage ?? 0), 0)
-  const totalSettled   = isDemo ? 1_972_000 : settledRows.reduce((s, r) => s + (r.earnedWage ?? 0), 0)
+  const totalSettled   = settledRows.reduce((s, r) => s + (r.earnedWage ?? 0), 0)
   const totalPending   = pendingRows.reduce((s, r) => s + (r.earnedWage ?? 0), 0)
 
   function fmt(n) {
@@ -141,7 +133,7 @@ export default function IndividualPayrollPage() {
             icon={CheckCircle2}
             label="누적 정산완료"
             value={fmt(totalSettled)}
-            sub={isDemo ? '데모 합산 기준' : `${settledRows.length}건`}
+            sub={`${settledRows.length}건`}
             accent="bg-blue-50 text-blue-600"
           />
           <SummaryCard
@@ -225,15 +217,6 @@ export default function IndividualPayrollPage() {
           </div>
         )}
 
-        {/* 데모 안내 */}
-        {isDemo && (
-          <div className="flex items-start gap-2 bg-orange-50 border border-orange-100 rounded-xl p-3">
-            <AlertCircle size={14} className="text-orange-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-orange-700">
-              이 화면은 데모 계정 기준 샘플 데이터입니다. 실제 정산은 백엔드 연동 후 제공됩니다.
-            </p>
-          </div>
-        )}
       </div>
     </div>
   )

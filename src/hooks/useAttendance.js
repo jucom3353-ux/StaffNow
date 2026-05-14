@@ -40,95 +40,13 @@ function saveJSON(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)) } catch { /* no-op */ }
 }
 
-function todayStr() {
-  return new Date().toISOString().slice(0, 10)
-}
-
-function dateOffset(offset) {
-  const d = new Date()
-  d.setDate(d.getDate() + offset)
-  return d.toISOString().slice(0, 10)
-}
-
 function nowTime() {
   const n = new Date()
   return `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`
 }
 
-// 인력 본인에게 배정된 데모 Shift 목록 (데모 계정 전용)
-const DEMO_EMAIL = 'user@staffnow.kr'
-
-export function getAssignedShifts(userName, email) {
-  // 데모 계정이 아니면 빈 배열 반환 (신규 계정 = 배정된 근무 없음)
-  if (email && email !== DEMO_EMAIL) return []
-  const name = userName || '김지원'
-  return [
-    {
-      shiftId:        'ind-shift-001',
-      jobTitle:       '카페 파트타임',
-      company:        '브루잉코 마포점',
-      shiftDate:      todayStr(),
-      scheduledStart: '10:00',
-      scheduledEnd:   '16:00',
-      location:       '서울 마포구 합정동',
-      shiftLat:       37.5487,
-      shiftLng:       126.9148,
-      wage:           '72,000원',
-      staffName:      name,
-    },
-    {
-      shiftId:        'ind-shift-002',
-      jobTitle:       '주말 행사 스태프',
-      company:        '(주)이벤트플러스',
-      shiftDate:      dateOffset(2),
-      scheduledStart: '09:00',
-      scheduledEnd:   '18:00',
-      location:       '서울 강남구 COEX',
-      shiftLat:       37.5115,
-      shiftLng:       127.0595,
-      wage:           '120,000원',
-      staffName:      name,
-    },
-    {
-      shiftId:        'ind-shift-003',
-      jobTitle:       '박람회 안내 스태프',
-      company:        '코엑스 전시',
-      shiftDate:      dateOffset(-1),
-      scheduledStart: '09:00',
-      scheduledEnd:   '17:00',
-      location:       '서울 강남구 코엑스',
-      shiftLat:       37.5115,
-      shiftLng:       127.0595,
-      wage:           '96,000원',
-      staffName:      name,
-    },
-    {
-      shiftId:        'ind-shift-004',
-      jobTitle:       '편의점 야간 알바',
-      company:        'GS25 역삼점',
-      shiftDate:      dateOffset(-3),
-      scheduledStart: '22:00',
-      scheduledEnd:   '06:00',
-      location:       '서울 강남구 역삼동',
-      shiftLat:       37.5003,
-      shiftLng:       127.0368,
-      wage:           '85,000원',
-      staffName:      name,
-    },
-    {
-      shiftId:        'ind-shift-005',
-      jobTitle:       '행사 스태프 (선불)',
-      company:        '브랜드X 팝업',
-      shiftDate:      dateOffset(-7),
-      scheduledStart: '11:00',
-      scheduledEnd:   '20:00',
-      location:       '서울 성동구 성수동',
-      shiftLat:       37.5444,
-      shiftLng:       127.0557,
-      wage:           '110,000원',
-      staffName:      name,
-    },
-  ]
+export function getAssignedShifts() {
+  return []
 }
 
 export function useAttendance() {
