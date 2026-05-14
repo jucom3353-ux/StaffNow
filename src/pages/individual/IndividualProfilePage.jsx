@@ -89,6 +89,32 @@ const BANKS = ['국민은행', '신한은행', '하나은행', '우리은행', '
 
 const TIME_OPTIONS = ['주말', '평일', '새벽', '오전', '오후', '저녁']
 
+const MBTI_TYPES = [
+  'INTJ','INTP','ENTJ','ENTP',
+  'INFJ','INFP','ENFJ','ENFP',
+  'ISTJ','ISFJ','ESTJ','ESFJ',
+  'ISTP','ISFP','ESTP','ESFP',
+]
+
+const MBTI_DESCRIPTIONS = {
+  INTJ: '전략가형 — 독립적이고 결단력 있는 분석가',
+  INTP: '논리학자형 — 창의적이고 탐구적인 사색가',
+  ENTJ: '통솔자형 — 대담하고 상상력 풍부한 리더',
+  ENTP: '변론가형 — 영리하고 호기심 많은 사상가',
+  INFJ: '옹호자형 — 조용하지만 영감을 주는 이상주의자',
+  INFP: '중재자형 — 시적이고 친절하며 이타적인 사람',
+  ENFJ: '선도자형 — 카리스마 있고 영감을 주는 지도자',
+  ENFP: '활동가형 — 열정적이고 창의적이며 사교적',
+  ISTJ: '현실주의자형 — 사실에 충실한 신뢰할 수 있는 사람',
+  ISFJ: '수호자형 — 헌신적이고 따뜻한 보호자',
+  ESTJ: '경영자형 — 탁월한 관리자, 행정의 달인',
+  ESFJ: '집정관형 — 배려심 깊고 사교적인 팀플레이어',
+  ISTP: '장인형 — 대담하고 실용적인 실험가',
+  ISFP: '모험가형 — 유연하고 매력적인 예술가',
+  ESTP: '기업가형 — 영리하고 에너지 넘치는 행동파',
+  ESFP: '연예인형 — 즉흥적이고 활발한 엔터테이너',
+}
+
 const SKILL_SUGGESTIONS = [
   '카페/음료 제조', '바리스타', '행사 진행', '고객 응대', '포스(POS) 조작',
   '주방 보조', '음식 서빙', '홀 서빙', '엑셀/스프레드시트', '파워포인트',
@@ -237,27 +263,28 @@ export default function IndividualProfilePage() {
     }
   }
 
-  // ── 활동 가능 지역 ──
-  const demoRegions = isDemo ? ['서울 강남구', '서울 서초구', '경기 성남시'] : []
-  const regions = profile.regions?.length ? profile.regions : demoRegions
-  const [showRegionInput, setShowRegionInput] = useState(false)
+  // ── 활동 가능 지역 (단일 선택) ──
+  const demoRegion = isDemo ? '서울 강남구' : null
+  const region = profile.regions?.[0] ?? demoRegion
+  const [showRegionInput, setShowRegionInput] = useState(!region)
   const [regionSido,      setRegionSido]      = useState('')
   const [regionGungu,     setRegionGungu]     = useState('')
 
-  function addRegion() {
+  function setRegion() {
     if (!regionSido || !regionGungu) return
-    const r = `${regionSido} ${regionGungu}`
-    if (!regions.includes(r)) {
-      updateProfile({ regions: [...regions, r] })
-    }
+    updateProfile({ regions: [`${regionSido} ${regionGungu}`] })
     setRegionSido('')
     setRegionGungu('')
     setShowRegionInput(false)
   }
 
-  function removeRegion(r) {
-    updateProfile({ regions: regions.filter(x => x !== r) })
-  }
+  // ── MBTI ──
+  const mbti = profile.mbti || (isDemo ? 'ESTJ' : '')
+  const [editingMbti, setEditingMbti] = useState(false)
+  const [mbtiDraft,   setMbtiDraft]   = useState('')
+
+  function openMbtiEdit() { setMbtiDraft(mbti); setEditingMbti(true) }
+  function saveMbti() { updateProfile({ mbti: mbtiDraft }); setEditingMbti(false); showToast('MBTI가 저장되었습니다.') }
 
   // ── 선호 업무 시간 ──
   const preferredTimes = profile.preferredTimes?.length ? profile.preferredTimes : (isDemo ? ['주말', '오후'] : [])
@@ -559,29 +586,80 @@ export default function IndividualProfilePage() {
         )}
       </SectionCard>
 
-      {/* ── 4. 활동 가능 지역 ── */}
-      <SectionCard title="활동 가능 지역" icon={MapPin}
+      {/* ── 4. MBTI ── */}
+      <SectionCard title="MBTI" icon={User}
         action={
-          <button onClick={() => setShowRegionInput(v => !v)}
-            className="flex items-center gap-1 text-xs font-semibold text-orange hover:underline">
-            <Plus size={13} />추가
-          </button>
+          !editingMbti ? (
+            <button onClick={openMbtiEdit}
+              className="flex items-center gap-1 text-xs font-semibold text-orange hover:underline">
+              <Pencil size={13} />{mbti ? '수정' : '입력'}
+            </button>
+          ) : (
+            <div className="flex gap-2">
+              <button onClick={() => setEditingMbti(false)}
+                className="flex items-center gap-1 text-xs text-gray-500 px-3 py-1.5 rounded-lg border border-offwhite-200 hover:border-navy transition-colors">
+                <X size={12} />취소
+              </button>
+              <button onClick={saveMbti}
+                className="flex items-center gap-1 text-xs font-semibold text-white bg-orange px-3 py-1.5 rounded-lg hover:bg-orange-600 transition-colors">
+                <Check size={12} />저장
+              </button>
+            </div>
+          )
         }
       >
-        <div className="flex flex-wrap gap-2 mb-3">
-          {regions.map(r => (
-            <span key={r} className="flex items-center gap-1 text-sm bg-navy/5 text-navy px-3 py-1.5 rounded-full border border-navy/10">
-              <MapPin size={11} className="text-orange" />{r}
-              <button onClick={() => removeRegion(r)} className="hover:text-red-500 ml-0.5 transition-colors">
-                <X size={11} />
-              </button>
-            </span>
-          ))}
-        </div>
-        {showRegionInput && (
-          <div className="mt-2 space-y-2">
+        {editingMbti ? (
+          <div className="space-y-3">
+            <p className="text-xs text-gray-400">하나만 선택하세요</p>
+            <div className="grid grid-cols-4 gap-2">
+              {MBTI_TYPES.map(type => (
+                <button
+                  key={type}
+                  onClick={() => setMbtiDraft(type)}
+                  className={`py-2 rounded-xl text-sm font-bold transition-all border
+                    ${mbtiDraft === type
+                      ? 'bg-orange text-white border-orange shadow-sm'
+                      : 'bg-offwhite text-gray-500 border-offwhite-200 hover:border-orange hover:text-orange'}`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+            {mbtiDraft && (
+              <p className="text-xs text-gray-500 bg-offwhite rounded-xl px-3 py-2">
+                <span className="font-semibold text-navy">{mbtiDraft}</span> · {MBTI_DESCRIPTIONS[mbtiDraft]}
+              </p>
+            )}
+          </div>
+        ) : mbti ? (
+          <div className="flex items-start gap-3 bg-offwhite rounded-xl p-3">
+            <span className="text-base font-extrabold text-orange shrink-0">{mbti}</span>
+            <p className="text-sm text-gray-600 leading-snug">{MBTI_DESCRIPTIONS[mbti]}</p>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400">아직 MBTI를 입력하지 않았습니다. 오른쪽 버튼을 눌러 추가하세요.</p>
+        )}
+      </SectionCard>
+
+      {/* ── 5. 활동 가능 지역 (단일) ── */}
+      <SectionCard title="활동 가능 지역" icon={MapPin}
+        action={
+          region && !showRegionInput ? (
+            <button onClick={() => setShowRegionInput(true)}
+              className="text-xs font-semibold text-orange hover:underline">
+              변경
+            </button>
+          ) : null
+        }
+      >
+        {region && !showRegionInput ? (
+          <span className="inline-flex items-center gap-1.5 text-sm bg-navy/5 text-navy px-3 py-1.5 rounded-full border border-navy/10">
+            <MapPin size={11} className="text-orange" />{region}
+          </span>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-xs text-gray-400">본인 거주 지역을 선택해주세요 (1개만 설정 가능)</p>
             <div className="flex gap-2">
-              {/* 시/도 */}
               <div className="relative flex-1">
                 <select
                   value={regionSido}
@@ -595,8 +673,6 @@ export default function IndividualProfilePage() {
                 </select>
                 <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               </div>
-
-              {/* 구/군 */}
               <div className="relative flex-1">
                 <select
                   value={regionGungu}
@@ -612,21 +688,22 @@ export default function IndividualProfilePage() {
                 <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               </div>
             </div>
-
             <div className="flex gap-2">
               <button
-                onClick={addRegion}
+                onClick={setRegion}
                 disabled={!regionSido || !regionGungu}
                 className="px-4 py-2 bg-navy text-white text-sm font-semibold rounded-lg hover:bg-navy/80 disabled:opacity-40 transition-colors"
               >
-                추가
+                설정
               </button>
-              <button
-                onClick={() => { setShowRegionInput(false); setRegionSido(''); setRegionGungu('') }}
-                className="px-4 py-2 text-sm text-gray-400 rounded-lg border border-offwhite-200 hover:border-gray-400 transition-colors"
-              >
-                취소
-              </button>
+              {region && (
+                <button
+                  onClick={() => { setShowRegionInput(false); setRegionSido(''); setRegionGungu('') }}
+                  className="px-4 py-2 text-sm text-gray-400 rounded-lg border border-offwhite-200 hover:border-gray-400 transition-colors"
+                >
+                  취소
+                </button>
+              )}
             </div>
           </div>
         )}

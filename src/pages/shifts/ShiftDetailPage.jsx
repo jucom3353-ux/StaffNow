@@ -9,6 +9,7 @@ import {
 import Card from '../../components/ui/Card'
 import StatusBadge from '../../components/ui/StatusBadge'
 import EmptyState from '../../components/ui/EmptyState'
+import StaffProfileModal from '../../components/ui/StaffProfileModal'
 import { useAppData } from '../../context/AppDataContext'
 import { MOCK_APPLICANTS } from '../../data/mockApplicants'
 
@@ -127,7 +128,7 @@ function ConfirmModal({ type, hiredCount, requiredStaff, onConfirm, onCancel }) 
 }
 
 // ── 사이드 드로워 ────────────────────────────────────────
-function SideDrawer({ applicant, index, onClose, onPin, onHire, onReject }) {
+function SideDrawer({ applicant, index, onClose, onPin, onHire, onReject, onViewProfile }) {
   if (!applicant) return null
   const ratingLabel =
     !applicant.rating       ? '평가 없음' :
@@ -236,6 +237,12 @@ function SideDrawer({ applicant, index, onClose, onPin, onHire, onReject }) {
 
         <div className="p-4 border-t border-offwhite-200 space-y-2.5">
           <button
+            onClick={onViewProfile}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-navy/20 bg-navy/5 text-navy text-sm font-semibold hover:bg-navy/10 transition-colors"
+          >
+            프로필 상세 보기
+          </button>
+          <button
             onClick={onPin}
             className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-semibold transition-all
               ${applicant.pinned
@@ -300,6 +307,8 @@ export default function ShiftDetailPage() {
   const [sortBy,   setSortBy]   = useState('default')
   const [filterBy, setFilterBy] = useState('all')
   const [drawerApplicantId, setDrawerApplicantId] = useState(null)
+  const [profileTarget, setProfileTarget] = useState(null)
+  const [profileColorIdx, setProfileColorIdx] = useState(0)
   const [modal, setModal] = useState(null) // 'reset' | 'finalize' | null
 
   const initialized  = useRef(false)
@@ -580,7 +589,9 @@ export default function ShiftDetailPage() {
                         <Star size={16} fill={a.pinned ? 'currentColor' : 'none'} />
                       </button>
 
-                      <Avatar name={a.name} index={origIdx} />
+                      <button onClick={() => { setProfileTarget(a); setProfileColorIdx(origIdx) }} className="shrink-0">
+                        <Avatar name={a.name} index={origIdx} />
+                      </button>
 
                       {/* 이름·정보 */}
                       <div className="flex-1 min-w-0">
@@ -588,7 +599,10 @@ export default function ShiftDetailPage() {
                           {a.pinned && (
                             <Star size={11} className="text-yellow-400 sm:hidden shrink-0" fill="currentColor" />
                           )}
-                          <span className="font-semibold text-navy text-sm truncate">{a.name}</span>
+                          <button
+                            onClick={() => { setProfileTarget(a); setProfileColorIdx(origIdx) }}
+                            className="font-semibold text-navy text-sm truncate hover:underline"
+                          >{a.name}</button>
                           <span className="text-xs text-gray-400 whitespace-nowrap">{a.age}세 · {a.gender}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
@@ -726,6 +740,13 @@ export default function ShiftDetailPage() {
       )}
 
       {/* 사이드 드로워 */}
+      {profileTarget && (
+        <StaffProfileModal
+          person={profileTarget}
+          colorIndex={profileColorIdx}
+          onClose={() => setProfileTarget(null)}
+        />
+      )}
       {drawerApplicant && (
         <SideDrawer
           applicant={drawerApplicant}
@@ -734,6 +755,7 @@ export default function ShiftDetailPage() {
           onPin={() => togglePin(drawerApplicant.id)}
           onHire={() => setStatus(drawerApplicant.id, 'hired')}
           onReject={() => setStatus(drawerApplicant.id, 'rejected')}
+          onViewProfile={() => { setProfileTarget(drawerApplicant); setProfileColorIdx(drawerIndex) }}
         />
       )}
 

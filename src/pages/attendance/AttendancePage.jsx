@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Clock, CheckCircle2, AlertCircle, Users, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, DollarSign, MessageSquareWarning, Check, X, Star } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import EmptyState from '../../components/ui/EmptyState'
+import StaffProfileModal from '../../components/ui/StaffProfileModal'
 import { useAppData } from '../../context/AppDataContext'
 import { useAuth } from '../../context/AuthContext'
 import { MOCK_APPLICANTS } from '../../data/mockApplicants'
@@ -187,6 +188,7 @@ export default function AttendancePage() {
   const [lateRequests, setLateRequests] = useState(() => loadLateRequests())
   const { addRating, hasRated } = useRatings()
   const [ratingTarget, setRatingTarget] = useState(null)
+  const [profileTarget, setProfileTarget] = useState(null)
 
   function handleRating({ stars, comment }) {
     addRating({
@@ -337,6 +339,12 @@ export default function AttendancePage() {
           record={ratingTarget}
           onSubmit={handleRating}
           onClose={() => setRatingTarget(null)}
+        />
+      )}
+      {profileTarget && (
+        <StaffProfileModal
+          person={profileTarget}
+          onClose={() => setProfileTarget(null)}
         />
       )}
       <div className="flex items-start justify-between">
@@ -581,15 +589,18 @@ export default function AttendancePage() {
               <Card key={a.id} padding={false}>
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2.5">
+                    <button
+                      className="flex items-center gap-2.5 text-left"
+                      onClick={() => setProfileTarget({ name: a.staff })}
+                    >
                       <div className="w-9 h-9 rounded-full bg-navy/10 border border-navy/20 flex items-center justify-center shrink-0 text-sm font-bold text-navy">
                         {a.staff?.[0] ?? '?'}
                       </div>
                       <div>
-                        <p className="font-semibold text-navy">{a.staff}</p>
+                        <p className="font-semibold text-navy hover:underline">{a.staff}</p>
                         <p className="text-xs text-gray-400 mt-0.5">{a.role}</p>
                       </div>
-                    </div>
+                    </button>
                     <StatusPill status={a.status} />
                   </div>
                   <p className="text-xs text-gray-500 truncate mb-3">{a.shift}</p>
@@ -648,15 +659,18 @@ export default function AttendancePage() {
                 {filtered.map(a => (
                   <tr key={a.id} className="border-b border-offwhite-100 last:border-0 hover:bg-offwhite-100 transition-colors">
                     <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-2.5">
+                      <button
+                        className="flex items-center gap-2.5 text-left"
+                        onClick={() => setProfileTarget({ name: a.staff })}
+                      >
                         <div className="w-8 h-8 rounded-full bg-navy/10 border border-navy/20 flex items-center justify-center shrink-0 text-xs font-bold text-navy">
                           {a.staff?.[0] ?? '?'}
                         </div>
                         <div>
-                          <p className="font-semibold text-navy">{a.staff}</p>
+                          <p className="font-semibold text-navy hover:underline">{a.staff}</p>
                           <p className="text-xs text-gray-400 mt-0.5">{a.role}</p>
                         </div>
-                      </div>
+                      </button>
                     </td>
                     <td className="px-5 py-3.5 text-gray-600">{a.shift}</td>
                     <td className="px-5 py-3.5 text-gray-700 font-medium tabular-nums">{a.checkIn ?? '—'}</td>

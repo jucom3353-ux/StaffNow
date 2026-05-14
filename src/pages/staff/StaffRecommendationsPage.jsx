@@ -3,6 +3,7 @@ import { Star, X, Send, ChevronLeft, Check } from 'lucide-react'
 import { useRatings } from '../../hooks/useRatings'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
+import StaffProfileModal from '../../components/ui/StaffProfileModal'
 import { MOCK_APPLICANTS } from '../../data/mockApplicants'
 import { useAppData } from '../../context/AppDataContext'
 import { useAuth } from '../../context/AuthContext'
@@ -199,6 +200,8 @@ export default function StaffRecommendationsPage() {
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [inviteTarget, setInviteTarget] = useState(null)
+  const [profileTarget, setProfileTarget] = useState(null)
+  const [profileColorIdx, setProfileColorIdx] = useState(0)
 
   const isAdmin = user?.role === 'ADMIN'
   const myJobIds = isAdmin ? null : new Set(jobs.filter(j => j.createdBy === user?.name).map(j => j.id))
@@ -223,6 +226,13 @@ export default function StaffRecommendationsPage() {
 
   return (
     <div className="space-y-5">
+      {profileTarget && (
+        <StaffProfileModal
+          person={profileTarget}
+          colorIndex={profileColorIdx}
+          onClose={() => setProfileTarget(null)}
+        />
+      )}
       {inviteTarget && (
         <InviteModal
           person={inviteTarget}
@@ -285,13 +295,16 @@ export default function StaffRecommendationsPage() {
             const effectiveRating = getAverageRating(person.name) ?? person.rating
             return (
               <Card key={person.id}>
-                <div className="flex items-start gap-3">
+                <div
+                  className="flex items-start gap-3 cursor-pointer"
+                  onClick={() => { setProfileTarget(person); setProfileColorIdx(idx) }}
+                >
                   <div className={`w-10 h-10 rounded-full ${AVATAR_COLORS[idx % AVATAR_COLORS.length]} flex items-center justify-center shrink-0`}>
                     <span className="text-white text-sm font-bold">{person.name[0]}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1">
-                      <p className="font-semibold text-navy text-sm">{person.name}</p>
+                      <p className="font-semibold text-navy text-sm hover:underline">{person.name}</p>
                       {effectiveRating !== null && (
                         <span className="text-xs text-yellow-600 font-semibold shrink-0">★{effectiveRating}</span>
                       )}

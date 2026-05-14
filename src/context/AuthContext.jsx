@@ -66,7 +66,7 @@ export function AuthProvider({ children }) {
   }, [user])
 
   // signup: stores user + hashed password in per-user slot
-  const signup = useCallback((role, { name, email, company, phone, bizNumber, address, addressDetail, password = '' }) => {
+  const signup = useCallback((role, { name, email, company, phone, bizNumber, address, addressDetail, password = '', mbti = '' }) => {
     const newUser = {
       ...MOCK_USERS[role],
       id: `u-reg-${Date.now()}`,
@@ -79,6 +79,7 @@ export function AuthProvider({ children }) {
       ...(bizNumber ? { bizNumber } : {}),
       ...(address ? { address } : {}),
       ...(addressDetail ? { addressDetail } : {}),
+      ...(mbti ? { mbti } : {}),
     }
     const all = getAllUsers().filter(u => u.email !== email) // dedup
     localStorage.setItem(USERS_KEY, JSON.stringify([...all, newUser]))

@@ -28,6 +28,7 @@ const DEFAULT_PROFILE = {
   preferredTimes: [],
   account:        null,
   documents:      { health: false, safety: false },
+  mbti:           '',
 }
 
 export function useIndividualData() {
@@ -45,9 +46,10 @@ export function useIndividualData() {
     const stored = loadJSON(getKey(user, 'profile'), null)
     return stored ?? {
       ...DEFAULT_PROFILE,
-      phone:        user?.phone         || '',
-      address:      user?.address       || '',
-      addressDetail: user?.addressDetail || '',
+      phone:         user?.phone          || '',
+      address:       user?.address        || '',
+      addressDetail: user?.addressDetail  || '',
+      mbti:          user?.mbti           || '',
     }
   })
 
