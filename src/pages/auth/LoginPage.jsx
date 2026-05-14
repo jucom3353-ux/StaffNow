@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { User, Building2, ShieldCheck, Eye, EyeOff, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useAppData } from '../../context/AppDataContext'
+import AppFooter from '../../components/ui/AppFooter'
 
 const ROLES = [
   { key: 'INDIVIDUAL', label: '개인 회원',  icon: User,        hint: '구직자로 로그인',     email: 'user@staffnow.kr' },
@@ -212,6 +213,8 @@ export default function LoginPage() {
               ))}
             </div>
           </div>
+
+          <AppFooter />
         </div>
       </div>
     </div>
