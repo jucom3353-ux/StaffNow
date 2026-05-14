@@ -3,7 +3,6 @@ package com.example.demo.dto;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import com.example.demo.entity.Role;
 
 @Getter
 @Setter
@@ -15,5 +14,6 @@ public class UserCreateRequestDto {
     private String name;
     private String phone;
     private String companyName;
-    private Role role;
+    private String role;
+    private String mbti;
 }

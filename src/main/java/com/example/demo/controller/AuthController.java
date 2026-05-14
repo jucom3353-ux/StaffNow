@@ -42,7 +42,6 @@ public class AuthController {
         this.passwordEncoder = passwordEncoder;
     }
 
-    // 로그인
     @Operation(summary = "로그인")
     @PostMapping("/login")
     public ResponseEntity<?> login(
@@ -89,7 +88,9 @@ public class AuthController {
                             refreshTokenValue,
                             user.getRole().name(),
                             user.getName(),
-                            user.getEmail()
+                            user.getEmail(),
+                            user.getPhone(),
+                            user.getMbti()
                     )
             );
 
@@ -100,7 +101,6 @@ public class AuthController {
         }
     }
 
-    // Access Token 재발급
     @Operation(summary = "Access Token 재발급")
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(
@@ -139,7 +139,9 @@ public class AuthController {
                             refreshToken.getRefreshToken(),
                             user.getRole().name(),
                             user.getName(),
-                            user.getEmail()
+                            user.getEmail(),
+                            user.getPhone(),
+                            user.getMbti()
                     )
             );
 

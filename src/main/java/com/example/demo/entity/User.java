@@ -23,6 +23,8 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Role role;
 
+    private String mbti;
+
     @Column(name = "no_show_count")
     private int noShowCount = 0;
 
@@ -39,6 +41,7 @@ public class User {
     public String getPhone() { return phone; }
     public String getCompanyName() { return companyName; }
     public Role getRole() { return role; }
+    public String getMbti() { return mbti; }
     public int getNoShowCount() { return noShowCount; }
     public double getRating() { return rating; }
 
@@ -49,6 +52,7 @@ public class User {
     public void setPhone(String phone) { this.phone = phone; }
     public void setCompanyName(String companyName) { this.companyName = companyName; }
     public void setRole(Role role) { this.role = role; }
+    public void setMbti(String mbti) { this.mbti = mbti; }
     public void setNoShowCount(int noShowCount) { this.noShowCount = noShowCount; }
     public void setRating(double rating) { this.rating = rating; }
 }
