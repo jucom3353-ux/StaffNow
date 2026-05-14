@@ -1,12 +1,24 @@
 package com.example.demo.repository;
 
-import com.example.demo.entity.JobPost; // 엔티티 패키지 경로 확인 필요
+import com.example.demo.entity.JobPost;
+import com.example.demo.entity.PostStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
-// 1. class 대신 interface로 변경
-// 2. JpaRepository<엔티티클래스명, ID타입>를 상속받아야 함
 public interface JobPostRepository extends JpaRepository<JobPost, Long> {
-    // 여기에 별도의 메서드를 작성하지 않아도 save(), findAll(), findById() 등을 사용할 수 있습니다.
+
+    @Query("SELECT j FROM JobPost j WHERE " +
+            "(:title IS NULL OR j.title LIKE %:title%) AND " +
+            "(:workLocation IS NULL OR j.workLocation LIKE %:workLocation%) AND " +
+            "(:postStatus IS NULL OR j.postStatus = :postStatus)")
+    List<JobPost> searchJobPosts(
+            @Param("title") String title,
+            @Param("workLocation") String workLocation,
+            @Param("postStatus") PostStatus postStatus
+    );
 }

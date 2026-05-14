@@ -1,8 +1,10 @@
 package com.example.demo.entity;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "job_post")
 public class JobPost {
 
     @Id
@@ -11,41 +13,106 @@ public class JobPost {
 
     private String title;
 
+    @Column(columnDefinition = "TEXT")
     private String content;
+
+    private String workLocation;
+
+    private String startTime;
+    private String endTime;
+    private String breakTime;
+
+    @Enumerated(EnumType.STRING)
+    private WageType wageType;
+
+    private Integer wageAmount;
+    private Boolean includeHolidayPay;
+
+    // 업무 유형 (판촉/마케팅/단순노무 등)
+    private String workType;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Enumerated(EnumType.STRING)
+    private Gender requiredGender;
+
+    private Integer requiredAgeMin;
+    private Integer requiredAgeMax;
+
+    // 필수조건 성격
+    private String requiredPersonality;
+
+    // 필수조건 기타 (경력무관/대졸이상/운전면허 등)
+    private String requiredCondition;
+
+    private String preferredExperience;
+    private String preferredLanguage;
+    private String preferredEtc;
+
+    private Integer recruitCount;
+
+    @Enumerated(EnumType.STRING)
+    private PostStatus postStatus = PostStatus.DRAFT;
+
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    public void prePersist() {
+        this.createdAt = LocalDateTime.now();
+    }
 
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
 
-    public Long getId() {
-        return id;
-    }
+    public Long getId() { return id; }
+    public String getTitle() { return title; }
+    public String getContent() { return content; }
+    public String getWorkLocation() { return workLocation; }
+    public String getStartTime() { return startTime; }
+    public String getEndTime() { return endTime; }
+    public String getBreakTime() { return breakTime; }
+    public WageType getWageType() { return wageType; }
+    public Integer getWageAmount() { return wageAmount; }
+    public Boolean getIncludeHolidayPay() { return includeHolidayPay; }
+    public String getWorkType() { return workType; }
+    public String getDescription() { return description; }
+    public Gender getRequiredGender() { return requiredGender; }
+    public Integer getRequiredAgeMin() { return requiredAgeMin; }
+    public Integer getRequiredAgeMax() { return requiredAgeMax; }
+    public String getRequiredPersonality() { return requiredPersonality; }
+    public String getRequiredCondition() { return requiredCondition; }
+    public String getPreferredExperience() { return preferredExperience; }
+    public String getPreferredLanguage() { return preferredLanguage; }
+    public String getPreferredEtc() { return preferredEtc; }
+    public Integer getRecruitCount() { return recruitCount; }
+    public PostStatus getPostStatus() { return postStatus; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public User getUser() { return user; }
 
-    public String getTitle() {
-        return title;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
+    public void setId(Long id) { this.id = id; }
+    public void setTitle(String title) { this.title = title; }
+    public void setContent(String content) { this.content = content; }
+    public void setWorkLocation(String workLocation) { this.workLocation = workLocation; }
+    public void setStartTime(String startTime) { this.startTime = startTime; }
+    public void setEndTime(String endTime) { this.endTime = endTime; }
+    public void setBreakTime(String breakTime) { this.breakTime = breakTime; }
+    public void setWageType(WageType wageType) { this.wageType = wageType; }
+    public void setWageAmount(Integer wageAmount) { this.wageAmount = wageAmount; }
+    public void setIncludeHolidayPay(Boolean includeHolidayPay) { this.includeHolidayPay = includeHolidayPay; }
+    public void setWorkType(String workType) { this.workType = workType; }
+    public void setDescription(String description) { this.description = description; }
+    public void setRequiredGender(Gender requiredGender) { this.requiredGender = requiredGender; }
+    public void setRequiredAgeMin(Integer requiredAgeMin) { this.requiredAgeMin = requiredAgeMin; }
+    public void setRequiredAgeMax(Integer requiredAgeMax) { this.requiredAgeMax = requiredAgeMax; }
+    public void setRequiredPersonality(String requiredPersonality) { this.requiredPersonality = requiredPersonality; }
+    public void setRequiredCondition(String requiredCondition) { this.requiredCondition = requiredCondition; }
+    public void setPreferredExperience(String preferredExperience) { this.preferredExperience = preferredExperience; }
+    public void setPreferredLanguage(String preferredLanguage) { this.preferredLanguage = preferredLanguage; }
+    public void setPreferredEtc(String preferredEtc) { this.preferredEtc = preferredEtc; }
+    public void setRecruitCount(Integer recruitCount) { this.recruitCount = recruitCount; }
+    public void setPostStatus(PostStatus postStatus) { this.postStatus = postStatus; }
+    public void setUser(User user) { this.user = user; }
 }

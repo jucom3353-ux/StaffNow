@@ -1,11 +1,12 @@
 package com.example.demo.dto;
 
+import lombok.Getter;
+
+@Getter
 public class ApplicationResponseDto {
 
     private Long applicationId;
-
     private String workerName;
-
     private String status;
 
     public ApplicationResponseDto(
@@ -16,17 +17,5 @@ public class ApplicationResponseDto {
         this.applicationId = applicationId;
         this.workerName = workerName;
         this.status = status;
-    }
-
-    public Long getApplicationId() {
-        return applicationId;
-    }
-
-    public String getWorkerName() {
-        return workerName;
-    }
-
-    public String getStatus() {
-        return status;
     }
 }
