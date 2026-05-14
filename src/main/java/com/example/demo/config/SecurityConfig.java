@@ -59,6 +59,10 @@ public class SecurityConfig {
                                 "/users/**"
                         ).permitAll()
 
+                        .requestMatchers(
+                                "/uploads/**"
+                        ).permitAll()
+
                         .anyRequest().authenticated()
                 )
 
@@ -74,21 +78,17 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // 프론트 도메인 허용 (로컬 개발 + 배포 주소)
         config.setAllowedOrigins(List.of(
                 "http://localhost:5173",
                 "https://staffnow.vercel.app"
         ));
 
-        // 허용 메서드
         config.setAllowedMethods(List.of(
                 "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
         ));
 
-        // 허용 헤더
         config.setAllowedHeaders(List.of("*"));
 
-        // 인증 정보 포함 허용 (JWT 토큰)
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source =

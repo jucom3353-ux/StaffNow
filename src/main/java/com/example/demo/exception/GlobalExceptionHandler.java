@@ -44,6 +44,7 @@ public class GlobalExceptionHandler {
             message.contains("본인 공고만") ||
             message.contains("본인 지원만") ||
             message.contains("본인 공고의") ||
+            message.contains("본인 계약서만") ||
             message.contains("권한 없음")
         ) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
@@ -58,6 +59,7 @@ public class GlobalExceptionHandler {
         if (message.contains("이미 지원한") ||
             message.contains("이미 완료된") ||
             message.contains("이미 노쇼") ||
+            message.contains("이미 서명") ||
             message.contains("이미 사용 중인 이메일")
         ) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
@@ -66,9 +68,18 @@ public class GlobalExceptionHandler {
         // 400 Bad Request
         if (message.contains("노쇼 누적") ||
             message.contains("완료된 지원은 취소") ||
-            message.contains("지원 상태인 경우에만")
+            message.contains("지원 상태인 경우에만") ||
+            message.contains("취소된 계약서") ||
+            message.contains("서명 완료된 계약서는 취소") ||
+            message.contains("파일이 없습니다") ||
+            message.contains("파일만 업로드 가능")
         ) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+
+        // 500 Internal Server Error
+        if (message.contains("파일 업로드 실패")) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);

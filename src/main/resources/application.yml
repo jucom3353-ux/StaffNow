@@ -17,6 +17,15 @@ spring:
         dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
 
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+file:
+  upload-dir: uploads/attendance
+
 jwt:
   secret: my-super-secret-jwt-key-for-demo-project-2026-security
   expiration: 3600000
@@ -25,3 +34,4 @@ server:
   error:
     include-message: always
     include-binding-errors: always
+  port: 8080

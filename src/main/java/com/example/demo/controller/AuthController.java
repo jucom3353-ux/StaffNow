@@ -23,18 +23,13 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
-@Tag(
-        name = "인증 API",
-        description = "로그인 및 JWT 토큰 관리 기능"
-)
+@Tag(name = "인증 API", description = "로그인 및 JWT 토큰 관리 기능")
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
 
     private final UserRepository userRepository;
-
     private final RefreshTokenRepository refreshTokenRepository;
-
     private final PasswordEncoder passwordEncoder;
 
     public AuthController(
@@ -53,69 +48,53 @@ public class AuthController {
     public ResponseEntity<?> login(
             @RequestBody LoginRequestDto requestDto
     ) {
-
         try {
-
-            // 이메일로 사용자 찾기
             User user = userRepository
                     .findByEmail(requestDto.getEmail())
                     .orElse(null);
 
-            // 이메일 없음
             if (user == null) {
-
                 return ResponseEntity.badRequest()
                         .body("이메일이 존재하지 않습니다.");
             }
 
-            // BCrypt 비밀번호 확인
             if (!passwordEncoder.matches(
                     requestDto.getPassword(),
                     user.getPassword()
             )) {
-
                 return ResponseEntity.badRequest()
                         .body("비밀번호가 틀렸습니다.");
             }
 
-            // Access Token 생성
             String accessToken = JwtUtil.createToken(
                     user.getId(),
                     user.getRole().name()
             );
 
-            // Refresh Token 생성
-            String refreshTokenValue =
-                    UUID.randomUUID().toString();
+            String refreshTokenValue = UUID.randomUUID().toString();
 
-            // 기존 RefreshToken 조회
             RefreshToken refreshToken =
                     refreshTokenRepository
                             .findByUserId(user.getId())
                             .orElse(new RefreshToken());
 
-            // 값 저장
             refreshToken.setUserId(user.getId());
-            refreshToken.setRefreshToken(
-                    refreshTokenValue
-            );
+            refreshToken.setRefreshToken(refreshTokenValue);
 
-            // DB 저장
             refreshTokenRepository.save(refreshToken);
 
-            // 토큰 반환
             return ResponseEntity.ok(
                     new LoginResponseDto(
                             accessToken,
                             refreshTokenValue,
-                            user.getRole().name()
+                            user.getRole().name(),
+                            user.getName(),
+                            user.getEmail()
                     )
             );
 
         } catch (Exception e) {
-
             e.printStackTrace();
-
             return ResponseEntity.internalServerError()
                     .body(e.getMessage());
         }
@@ -127,10 +106,7 @@ public class AuthController {
     public ResponseEntity<?> refresh(
             @RequestBody RefreshTokenRequestDto requestDto
     ) {
-
         try {
-
-            // Refresh Token 조회
             RefreshToken refreshToken =
                     refreshTokenRepository
                             .findByRefreshToken(
@@ -138,45 +114,37 @@ public class AuthController {
                             )
                             .orElse(null);
 
-            // 없으면 실패
             if (refreshToken == null) {
-
                 return ResponseEntity.badRequest()
                         .body("Refresh Token 없음");
             }
 
-            // 유저 조회
             User user = userRepository
                     .findById(refreshToken.getUserId())
                     .orElse(null);
 
-            // 유저 없으면 실패
             if (user == null) {
-
                 return ResponseEntity.badRequest()
                         .body("사용자 없음");
             }
 
-            // 새 Access Token 발급
-            String newAccessToken =
-                    JwtUtil.createToken(
-                            user.getId(),
-                            user.getRole().name()
-                    );
+            String newAccessToken = JwtUtil.createToken(
+                    user.getId(),
+                    user.getRole().name()
+            );
 
-            // 반환
             return ResponseEntity.ok(
                     new LoginResponseDto(
                             newAccessToken,
                             refreshToken.getRefreshToken(),
-                            user.getRole().name()
+                            user.getRole().name(),
+                            user.getName(),
+                            user.getEmail()
                     )
             );
 
         } catch (Exception e) {
-
             e.printStackTrace();
-
             return ResponseEntity.internalServerError()
                     .body(e.getMessage());
         }
