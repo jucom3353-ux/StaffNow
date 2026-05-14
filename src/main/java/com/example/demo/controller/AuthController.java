@@ -108,7 +108,11 @@ public class AuthController {
                     new LoginResponseDto(
                             accessToken,
                             refreshTokenValue,
-                            user.getRole().name()
+                            user.getRole().name(),
+                            user.getName(),
+                            user.getEmail(),
+                            user.getPhone(),
+                            user.getMbti()
                     )
             );
 
@@ -169,7 +173,11 @@ public class AuthController {
                     new LoginResponseDto(
                             newAccessToken,
                             refreshToken.getRefreshToken(),
-                            user.getRole().name()
+                            user.getRole().name(),
+                            user.getName(),
+                            user.getEmail(),
+                            user.getPhone(),
+                            user.getMbti()
                     )
             );
 

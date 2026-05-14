@@ -12,6 +12,8 @@ public class UserCreateRequestDto {
 
     private String role;
 
+    private String mbti;
+
     public String getEmail() {
         return email;
     }
@@ -30,5 +32,9 @@ public class UserCreateRequestDto {
 
     public String getRole() {
         return role;
+    }
+
+    public String getMbti() {
+        return mbti;
     }
 }

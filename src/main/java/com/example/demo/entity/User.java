@@ -24,6 +24,8 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Role role;
 
+    private String mbti;
+
     @Column(name = "no_show_count")
     private int noShowCount = 0;
 
@@ -84,6 +86,14 @@ public class User {
 
     public void setRole(Role role) {
         this.role = role;
+    }
+
+    public String getMbti() {
+        return mbti;
+    }
+
+    public void setMbti(String mbti) {
+        this.mbti = mbti;
     }
 
     public void setNoShowCount(int noShowCount) {

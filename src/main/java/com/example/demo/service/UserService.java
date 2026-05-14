@@ -46,6 +46,8 @@ public class UserService {
 
         user.setPhone(dto.getPhone());
 
+        user.setMbti(dto.getMbti());
+
         // ROLE 저장
         user.setRole(
                 Role.valueOf(dto.getRole())
