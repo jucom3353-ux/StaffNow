@@ -1,8 +1,6 @@
 package com.example.demo.dto;
 
-import com.example.demo.entity.Gender;
-import com.example.demo.entity.PostStatus;
-import com.example.demo.entity.WageType;
+import com.example.demo.entity.*;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -35,7 +33,6 @@ public class JobPostCreateRequestDto {
     private Boolean includeHolidayPay;
 
     private String workType;
-
     private String description;
 
     private Gender requiredGender;
@@ -58,4 +55,6 @@ public class JobPostCreateRequestDto {
     private Integer recruitCount;
 
     private PostStatus postStatus;
+    private JobCategory category;
+    private String deadline;
 }

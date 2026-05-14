@@ -1,11 +1,9 @@
 package com.example.demo.dto;
 
-import com.example.demo.entity.Gender;
-import com.example.demo.entity.JobPost;
-import com.example.demo.entity.PostStatus;
-import com.example.demo.entity.WageType;
+import com.example.demo.entity.*;
 import lombok.Getter;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -34,6 +32,10 @@ public class JobPostResponseDto {
     private Integer recruitCount;
     private Integer currentCount;
     private PostStatus postStatus;
+    private JobCategory category;
+    private String deadline;
+    private Boolean isDeadlined;
+    private Integer viewCount;
     private LocalDateTime createdAt;
 
     public JobPostResponseDto(JobPost jobPost, int currentCount) {
@@ -61,6 +63,17 @@ public class JobPostResponseDto {
         this.recruitCount = jobPost.getRecruitCount();
         this.currentCount = currentCount;
         this.postStatus = jobPost.getPostStatus();
+        this.category = jobPost.getCategory();
+        this.deadline = jobPost.getDeadline();
+        this.viewCount = jobPost.getViewCount();
         this.createdAt = jobPost.getCreatedAt();
+
+        // 마감 여부 자동 계산
+        if (jobPost.getDeadline() != null) {
+            this.isDeadlined = LocalDate.parse(jobPost.getDeadline())
+                    .isBefore(LocalDate.now());
+        } else {
+            this.isDeadlined = false;
+        }
     }
 }

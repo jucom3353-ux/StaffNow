@@ -28,7 +28,6 @@ public class JobPost {
     private Integer wageAmount;
     private Boolean includeHolidayPay;
 
-    // 업무 유형 (판촉/마케팅/단순노무 등)
     private String workType;
 
     @Column(columnDefinition = "TEXT")
@@ -40,10 +39,7 @@ public class JobPost {
     private Integer requiredAgeMin;
     private Integer requiredAgeMax;
 
-    // 필수조건 성격
     private String requiredPersonality;
-
-    // 필수조건 기타 (경력무관/대졸이상/운전면허 등)
     private String requiredCondition;
 
     private String preferredExperience;
@@ -54,6 +50,16 @@ public class JobPost {
 
     @Enumerated(EnumType.STRING)
     private PostStatus postStatus = PostStatus.DRAFT;
+
+    // 카테고리
+    @Enumerated(EnumType.STRING)
+    private JobCategory category;
+
+    // 마감일
+    private String deadline;
+
+    // 조회수
+    private Integer viewCount = 0;
 
     @Column(updatable = false)
     private LocalDateTime createdAt;
@@ -89,6 +95,9 @@ public class JobPost {
     public String getPreferredEtc() { return preferredEtc; }
     public Integer getRecruitCount() { return recruitCount; }
     public PostStatus getPostStatus() { return postStatus; }
+    public JobCategory getCategory() { return category; }
+    public String getDeadline() { return deadline; }
+    public Integer getViewCount() { return viewCount; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public User getUser() { return user; }
 
@@ -114,5 +123,8 @@ public class JobPost {
     public void setPreferredEtc(String preferredEtc) { this.preferredEtc = preferredEtc; }
     public void setRecruitCount(Integer recruitCount) { this.recruitCount = recruitCount; }
     public void setPostStatus(PostStatus postStatus) { this.postStatus = postStatus; }
+    public void setCategory(JobCategory category) { this.category = category; }
+    public void setDeadline(String deadline) { this.deadline = deadline; }
+    public void setViewCount(Integer viewCount) { this.viewCount = viewCount; }
     public void setUser(User user) { this.user = user; }
 }

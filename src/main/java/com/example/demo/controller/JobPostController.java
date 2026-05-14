@@ -1,7 +1,9 @@
 package com.example.demo.controller;
 
 import com.example.demo.dto.JobPostCreateRequestDto;
+import com.example.demo.dto.JobPostPageResponseDto;
 import com.example.demo.dto.JobPostResponseDto;
+import com.example.demo.entity.JobCategory;
 import com.example.demo.entity.PostStatus;
 import com.example.demo.entity.User;
 import com.example.demo.service.JobPostService;
@@ -27,7 +29,24 @@ public class JobPostController {
 
     private final JobPostService jobPostService;
 
-    // 전체 공고 조회 + 검색 + 상태 필터
+    // 구직자용 공고 검색/필터/정렬/페이지네이션
+    @Operation(summary = "구직자용 공고 검색 (sort: latest/wage/deadline/popular, page/size 지원)")
+    @GetMapping("/search")
+    public JobPostPageResponseDto searchJobPosts(
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String workLocation,
+            @RequestParam(required = false) String companyName,
+            @RequestParam(required = false) JobCategory category,
+            @RequestParam(required = false) String sort,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return jobPostService.searchJobPosts(
+                title, workLocation, companyName, category, sort, page, size
+        );
+    }
+
+    // 기업용 전체 공고 조회
     @Operation(summary = "전체 공고 조회 (공고명/지역 검색, 상태 필터 가능)")
     @GetMapping
     public List<JobPostResponseDto> getJobPosts(
@@ -38,7 +57,7 @@ public class JobPostController {
         return jobPostService.getJobPosts(title, workLocation, postStatus);
     }
 
-    // 내 공고 조회 + 상태 필터
+    // 내 공고 조회 (기업용)
     @Operation(summary = "내 공고 조회 (상태 필터 가능)")
     @GetMapping("/my")
     public List<JobPostResponseDto> getMyJobPosts(

@@ -1,13 +1,19 @@
 package com.example.demo.service;
 
 import com.example.demo.dto.JobPostCreateRequestDto;
+import com.example.demo.dto.JobPostPageResponseDto;
 import com.example.demo.dto.JobPostResponseDto;
 import com.example.demo.entity.*;
 import com.example.demo.repository.ApplicationRepository;
 import com.example.demo.repository.JobPostRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,13 +43,19 @@ public class JobPostService {
         jobPost.setTitle(requestDto.getTitle());
         jobPost.setContent(requestDto.getContent());
         jobPost.setWorkLocation(requestDto.getWorkLocation());
+        jobPost.setStartTime(requestDto.getStartTime());
+        jobPost.setEndTime(requestDto.getEndTime());
+        jobPost.setBreakTime(requestDto.getBreakTime());
         jobPost.setWageType(requestDto.getWageType());
         jobPost.setWageAmount(requestDto.getWageAmount());
         jobPost.setIncludeHolidayPay(requestDto.getIncludeHolidayPay());
+        jobPost.setWorkType(requestDto.getWorkType());
         jobPost.setDescription(requestDto.getDescription());
         jobPost.setRequiredGender(requestDto.getRequiredGender());
         jobPost.setRequiredAgeMin(requestDto.getRequiredAgeMin());
         jobPost.setRequiredAgeMax(requestDto.getRequiredAgeMax());
+        jobPost.setRequiredPersonality(requestDto.getRequiredPersonality());
+        jobPost.setRequiredCondition(requestDto.getRequiredCondition());
         jobPost.setPreferredExperience(requestDto.getPreferredExperience());
         jobPost.setPreferredLanguage(requestDto.getPreferredLanguage());
         jobPost.setPreferredEtc(requestDto.getPreferredEtc());
@@ -53,11 +65,55 @@ public class JobPostService {
                         ? requestDto.getPostStatus()
                         : PostStatus.DRAFT
         );
+        jobPost.setCategory(requestDto.getCategory());
+        jobPost.setDeadline(requestDto.getDeadline());
+        jobPost.setViewCount(0);
         jobPost.setUser(loginUser);
         jobPostRepository.save(jobPost);
     }
 
-    // 전체 공고 조회 + 검색 + 상태 필터
+    // 구직자용 공고 검색/필터/정렬 (페이지네이션)
+    @Transactional
+    public JobPostPageResponseDto searchJobPosts(
+            String title,
+            String workLocation,
+            String companyName,
+            JobCategory category,
+            String sort,
+            int page,
+            int size
+    ) {
+        // 정렬 기준
+        Sort sorting = switch (sort != null ? sort : "latest") {
+            case "wage" -> Sort.by(Sort.Direction.DESC, "wageAmount");
+            case "deadline" -> Sort.by(Sort.Direction.ASC, "deadline");
+            case "popular" -> Sort.by(Sort.Direction.DESC, "viewCount");
+            default -> Sort.by(Sort.Direction.DESC, "createdAt");
+        };
+
+        Pageable pageable = PageRequest.of(page, size, sorting);
+
+        Page<JobPost> result = jobPostRepository.searchJobPostsWithPage(
+                title, workLocation, PostStatus.OPEN, category, companyName, pageable
+        );
+
+        List<JobPostResponseDto> posts = result.getContent().stream()
+                .map(post -> new JobPostResponseDto(
+                        post,
+                        applicationRepository.countByJobPost(post)
+                ))
+                .collect(Collectors.toList());
+
+        return new JobPostPageResponseDto(
+                posts,
+                result.getNumber(),
+                result.getTotalPages(),
+                result.getTotalElements(),
+                result.getSize()
+        );
+    }
+
+    // 기업용 전체 공고 조회
     @Transactional(readOnly = true)
     public List<JobPostResponseDto> getJobPosts(
             String title,
@@ -65,7 +121,7 @@ public class JobPostService {
             PostStatus postStatus
     ) {
         return jobPostRepository
-                .searchJobPosts(title, workLocation, postStatus)
+                .searchJobPosts(title, workLocation, postStatus, null, null)
                 .stream()
                 .map(post -> new JobPostResponseDto(
                         post,
@@ -74,18 +130,22 @@ public class JobPostService {
                 .collect(Collectors.toList());
     }
 
-    // 단건 공고 조회
-    @Transactional(readOnly = true)
+    // 단건 공고 조회 + 조회수 증가
+    @Transactional
     public JobPostResponseDto getJobPost(Long id) {
         JobPost post = jobPostRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("공고 없음"));
+
+        post.setViewCount((post.getViewCount() != null ? post.getViewCount() : 0) + 1);
+        jobPostRepository.save(post);
+
         return new JobPostResponseDto(
                 post,
                 applicationRepository.countByJobPost(post)
         );
     }
 
-    // 내 공고 조회 + 상태 필터
+    // 내 공고 조회 (기업용)
     @Transactional(readOnly = true)
     public List<JobPostResponseDto> getMyJobPosts(User loginUser, PostStatus postStatus) {
         return jobPostRepository.findAll().stream()
@@ -135,17 +195,25 @@ public class JobPostService {
         post.setTitle(requestDto.getTitle());
         post.setContent(requestDto.getContent());
         post.setWorkLocation(requestDto.getWorkLocation());
+        post.setStartTime(requestDto.getStartTime());
+        post.setEndTime(requestDto.getEndTime());
+        post.setBreakTime(requestDto.getBreakTime());
         post.setWageType(requestDto.getWageType());
         post.setWageAmount(requestDto.getWageAmount());
         post.setIncludeHolidayPay(requestDto.getIncludeHolidayPay());
+        post.setWorkType(requestDto.getWorkType());
         post.setDescription(requestDto.getDescription());
         post.setRequiredGender(requestDto.getRequiredGender());
         post.setRequiredAgeMin(requestDto.getRequiredAgeMin());
         post.setRequiredAgeMax(requestDto.getRequiredAgeMax());
+        post.setRequiredPersonality(requestDto.getRequiredPersonality());
+        post.setRequiredCondition(requestDto.getRequiredCondition());
         post.setPreferredExperience(requestDto.getPreferredExperience());
         post.setPreferredLanguage(requestDto.getPreferredLanguage());
         post.setPreferredEtc(requestDto.getPreferredEtc());
         post.setRecruitCount(requestDto.getRecruitCount());
+        post.setCategory(requestDto.getCategory());
+        post.setDeadline(requestDto.getDeadline());
         if (requestDto.getPostStatus() != null) {
             post.setPostStatus(requestDto.getPostStatus());
         }
