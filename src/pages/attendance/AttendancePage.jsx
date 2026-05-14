@@ -369,23 +369,35 @@ export default function AttendancePage() {
           </p>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { label: '출근 중', value: counts.in_progress, icon: Clock,        color: 'text-blue-500',  bg: 'bg-blue-50' },
-              { label: '완료',    value: counts.completed,   icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
-              { label: '결근',    value: counts.absent,      icon: AlertCircle,  color: 'text-red-500',   bg: 'bg-red-50' },
-              { label: '예정',    value: counts.scheduled,   icon: Users,        color: 'text-gray-500',  bg: 'bg-gray-50' },
-            ].map(({ label, value, icon: Icon, color, bg }) => (
-              <Card key={label}>
-                <div className="flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center shrink-0`}>
-                    <Icon size={16} className={color} />
+              { label: '출근 중', value: counts.in_progress, icon: Clock,        color: 'text-blue-500',  bg: 'bg-blue-50',  tabKey: 'in_progress' },
+              { label: '완료',    value: counts.completed,   icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50', tabKey: 'completed' },
+              { label: '결근',    value: counts.absent,      icon: AlertCircle,  color: 'text-red-500',   bg: 'bg-red-50',   tabKey: 'absent' },
+              { label: '예정',    value: counts.scheduled,   icon: Users,        color: 'text-gray-500',  bg: 'bg-gray-50',  tabKey: 'scheduled' },
+            ].map(({ label, value, icon: Icon, color, bg, tabKey }) => {
+              const isActive = tab === tabKey
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => setTab(t => t === tabKey ? 'all' : tabKey)}
+                  className={`text-left w-full rounded-xl border transition-all ${
+                    isActive
+                      ? 'border-navy bg-navy/5 ring-1 ring-navy/20'
+                      : 'border-offwhite-200 bg-white hover:border-navy/30 hover:bg-offwhite-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 p-4">
+                    <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center shrink-0`}>
+                      <Icon size={16} className={color} />
+                    </div>
+                    <div>
+                      <p className="text-xl font-bold text-navy tabular-nums">{value}</p>
+                      <p className="text-xs text-gray-500">{label}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xl font-bold text-navy tabular-nums">{value}</p>
-                    <p className="text-xs text-gray-500">{label}</p>
-                  </div>
-                </div>
-              </Card>
-            ))}
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>
@@ -569,9 +581,14 @@ export default function AttendancePage() {
               <Card key={a.id} padding={false}>
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <div>
-                      <p className="font-semibold text-navy">{a.staff}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{a.role}</p>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-full bg-navy/10 border border-navy/20 flex items-center justify-center shrink-0 text-sm font-bold text-navy">
+                        {a.staff?.[0] ?? '?'}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-navy">{a.staff}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{a.role}</p>
+                      </div>
                     </div>
                     <StatusPill status={a.status} />
                   </div>
@@ -631,8 +648,15 @@ export default function AttendancePage() {
                 {filtered.map(a => (
                   <tr key={a.id} className="border-b border-offwhite-100 last:border-0 hover:bg-offwhite-100 transition-colors">
                     <td className="px-5 py-3.5">
-                      <p className="font-semibold text-navy">{a.staff}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{a.role}</p>
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-navy/10 border border-navy/20 flex items-center justify-center shrink-0 text-xs font-bold text-navy">
+                          {a.staff?.[0] ?? '?'}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-navy">{a.staff}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">{a.role}</p>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-5 py-3.5 text-gray-600">{a.shift}</td>
                     <td className="px-5 py-3.5 text-gray-700 font-medium tabular-nums">{a.checkIn ?? '—'}</td>

@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import NotificationBell from '../components/topbar/NotificationBell'
 import UserMenu from '../components/topbar/UserMenu'
 import { useSwipeGesture } from '../hooks/useSwipeGesture'
+import AppFooter from '../components/ui/AppFooter'
 
 const NAV = [
   { to: '/individual',              icon: Home,          label: '홈',        end: true },
@@ -173,8 +174,9 @@ export default function IndividualLayout() {
           <div className="w-px h-6 bg-offwhite-200" />
           <UserMenu />
         </header>
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
-          <Outlet />
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col">
+          <div className="flex-1"><Outlet /></div>
+          <AppFooter />
         </main>
       </div>
     </div>

@@ -24,6 +24,13 @@ const T_IND_BENEFITS = `개인정보 수집·이용 동의 — 공고추천·혜
 const BIZ_STEPS = ['약관 동의', '본인·기업 인증', '기업 상세 정보']
 const IND_STEPS = ['약관 동의', '회원 정보 입력']
 
+const MBTI_TYPES = [
+  'INTJ','INTP','ENTJ','ENTP',
+  'INFJ','INFP','ENFJ','ENFP',
+  'ISTJ','ISFJ','ESTJ','ESFJ',
+  'ISTP','ISFP','ESTP','ESFP',
+]
+
 // ── Individual Terms Item (accordion) ────────────────────────────────────────
 function IndTermItem({ label, required, content, checked, onChange, expanded, onToggle }) {
   return (
@@ -182,6 +189,7 @@ export default function RegisterPage() {
     company: '', representative: '', address: '', addressDetail: '', phone: '', bizNumber: '',
     phoneCode: '',
   })
+  const [mbti, setMbti]       = useState('')
   const [showPw, setShowPw]   = useState(false)
   const [errors, setErrors]   = useState({})
 
@@ -325,7 +333,7 @@ export default function RegisterPage() {
     const errs = validateIndividual()
     if (Object.keys(errs).length) { setErrors(errs); return }
     console.log('[StaffNow] 개인 회원가입 완료:', { role: 'INDIVIDUAL', name: form.name, email: form.email })
-    signup('INDIVIDUAL', { name: form.name, email: form.email, password: form.password, phone: form.phone })
+    signup('INDIVIDUAL', { name: form.name, email: form.email, password: form.password, phone: form.phone, mbti })
     const result = login('INDIVIDUAL', form.email, form.password)
     if (result.path) { reinitializeConversations(); navigate(result.path) }
   }
@@ -785,6 +793,29 @@ export default function RegisterPage() {
               <label className="block text-sm font-semibold text-navy mb-1.5">비밀번호 확인</label>
               <input type="password" value={form.confirmPw} onChange={setField('confirmPw')} placeholder="비밀번호 재입력" className={inputCls('confirmPw')} />
               <FieldError msg={errors.confirmPw} />
+            </div>
+
+            {/* MBTI */}
+            <div>
+              <label className="block text-sm font-semibold text-navy mb-1">
+                MBTI <span className="text-xs font-normal text-gray-400 ml-1">(선택 · 하나만)</span>
+              </label>
+              <div className="grid grid-cols-4 gap-1.5">
+                {MBTI_TYPES.map(type => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setMbti(v => v === type ? '' : type)}
+                    className={`py-2 rounded-lg text-xs font-bold border transition-all ${
+                      mbti === type
+                        ? 'bg-orange text-white border-orange'
+                        : 'bg-white text-gray-600 border-offwhite-200 hover:border-orange hover:text-orange'
+                    }`}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <button type="submit" className="w-full bg-orange text-white font-bold py-3 rounded-xl hover:bg-orange-600 transition-colors text-sm mt-2">
