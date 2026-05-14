@@ -1,13 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
-import { MOCK_JOBS } from '../data/mockJobs'
-import { MOCK_SHIFTS } from '../data/mockShifts'
-import { RECENT_ACTIVITIES } from '../data/mockDashboard'
-import { MOCK_INVITATIONS } from '../data/mockInvitations'
-import { MOCK_CONVERSATIONS } from '../data/mockMessages'
 
 const AppDataContext = createContext(null)
 
-// ── localStorage 키 ───────────────────────────────────────
 const SHIFTS_KEY = 'staffnow_shifts_v1'
 const INVITATIONS_KEY = 'staffnow_invitations_v1'
 
@@ -18,40 +12,6 @@ function loadFromStorage(key) {
     return JSON.parse(raw)
   } catch { return null }
 }
-
-function buildInitialShifts() {
-  const saved = loadFromStorage(SHIFTS_KEY)
-  if (isDemoUser()) {
-    if (!saved?.length) return MOCK_SHIFTS
-    const savedMap = new Map(saved.map(s => [s.id, s]))
-    const merged = MOCK_SHIFTS.map(s =>
-      savedMap.has(s.id) ? { ...s, ...savedMap.get(s.id) } : s
-    )
-    const mockIds = new Set(MOCK_SHIFTS.map(s => s.id))
-    saved.forEach(s => { if (!mockIds.has(s.id)) merged.push(s) })
-    return merged
-  }
-  // 신규 기업 계정: 저장된 자기 데이터만, 없으면 빈 배열
-  return saved ?? []
-}
-
-function buildInitialInvitations() {
-  const saved = loadFromStorage(INVITATIONS_KEY)
-  if (isDemoUser()) {
-    if (!saved?.length) return MOCK_INVITATIONS
-    const savedMap = new Map(saved.map(i => [i.id, i]))
-    const merged = MOCK_INVITATIONS.map(i =>
-      savedMap.has(i.id) ? { ...i, ...savedMap.get(i.id) } : i
-    )
-    const mockIds = new Set(MOCK_INVITATIONS.map(i => i.id))
-    saved.forEach(i => { if (!mockIds.has(i.id)) merged.push(i) })
-    return merged
-  }
-  // 신규 기업 계정: 저장된 자기 데이터만, 없으면 빈 배열
-  return saved ?? []
-}
-
-const DEMO_BIZ_EMAIL = 'biz@staffnow.kr'
 
 function getCurrentUserEmail() {
   try {
@@ -64,37 +24,12 @@ function getMessagesKey() {
   return `staffnow_messages_${getCurrentUserEmail()}`
 }
 
-function isDemoUser() {
-  try {
-    const u = JSON.parse(localStorage.getItem('staffnow_auth_user') || 'null')
-    return u?.email === DEMO_BIZ_EMAIL
-  } catch { return false }
-}
-
-function buildInitialConversations() {
-  const key = getMessagesKey()
-  const saved = loadFromStorage(key)
-  // 데모 계정만 목업 대화 표시
-  if (isDemoUser()) {
-    if (!saved?.length) return MOCK_CONVERSATIONS
-    const savedMap = new Map(saved.map(c => [c.id, c]))
-    const merged = MOCK_CONVERSATIONS.map(c =>
-      savedMap.has(c.id) ? { ...c, ...savedMap.get(c.id) } : c
-    )
-    const mockIds = new Set(MOCK_CONVERSATIONS.map(c => c.id))
-    saved.forEach(c => { if (!mockIds.has(c.id)) merged.push(c) })
-    return merged
-  }
-  // 신규 가입 계정: 자신의 대화만, 없으면 빈 배열
-  return saved ?? []
-}
-
 export function AppDataProvider({ children }) {
-  const [jobs, setJobs] = useState(() => isDemoUser() ? MOCK_JOBS : [])
-  const [shifts, setShifts] = useState(buildInitialShifts)
-  const [activities, setActivities] = useState(() => isDemoUser() ? RECENT_ACTIVITIES : [])
-  const [invitations, setInvitations] = useState(buildInitialInvitations)
-  const [conversations, setConversations] = useState(buildInitialConversations)
+  const [jobs, setJobs] = useState([])
+  const [shifts, setShifts] = useState(() => loadFromStorage(SHIFTS_KEY) ?? [])
+  const [activities, setActivities] = useState([])
+  const [invitations, setInvitations] = useState(() => loadFromStorage(INVITATIONS_KEY) ?? [])
+  const [conversations, setConversations] = useState(() => loadFromStorage(getMessagesKey()) ?? [])
   const [toasts, setToasts] = useState([])
 
   useEffect(() => {
@@ -195,16 +130,10 @@ export function AppDataProvider({ children }) {
     ))
   }, [])
 
-  // 채용 최종 확정: confirmedStaff + status → completed + applicantStates 저장
   const finalizeShift = useCallback((shiftId, { hiredCount, applicantStates }) => {
     setShifts(prev => prev.map(s =>
       s.id === shiftId
-        ? {
-            ...s,
-            confirmedStaff: hiredCount,
-            status: 'completed',
-            applicantStates,            // 전체 채용/거절/미결정 매핑 보존
-          }
+        ? { ...s, confirmedStaff: hiredCount, status: 'completed', applicantStates }
         : s
     ))
     addToast({ type: 'success', message: `${hiredCount}명 채용 확정 완료!` })
@@ -220,7 +149,6 @@ export function AppDataProvider({ children }) {
     }
     setInvitations(prev => [newInv, ...prev])
 
-    // ── 인력 메시지함에 초대 카드 전달 ──────────────────────
     try {
       const companyName = data.companyName || '기업'
       const inviteMsg = {
@@ -241,7 +169,6 @@ export function AppDataProvider({ children }) {
         deleted: false,
         file: null,
       }
-      // 인력 데모 계정 inbox key: user@staffnow.kr
       const indKey = 'staffnow_ind_messages_user_staffnow_kr'
       const raw = localStorage.getItem(indKey)
       const convs = raw ? JSON.parse(raw) : []
@@ -333,26 +260,14 @@ export function AppDataProvider({ children }) {
   }, [addToast])
 
   const reinitializeConversations = useCallback(() => {
-    setConversations(buildInitialConversations())
+    setConversations(loadFromStorage(getMessagesKey()) ?? [])
   }, [])
-
-  const resetDemoData = useCallback(() => {
-    Object.keys(localStorage)
-      .filter(k => k.startsWith('staffnow_'))
-      .forEach(k => localStorage.removeItem(k))
-    setShifts(MOCK_SHIFTS)
-    setJobs(MOCK_JOBS)
-    setActivities(RECENT_ACTIVITIES)
-    setInvitations(MOCK_INVITATIONS)
-    setConversations(MOCK_CONVERSATIONS)
-    addToast({ type: 'info', message: '데모 데이터가 초기화되었습니다' })
-  }, [addToast])
 
   return (
     <AppDataContext.Provider value={{
       jobs, shifts, activities, invitations, conversations,
       addJob, addShift, updateJob, updateJobStatus, deleteJob,
-      updateShiftConfirmed, finalizeShift, resetDemoData,
+      updateShiftConfirmed, finalizeShift,
       addInvitation, updateInvitationStatus,
       sendMessage, editMessage, deleteMessage, markAsRead,
       blockConversation, leaveConversation, markAsPaid,
