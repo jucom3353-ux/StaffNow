@@ -11,8 +11,6 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String email;
-
     @JsonIgnore
     private String password;
 
@@ -30,6 +28,9 @@ public class User {
 
     @Column(name = "rating")
     private double rating = 0;
+
+    @Column(unique = true)
+    private String email;
 
     public Long getId() { return id; }
     public String getEmail() { return email; }
