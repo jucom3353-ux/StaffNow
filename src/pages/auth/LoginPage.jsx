@@ -39,8 +39,7 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
-    await new Promise(r => setTimeout(r, 500))
-    const result = login(role, email, password)
+    const result = await login(role, email, password)
     setLoading(false)
     if (result.error) {
       setError(result.error)

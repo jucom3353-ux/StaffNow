@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { Home, Search, ClipboardList, Heart, MessageSquare, User, ChevronLeft, Clock, Menu, X, Banknote } from 'lucide-react'
+import { Home, Search, ClipboardList, Heart, MessageSquare, User, ChevronLeft, Clock, Menu, X, Banknote, Sparkles } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuth } from '../context/AuthContext'
 import NotificationBell from '../components/topbar/NotificationBell'
@@ -22,9 +22,17 @@ const NAV = [
 export default function IndividualLayout() {
   const [collapsed,   setCollapsed]   = useState(false)
   const [mobileOpen,  setMobileOpen]  = useState(false)
+  const [showWelcome, setShowWelcome] = useState(false)
   const { user } = useAuth()
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
+
+  useEffect(() => {
+    if (localStorage.getItem('staffnow_new_signup') === 'true') {
+      localStorage.removeItem('staffnow_new_signup')
+      setShowWelcome(true)
+    }
+  }, [])
 
   const { handleTouchStart, handleTouchEnd } = useSwipeGesture({
     isOpen: mobileOpen,
@@ -146,6 +154,36 @@ export default function IndividualLayout() {
           </button>
         </div>
       </aside>
+
+      {/* ── 신규 가입 프로필 완성 팝업 ── */}
+      {showWelcome && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
+            <div className="w-14 h-14 rounded-full bg-orange/10 flex items-center justify-center mx-auto mb-4">
+              <Sparkles size={28} className="text-orange" />
+            </div>
+            <h3 className="text-lg font-extrabold text-navy mb-1">환영합니다, {user?.name}님!</h3>
+            <p className="text-sm text-gray-500 mb-1">StaffNow 가입을 축하드려요.</p>
+            <p className="text-sm text-gray-500 mb-5">
+              프로필을 완성하면 기업 담당자에게<br />더 잘 노출될 수 있어요.
+            </p>
+            <div className="space-y-2">
+              <button
+                onClick={() => { setShowWelcome(false); navigate('/individual/profile') }}
+                className="w-full py-3 bg-orange text-white font-bold rounded-xl hover:bg-orange-600 transition-colors text-sm"
+              >
+                지금 프로필 작성하기
+              </button>
+              <button
+                onClick={() => setShowWelcome(false)}
+                className="w-full py-2.5 text-sm text-gray-400 hover:text-navy transition-colors"
+              >
+                나중에 하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── 메인 영역 ── */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">

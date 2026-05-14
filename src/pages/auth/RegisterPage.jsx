@@ -310,32 +310,31 @@ export default function RegisterPage() {
   }
 
   // ── Submit handlers ───────────────────────────────────────────────────────────
-  function handleBizSubmit() {
+  async function handleBizSubmit() {
     const errs = validateBizDetails()
     if (Object.keys(errs).length) { setErrors(errs); return }
     const payload = {
       name: form.representative,
       email: form.email,
-      company: form.company,
       phone: form.phone,
-      bizNumber: form.bizNumber,
-      address: form.address,
-      addressDetail: form.addressDetail,
       password: form.password,
     }
-    signup('BUSINESS', payload)
-    const result = login('BUSINESS', form.email, form.password)
+    const signupResult = await signup('BUSINESS', payload)
+    if (signupResult.error) { setErrors({ email: signupResult.error }); return }
+    const result = await login('BUSINESS', form.email, form.password)
     if (result.path) { reinitializeConversations(); navigate(result.path) }
+    else if (result.error) { setErrors({ email: result.error }) }
   }
 
-  function handleIndividualSubmit(e) {
+  async function handleIndividualSubmit(e) {
     e.preventDefault()
     const errs = validateIndividual()
     if (Object.keys(errs).length) { setErrors(errs); return }
-    console.log('[StaffNow] 개인 회원가입 완료:', { role: 'INDIVIDUAL', name: form.name, email: form.email })
-    signup('INDIVIDUAL', { name: form.name, email: form.email, password: form.password, phone: form.phone, mbti })
-    const result = login('INDIVIDUAL', form.email, form.password)
+    const signupResult = await signup('INDIVIDUAL', { name: form.name, email: form.email, password: form.password, phone: form.phone, mbti })
+    if (signupResult.error) { setErrors({ email: signupResult.error }); return }
+    const result = await login('INDIVIDUAL', form.email, form.password)
     if (result.path) { reinitializeConversations(); navigate(result.path) }
+    else if (result.error) { setErrors({ email: result.error }) }
   }
 
   // ── Shared input className helper ─────────────────────────────────────────────
