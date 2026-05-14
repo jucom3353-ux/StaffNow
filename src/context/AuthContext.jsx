@@ -9,6 +9,9 @@ const ROLE_LABELS = {
   ADMIN:      '운영자',
 }
 
+const ROLE_TO_API = { INDIVIDUAL: 'USER', BUSINESS: 'COMPANY', ADMIN: 'ADMIN' }
+const ROLE_FROM_API = { USER: 'INDIVIDUAL', COMPANY: 'BUSINESS', ADMIN: 'ADMIN' }
+
 export const ROLE_HOME = {
   INDIVIDUAL: '/individual',
   BUSINESS:   '/dashboard',
@@ -39,15 +42,17 @@ export function AuthProvider({ children }) {
       const body = await res.text()
 
       if (!res.ok) {
+        try { const d = JSON.parse(body); if (d.message) return { error: d.message } } catch {}
         return { error: body || '이메일 또는 비밀번호가 올바르지 않습니다' }
       }
 
       const data = JSON.parse(body) // { accessToken, refreshToken, role }
       tokenStorage.set(data.accessToken, data.refreshToken)
 
+      const role = ROLE_FROM_API[data.role] ?? data.role
       const userObj = {
-        role:      data.role,
-        roleLabel: ROLE_LABELS[data.role] ?? data.role,
+        role,
+        roleLabel: ROLE_LABELS[role] ?? role,
         email:     data.email ?? email,
         name:      data.name ?? email.split('@')[0],
         avatar:    (data.name ?? email)[0].toUpperCase(),
@@ -56,7 +61,7 @@ export function AuthProvider({ children }) {
       }
 
       setUser(userObj)
-      return { path: ROLE_HOME[data.role] }
+      return { path: ROLE_HOME[role] }
     } catch {
       return { error: '서버에 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인해주세요.' }
     }
@@ -65,10 +70,11 @@ export function AuthProvider({ children }) {
   // signup: returns {} on success, { error } on failure
   const signup = useCallback(async (role, { name, email, phone, password = '', mbti = '' }) => {
     try {
-      const res = await userApi.signup({ email, password, name, phone, role, mbti })
+      const res = await userApi.signup({ email, password, name, phone, role: ROLE_TO_API[role] ?? role, mbti })
       const body = await res.text()
 
       if (!res.ok) {
+        try { const d = JSON.parse(body); if (d.message) return { error: d.message } } catch {}
         return { error: body || '회원가입에 실패했습니다' }
       }
 

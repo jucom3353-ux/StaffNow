@@ -229,27 +229,29 @@ export default function JobCreatePage() {
     const errs = validate()
     if (Object.keys(errs).length) { setErrors(errs); return }
     setSubmitting(true)
-    await new Promise(r => setTimeout(r, 600))
-    const wageLabel =
-      wageType === 'hourly' ? `시급 ${wageRaw}원` :
-      wageType === 'daily'  ? `일급 ${wageRaw}원` :
-      `월 ${wageRaw}원`
-    const newJob = addJob({
+    const newJob = await addJob({
       title,
       location: locationStr,
       createdBy: user?.name,
       headcount,
-      wage: wageLabel,
+      wage: wageRaw.replace(/,/g, ''),
       wageType,
+      startTime,
+      endTime,
+      breakMin,
+      categories,
+      requiredChips,
+      preferredChips,
       description: [
         categories.length ? `[업무 유형] ${categories.join(', ')}` : '',
         description,
       ].filter(Boolean).join('\n\n'),
       requirements: [
-        requiredChips.length   ? `[필수] ${requiredChips.join(' / ')}` : '',
-        preferredChips.length  ? `[우대] ${preferredChips.join(' / ')}` : '',
+        requiredChips.length  ? `[필수] ${requiredChips.join(' / ')}` : '',
+        preferredChips.length ? `[우대] ${preferredChips.join(' / ')}` : '',
       ].filter(Boolean).join('\n'),
     })
+    if (!newJob) { setSubmitting(false); return }
     navigate(`/jobs/${newJob.id}`, { state: { created: true } })
   }
 

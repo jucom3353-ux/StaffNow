@@ -86,3 +86,12 @@ export const authApi = {
 export const userApi = {
   signup: (data) => request('POST', '/users', data),
 }
+
+export const jobApi = {
+  myList: () => request('GET', '/job-posts/my'),
+  get: (id) => request('GET', `/job-posts/${id}`),
+  create: (data) => request('POST', '/job-posts', data),
+  update: (id, data) => request('PUT', `/job-posts/${id}`, data),
+  updateStatus: (id, status) => request('PATCH', `/job-posts/${id}/status?postStatus=${status}`),
+  delete: (id) => request('DELETE', `/job-posts/${id}`),
+}
