@@ -9,7 +9,10 @@ function getStorageKey(email) {
 }
 
 function loadSaved(key) {
-  try { return JSON.parse(localStorage.getItem(key) || '[]') } catch { return [] }
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || '[]')
+    return Array.isArray(parsed) ? parsed : []
+  } catch { return [] }
 }
 
 export default function NotificationBell() {
