@@ -24,9 +24,11 @@ import java.util.List;
 public class JwtFilter extends OncePerRequestFilter {
 
     private final UserRepository userRepository;
+    private final JwtUtil jwtUtil;
 
-    public JwtFilter(UserRepository userRepository) {
+    public JwtFilter(UserRepository userRepository, JwtUtil jwtUtil) {
         this.userRepository = userRepository;
+        this.jwtUtil = jwtUtil;
     }
 
     @Override
@@ -64,7 +66,7 @@ public class JwtFilter extends OncePerRequestFilter {
                     authHeader.substring(7);
 
             Claims claims =
-                    JwtUtil.extractClaims(token);
+                    jwtUtil.extractClaims(token);
 
             Long userId =
                     claims.get("userId", Long.class);

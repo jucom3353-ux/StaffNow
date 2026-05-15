@@ -31,15 +31,18 @@ public class AuthController {
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
 
     public AuthController(
             UserRepository userRepository,
             RefreshTokenRepository refreshTokenRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            JwtUtil jwtUtil
     ) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtUtil = jwtUtil;
     }
 
     @Operation(summary = "로그인")
@@ -65,7 +68,7 @@ public class AuthController {
                         .body("비밀번호가 틀렸습니다.");
             }
 
-            String accessToken = JwtUtil.createToken(
+            String accessToken = jwtUtil.createToken(
                     user.getId(),
                     user.getRole().name()
             );
@@ -128,7 +131,7 @@ public class AuthController {
                         .body("사용자 없음");
             }
 
-            String newAccessToken = JwtUtil.createToken(
+            String newAccessToken = jwtUtil.createToken(
                     user.getId(),
                     user.getRole().name()
             );

@@ -3,67 +3,38 @@ package com.example.demo.jwt;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-
 import io.jsonwebtoken.security.Keys;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Date;
 
+@Component
 public class JwtUtil {
 
-    // 비밀키
-    private static final String SECRET_KEY =
-            "mysecretkeymysecretkeymysecretkey123456";
+    private final Key signingKey;
 
-    // Key 생성
-    private static Key getSigningKey() {
-
-        return Keys.hmacShaKeyFor(
-                SECRET_KEY.getBytes()
-        );
+    public JwtUtil(@Value("${jwt.secret}") String secret) {
+        this.signingKey = Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    // Access Token 생성
-    public static String createToken(
-            Long userId,
-            String role
-    ) {
-
+    public String createToken(Long userId, String role) {
         return Jwts.builder()
-
                 .claim("userId", userId)
                 .claim("role", role)
-
                 .setIssuedAt(new Date())
-
-                .setExpiration(
-                        new Date(
-                                System.currentTimeMillis()
-                                        + 1000 * 60 * 60
-                        )
-                )
-
-                .signWith(
-                        getSigningKey(),
-                        SignatureAlgorithm.HS256
-                )
-
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60))
+                .signWith(signingKey, SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    // JWT Claims 추출
-    public static Claims extractClaims(
-            String token
-    ) {
-
+    public Claims extractClaims(String token) {
         return Jwts.parserBuilder()
-
-                .setSigningKey(getSigningKey())
-
+                .setSigningKey(signingKey)
                 .build()
-
                 .parseClaimsJws(token)
-
                 .getBody();
     }
 }
