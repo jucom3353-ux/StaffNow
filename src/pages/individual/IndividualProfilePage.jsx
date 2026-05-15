@@ -1,89 +1,16 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   User, Mail, Phone, MapPin, Pencil, X, Plus, Check,
   Star, Clock, Briefcase, ShieldCheck, FileText, Banknote,
-  Lock, LogOut, Trash2, ChevronDown, Upload, AlertTriangle,
+  Lock, LogOut, Trash2, ChevronDown, Upload, AlertTriangle, Camera,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useIndividualData } from '../../hooks/useIndividualData'
 import { useRatings } from '../../hooks/useRatings'
+import { applicationApi } from '../../services/api'
 
-// ─── 하드코딩 데모 데이터 ────────────────────────────────────────────────────
-const DEMO_STATS = [
-  { key: 'jobs',   label: '완료한 업무', value: '23건',    icon: Briefcase,   color: 'text-blue-500',   bg: 'bg-blue-50' },
-  { key: 'hours',  label: '총 근무 시간', value: '184시간', icon: Clock,       color: 'text-purple-500', bg: 'bg-purple-50' },
-  { key: 'rating', label: '평균 별점',   value: '4.8',     icon: Star,        color: 'text-yellow-500', bg: 'bg-yellow-50', suffix: '/ 5.0' },
-  { key: 'attend', label: '근태 지수',   value: '노쇼 0회', icon: ShieldCheck, color: 'text-green-600',  bg: 'bg-green-50', badge: true },
-]
-
-const CAREER_LIST = [
-  { id: 1, company: '스타벅스 역삼점', role: '바리스타 파트타임', period: '2024.03 – 2024.12', type: '파트타임' },
-  { id: 2, company: '코엑스 전시',     role: '행사 스태프',       period: '2024.01 – 2024.02', type: '단기' },
-  { id: 3, company: '브랜드X',         role: '팝업스토어 운영',   period: '2023.10 – 2023.12', type: '단기' },
-  { id: 4, company: '마케팅 에이전시', role: '홍보 활동',         period: '2023.09 – 2023.09', type: '프리랜서' },
-]
-
-const DEMO_COMPLETED_JOBS = [
-  { id: 1,  company: '스타벅스 역삼점',  role: '바리스타 파트타임',    date: '2024.12.20', hours: 8,  pay: 80000 },
-  { id: 2,  company: '스타벅스 역삼점',  role: '바리스타 파트타임',    date: '2024.12.14', hours: 8,  pay: 80000 },
-  { id: 3,  company: '스타벅스 역삼점',  role: '바리스타 파트타임',    date: '2024.12.07', hours: 8,  pay: 80000 },
-  { id: 4,  company: '코엑스 전시',      role: '행사 스태프',          date: '2024.02.03', hours: 10, pay: 120000 },
-  { id: 5,  company: '코엑스 전시',      role: '행사 스태프',          date: '2024.02.04', hours: 10, pay: 120000 },
-  { id: 6,  company: '코엑스 전시',      role: '행사 스태프',          date: '2024.01.27', hours: 8,  pay: 96000 },
-  { id: 7,  company: '브랜드X',          role: '팝업스토어 운영',      date: '2023.12.10', hours: 9,  pay: 108000 },
-  { id: 8,  company: '브랜드X',          role: '팝업스토어 운영',      date: '2023.12.03', hours: 9,  pay: 108000 },
-  { id: 9,  company: '브랜드X',          role: '팝업스토어 운영',      date: '2023.11.26', hours: 9,  pay: 108000 },
-  { id: 10, company: '마케팅 에이전시',  role: '홍보 활동',            date: '2023.09.15', hours: 6,  pay: 72000 },
-  { id: 11, company: '스타벅스 역삼점',  role: '바리스타 파트타임',    date: '2024.11.30', hours: 8,  pay: 80000 },
-  { id: 12, company: '스타벅스 역삼점',  role: '바리스타 파트타임',    date: '2024.11.23', hours: 8,  pay: 80000 },
-  { id: 13, company: '강남 행사 스태프', role: '행사 진행 보조',       date: '2024.10.05', hours: 7,  pay: 84000 },
-  { id: 14, company: '강남 행사 스태프', role: '행사 진행 보조',       date: '2024.09.28', hours: 7,  pay: 84000 },
-  { id: 15, company: '편의점 GS25',      role: '야간 파트타임',        date: '2024.08.10', hours: 8,  pay: 76000 },
-  { id: 16, company: '편의점 GS25',      role: '야간 파트타임',        date: '2024.08.03', hours: 8,  pay: 76000 },
-  { id: 17, company: '편의점 GS25',      role: '야간 파트타임',        date: '2024.07.27', hours: 8,  pay: 76000 },
-  { id: 18, company: '물류창고 A',       role: '입출고 작업',          date: '2024.06.15', hours: 9,  pay: 108000 },
-  { id: 19, company: '물류창고 A',       role: '입출고 작업',          date: '2024.06.08', hours: 9,  pay: 108000 },
-  { id: 20, company: '카페 봄날',        role: '카운터 파트타임',      date: '2024.05.18', hours: 7,  pay: 70000 },
-  { id: 21, company: '카페 봄날',        role: '카운터 파트타임',      date: '2024.05.11', hours: 7,  pay: 70000 },
-  { id: 22, company: '현대백화점',       role: '판촉 행사 스태프',     date: '2024.04.20', hours: 8,  pay: 112000 },
-  { id: 23, company: '현대백화점',       role: '판촉 행사 스태프',     date: '2024.04.13', hours: 8,  pay: 112000 },
-]
-
-const DEMO_RATINGS = [
-  { company: '스타벅스 역삼점',  rating: 4.9, comment: '친절하고 빠른 업무 처리, 적극적인 태도가 인상적이었습니다.',    date: '2024.12.22' },
-  { company: '코엑스 전시',      rating: 4.7, comment: '지시 사항을 잘 이해하고 성실하게 임했습니다.',                  date: '2024.02.05' },
-  { company: '브랜드X',          rating: 4.8, comment: '고객 응대가 훌륭했고 팀워크도 좋았습니다.',                    date: '2023.12.12' },
-  { company: '마케팅 에이전시',  rating: 4.6, comment: '홍보 활동에 적극적으로 참여하여 목표를 달성하였습니다.',        date: '2023.09.16' },
-  { company: '강남 행사 스태프', rating: 5.0, comment: '매우 뛰어난 서비스 마인드로 행사를 성공적으로 진행했습니다.',  date: '2024.10.06' },
-  { company: '편의점 GS25',      rating: 4.5, comment: '야간 근무임에도 성실하게 임했습니다.',                        date: '2024.08.12' },
-  { company: '물류창고 A',       rating: 4.7, comment: '작업 속도가 빠르고 정확하게 업무를 수행했습니다.',              date: '2024.06.16' },
-  { company: '카페 봄날',        rating: 4.8, comment: '밝은 미소와 친절한 서비스가 손님들에게 호응이 좋았습니다.',    date: '2024.05.19' },
-  { company: '현대백화점',       rating: 5.0, comment: '행사 스태프로서 완벽한 역할을 수행했습니다. 재고용 의사 있음.', date: '2024.04.21' },
-]
-
-const DEMO_ATTENDANCE = [
-  { date: '2024.12.20', company: '스타벅스 역삼점',  status: '정상 출근' },
-  { date: '2024.12.14', company: '스타벅스 역삼점',  status: '정상 출근' },
-  { date: '2024.12.07', company: '스타벅스 역삼점',  status: '정상 출근' },
-  { date: '2024.11.30', company: '스타벅스 역삼점',  status: '정상 출근' },
-  { date: '2024.11.23', company: '스타벅스 역삼점',  status: '정상 출근' },
-  { date: '2024.10.06', company: '강남 행사 스태프', status: '정상 출근' },
-  { date: '2024.09.28', company: '강남 행사 스태프', status: '정상 출근' },
-  { date: '2024.08.10', company: '편의점 GS25',      status: '정상 출근' },
-  { date: '2024.08.03', company: '편의점 GS25',      status: '정상 출근' },
-  { date: '2024.07.27', company: '편의점 GS25',      status: '정상 출근' },
-  { date: '2024.06.15', company: '물류창고 A',       status: '정상 출근' },
-  { date: '2024.06.08', company: '물류창고 A',       status: '정상 출근' },
-  { date: '2024.05.18', company: '카페 봄날',        status: '정상 출근' },
-  { date: '2024.05.11', company: '카페 봄날',        status: '정상 출근' },
-  { date: '2024.04.20', company: '현대백화점',       status: '정상 출근' },
-  { date: '2024.04.13', company: '현대백화점',       status: '정상 출근' },
-  { date: '2024.02.04', company: '코엑스 전시',      status: '정상 출근' },
-  { date: '2024.02.03', company: '코엑스 전시',      status: '정상 출근' },
-  { date: '2024.01.27', company: '코엑스 전시',      status: '정상 출근' },
-  { date: '2023.12.10', company: '브랜드X',          status: '정상 출근' },
-]
+const WAGE_LABEL = { HOURLY: '시급', DAILY: '일급', MONTHLY: '월급', FIXED: '고정급' }
 
 const BANKS = ['국민은행', '신한은행', '하나은행', '우리은행', 'IBK기업은행', 'NH농협은행', 'SC제일은행', '카카오뱅크', '토스뱅크']
 
@@ -123,9 +50,6 @@ const SKILL_SUGGESTIONS = [
   '사진 촬영', '영상 편집', 'SNS 콘텐츠 관리', '도소매 판매',
 ]
 
-const DEMO_SKILLS = ['행사 진행', '고객 응대', '엑셀/스프레드시트']
-
-// ─── 행정구역 데이터 ─────────────────────────────────────────────────────────
 const REGIONS = {
   '서울': ['강남구','강동구','강북구','강서구','관악구','광진구','구로구','금천구','노원구','도봉구','동대문구','동작구','마포구','서대문구','서초구','성동구','성북구','송파구','양천구','영등포구','용산구','은평구','종로구','중구','중랑구'],
   '부산': ['강서구','금정구','기장군','남구','동구','동래구','부산진구','북구','사상구','사하구','서구','수영구','연제구','영도구','중구','해운대구'],
@@ -145,13 +69,13 @@ const REGIONS = {
   '경남': ['거제시','거창군','고성군','김해시','남해군','밀양시','사천시','산청군','양산시','의령군','진주시','창녕군','창원시','통영시','하동군','함안군','함양군','합천군'],
   '제주': ['서귀포시','제주시'],
 }
+
 const TYPE_COLOR = {
-  '파트타임':   'bg-blue-50 text-blue-600',
-  '단기':       'bg-orange-50 text-orange',
-  '프리랜서':   'bg-purple-50 text-purple-600',
+  '파트타임': 'bg-blue-50 text-blue-600',
+  '단기':     'bg-orange-50 text-orange',
+  '프리랜서': 'bg-purple-50 text-purple-600',
 }
 
-// ─── 모달 공통 래퍼 ─────────────────────────────────────────────────────────
 function Modal({ onClose, children }) {
   return (
     <div
@@ -165,7 +89,6 @@ function Modal({ onClose, children }) {
   )
 }
 
-// ─── 섹션 카드 래퍼 ─────────────────────────────────────────────────────────
 function SectionCard({ title, icon: Icon, action, children }) {
   return (
     <div className="bg-white rounded-2xl border border-offwhite-200 overflow-hidden">
@@ -181,58 +104,167 @@ function SectionCard({ title, icon: Icon, action, children }) {
   )
 }
 
-const DEMO_EMAIL = 'user@staffnow.kr'
+function AvatarCropModal({ photoUrl, onSave, onClose }) {
+  const [pos, setPos] = useState({ x: 0, y: 0 })
+  const [scale, setScale] = useState(1.2)
+  const dragging = useRef(false)
+  const lastPt = useRef({ x: 0, y: 0 })
 
-// ─── 메인 컴포넌트 ──────────────────────────────────────────────────────────
+  function onPtrDown(e) {
+    dragging.current = true
+    lastPt.current = { x: e.clientX, y: e.clientY }
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+  function onPtrMove(e) {
+    if (!dragging.current) return
+    const dx = e.clientX - lastPt.current.x
+    const dy = e.clientY - lastPt.current.y
+    lastPt.current = { x: e.clientX, y: e.clientY }
+    setPos(p => ({ x: p.x + dx, y: p.y + dy }))
+  }
+  function onPtrUp() { dragging.current = false }
+
+  function apply() {
+    const DISP = 192
+    const OUT = 256
+    const k = OUT / DISP
+    const canvas = document.createElement('canvas')
+    canvas.width = OUT
+    canvas.height = OUT
+    const ctx = canvas.getContext('2d')
+    const img = new window.Image()
+    img.onload = () => {
+      ctx.beginPath()
+      ctx.arc(OUT / 2, OUT / 2, OUT / 2, 0, Math.PI * 2)
+      ctx.clip()
+      ctx.translate(OUT / 2 + pos.x * k, OUT / 2 + pos.y * k)
+      ctx.scale(scale, scale)
+      ctx.translate(-OUT / 2, -OUT / 2)
+      const r = img.width / img.height
+      let dW = OUT, dH = OUT
+      if (r > 1) dW = OUT * r; else dH = OUT / r
+      ctx.drawImage(img, (OUT - dW) / 2, (OUT - dH) / 2, dW, dH)
+      onSave(canvas.toDataURL('image/jpeg', 0.9))
+    }
+    img.src = photoUrl
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold text-navy">아바타 조정</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-navy"><X size={18} /></button>
+        </div>
+        <p className="text-xs text-gray-400 text-center">드래그로 위치 조정 · 슬라이더로 크기 조정</p>
+        <div className="flex justify-center">
+          <div
+            className="w-48 h-48 rounded-full overflow-hidden border-2 border-navy/20 cursor-grab active:cursor-grabbing select-none bg-offwhite"
+            style={{ touchAction: 'none' }}
+            onPointerDown={onPtrDown}
+            onPointerMove={onPtrMove}
+            onPointerUp={onPtrUp}
+            onPointerLeave={onPtrUp}
+          >
+            <img
+              src={photoUrl}
+              alt=""
+              draggable={false}
+              className="w-full h-full object-cover pointer-events-none"
+              style={{ transform: `translate(${pos.x}px, ${pos.y}px) scale(${scale})`, transformOrigin: 'center' }}
+            />
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-gray-500">크기</span>
+            <span className="text-xs text-gray-400 tabular-nums">{Math.round(scale * 100)}%</span>
+          </div>
+          <input type="range" min="0.5" max="3" step="0.05"
+            value={scale} onChange={e => setScale(Number(e.target.value))}
+            className="w-full accent-orange" />
+        </div>
+        <div className="flex gap-2 pt-1">
+          <button onClick={() => { setPos({ x: 0, y: 0 }); setScale(1.2) }}
+            className="flex-1 py-2.5 text-xs text-gray-500 border border-offwhite-200 rounded-xl hover:border-navy transition-colors">
+            초기화
+          </button>
+          <button onClick={onClose}
+            className="flex-1 py-2.5 text-xs text-gray-500 border border-offwhite-200 rounded-xl hover:border-navy transition-colors">
+            취소
+          </button>
+          <button onClick={apply}
+            className="flex-1 py-2.5 text-xs font-semibold text-white bg-orange rounded-xl hover:bg-orange-600 transition-colors">
+            적용
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function IndividualProfilePage() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const { profile, updateProfile } = useIndividualData()
-  const isDemo = user?.email === DEMO_EMAIL
   const { getStaffRatings } = useRatings()
-  const myActualRatings = getStaffRatings(user?.name ?? '')
-  const ratingItems = isDemo
-    ? DEMO_RATINGS.map(r => ({ key: r.company, title: r.company, date: r.date, stars: r.rating, comment: r.comment }))
-    : myActualRatings.map(r => ({
-        key: r.id,
-        title: r.shiftLabel,
-        date: new Date(r.createdAt).toLocaleDateString('ko-KR'),
-        stars: r.stars,
-        comment: r.comment,
-      }))
+
+  const [myApplications, setMyApplications] = useState([])
+
+  useEffect(() => {
+    applicationApi.myList()
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setMyApplications(Array.isArray(data) ? data : []))
+      .catch(() => {})
+  }, [])
+
+  const completedApps  = myApplications.filter(a => a.status === 'COMPLETED')
+  const noShowApps     = myApplications.filter(a => a.status === 'NO_SHOW')
+  const completedCount = completedApps.length
+  const noShowCount    = noShowApps.length
+  const totalRelevant  = completedCount + noShowCount
+  // 완료+노쇼 합계 5건 이상이고 노쇼 0건일 때만 뱃지 표시
+  const hasNoShowZeroBadge = totalRelevant >= 5 && noShowCount === 0
+
+  const myRatings = getStaffRatings(user?.name ?? '')
+  const ratingItems = myRatings.map(r => ({
+    key: r.id,
+    title: r.shiftLabel,
+    date: new Date(r.createdAt).toLocaleDateString('ko-KR'),
+    stars: r.stars,
+    comment: r.comment,
+  }))
   const avgRatingDisplay = ratingItems.length > 0
     ? (ratingItems.reduce((s, r) => s + r.stars, 0) / ratingItems.length).toFixed(1)
     : '-'
+
   const healthFileRef = useRef(null)
   const safetyFileRef = useRef(null)
   const docRefs = { health: healthFileRef, safety: safetyFileRef }
 
-  // ── 토스트 ──
   const [toast, setToast] = useState('')
   function showToast(msg) {
     setToast(msg)
     setTimeout(() => setToast(''), 3000)
   }
 
-  // ── 모달 상태 ──
   const [showResume,   setShowResume]   = useState(false)
   const [showPwChange, setShowPwChange] = useState(false)
   const [showWithdraw, setShowWithdraw] = useState(false)
-  const [statModal,    setStatModal]    = useState(null) // 'jobs' | 'hours' | 'rating' | 'attend'
+  const [statModal,    setStatModal]    = useState(null)
 
-  // ── 프로필 편집 ──
   const [editingProfile, setEditingProfile] = useState(false)
-  const [profileForm, setProfileForm]       = useState(null)
+  const [profileForm,    setProfileForm]    = useState(null)
   const [skillInput,     setSkillInput]     = useState('')
   const [showSkillInput, setShowSkillInput] = useState(false)
 
   function openProfileEdit() {
-    const baseSkills = profile.skills?.length ? profile.skills : (isDemo ? DEMO_SKILLS : [])
     setProfileForm({
       phone:   profile.phone   || '',
       address: profile.address || '',
       bio:     profile.bio     || '',
-      skills:  [...baseSkills],
+      skills:  [...(profile.skills ?? [])],
     })
     setEditingProfile(true)
   }
@@ -243,13 +275,11 @@ export default function IndividualProfilePage() {
     showToast('프로필이 저장되었습니다.')
   }
 
-  // 스킬 직접 편집 (편집 모드 여부에 따라 target 분기)
   function handleRemoveSkill(s) {
     if (editingProfile) {
       setProfileForm(p => ({ ...p, skills: p.skills.filter(x => x !== s) }))
     } else {
-      const cur = profile.skills?.length ? profile.skills : (isDemo ? DEMO_SKILLS : [])
-      updateProfile({ skills: cur.filter(x => x !== s) })
+      updateProfile({ skills: (profile.skills ?? []).filter(x => x !== s) })
     }
   }
 
@@ -258,14 +288,12 @@ export default function IndividualProfilePage() {
     if (editingProfile) {
       if (!profileForm.skills.includes(s)) setProfileForm(p => ({ ...p, skills: [...p.skills, s] }))
     } else {
-      const cur = profile.skills?.length ? profile.skills : (isDemo ? DEMO_SKILLS : [])
+      const cur = profile.skills ?? []
       if (!cur.includes(s)) updateProfile({ skills: [...cur, s] })
     }
   }
 
-  // ── 활동 가능 지역 (단일 선택) ──
-  const demoRegion = isDemo ? '서울 강남구' : null
-  const region = profile.regions?.[0] ?? demoRegion
+  const region = profile.regions?.[0] ?? null
   const [showRegionInput, setShowRegionInput] = useState(!region)
   const [regionSido,      setRegionSido]      = useState('')
   const [regionGungu,     setRegionGungu]     = useState('')
@@ -278,16 +306,14 @@ export default function IndividualProfilePage() {
     setShowRegionInput(false)
   }
 
-  // ── MBTI ──
-  const mbti = profile.mbti || (isDemo ? 'ESTJ' : '')
+  const mbti = profile.mbti || ''
   const [editingMbti, setEditingMbti] = useState(false)
   const [mbtiDraft,   setMbtiDraft]   = useState('')
 
   function openMbtiEdit() { setMbtiDraft(mbti); setEditingMbti(true) }
   function saveMbti() { updateProfile({ mbti: mbtiDraft }); setEditingMbti(false); showToast('MBTI가 저장되었습니다.') }
 
-  // ── 선호 업무 시간 ──
-  const preferredTimes = profile.preferredTimes?.length ? profile.preferredTimes : (isDemo ? ['주말', '오후'] : [])
+  const preferredTimes = profile.preferredTimes ?? []
 
   function toggleTime(t) {
     const next = preferredTimes.includes(t)
@@ -296,10 +322,9 @@ export default function IndividualProfilePage() {
     updateProfile({ preferredTimes: next })
   }
 
-  // ── 정산 계좌 ──
-  const account = profile.account ?? (isDemo ? { bank: '국민은행', number: '123-456-7890123' } : null)
+  const account = profile.account ?? null
   const [editingAccount, setEditingAccount] = useState(false)
-  const [accountForm,    setAccountForm]    = useState(account)
+  const [accountForm,    setAccountForm]    = useState({ bank: '국민은행', number: '' })
 
   function saveAccount() {
     updateProfile({ account: accountForm })
@@ -307,7 +332,6 @@ export default function IndividualProfilePage() {
     showToast('계좌 정보가 저장되었습니다.')
   }
 
-  // ── 필수 서류 ──
   const documents = profile.documents ?? { health: false, safety: false }
 
   function handleDocumentUpload(key, file) {
@@ -321,8 +345,76 @@ export default function IndividualProfilePage() {
     showToast('서류가 철회되었습니다.')
   }
 
-  // ── 비밀번호 변경 ──
-  const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' })
+  // ── 프로필 사진 (최대 10장, localStorage) ──
+  const photoKey = `staffnow_photos_${user?.email?.replace(/[^a-zA-Z0-9]/g, '_') || 'anon'}`
+  const [photos, setPhotos] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(`staffnow_photos_${user?.email?.replace(/[^a-zA-Z0-9]/g, '_') || 'anon'}`) ?? '[]') }
+    catch { return [] }
+  })
+  const [savedPhotos, setSavedPhotos] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(`staffnow_photos_${user?.email?.replace(/[^a-zA-Z0-9]/g, '_') || 'anon'}`) ?? '[]') }
+    catch { return [] }
+  })
+  const isDirty = photos.length !== savedPhotos.length || photos.some((p, i) => p.id !== savedPhotos[i]?.id)
+  const savedPhotoIds = new Set(savedPhotos.map(p => p.id))
+  const photoInputRef = useRef(null)
+  const [showAvatarAdjust, setShowAvatarAdjust] = useState(false)
+
+  function savePhotoList(list) {
+    try {
+      localStorage.setItem(photoKey, JSON.stringify(list))
+      if (user?.name) {
+        localStorage.setItem(`staffnow_photocount_${user.name}`, String(list.length))
+        if (list.length > 0) {
+          localStorage.setItem(`staffnow_avatar_${user.name}`, list[0].url)
+        } else {
+          localStorage.removeItem(`staffnow_avatar_${user.name}`)
+        }
+      }
+    } catch {}
+  }
+
+  function handlePhotoFiles(e) {
+    const files = Array.from(e.target.files ?? [])
+    e.target.value = ''
+    if (!files.length) return
+    files.slice(0, 10 - photos.length).forEach(file => {
+      const reader = new FileReader()
+      reader.onload = ev => {
+        setPhotos(prev => {
+          if (prev.length >= 10) return prev
+          return [...prev, { id: `${Date.now()}-${Math.random()}`, url: ev.target.result }]
+        })
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  function removePhoto(id) {
+    setPhotos(prev => prev.filter(p => p.id !== id))
+  }
+
+  function handlePhotoSave() {
+    savePhotoList(photos)
+    setSavedPhotos(photos)
+    window.dispatchEvent(new Event('staffnow:avatar-updated'))
+    showToast('사진이 저장되었습니다.')
+  }
+
+  function handlePhotoCancel() {
+    setPhotos(savedPhotos)
+  }
+
+  function handleAvatarCropSave(croppedUrl) {
+    try {
+      if (user?.name) localStorage.setItem(`staffnow_avatar_${user.name}`, croppedUrl)
+    } catch {}
+    setShowAvatarAdjust(false)
+    window.dispatchEvent(new Event('staffnow:avatar-updated'))
+    showToast('아바타가 업데이트되었습니다.')
+  }
+
+  const [pwForm,  setPwForm]  = useState({ current: '', next: '', confirm: '' })
   const [pwError, setPwError] = useState('')
 
   function handlePwChange() {
@@ -335,23 +427,11 @@ export default function IndividualProfilePage() {
     showToast('비밀번호가 변경되었습니다.')
   }
 
-  // ── 로그아웃 ──
-  function handleLogout() {
-    logout()
-    navigate('/login')
-  }
+  function handleLogout()  { logout(); navigate('/login') }
+  function handleWithdraw() { logout(); navigate('/login') }
 
-  // ── 회원 탈퇴 ──
-  function handleWithdraw() {
-    logout()
-    navigate('/login')
-  }
+  const displaySkills = editingProfile ? profileForm.skills : (profile.skills ?? [])
 
-  const displaySkills = editingProfile
-    ? profileForm.skills
-    : (profile.skills?.length ? profile.skills : (isDemo ? DEMO_SKILLS : []))
-
-  // ── 마스킹 계좌번호 ──
   function maskAccount(num) {
     if (!num) return '-'
     const parts = num.split('-')
@@ -361,31 +441,41 @@ export default function IndividualProfilePage() {
     return num.slice(0, -4).replace(/./g, '*') + num.slice(-4)
   }
 
+  const stats = [
+    { key: 'jobs',   label: '완료한 업무',  value: `${completedCount}건`,   icon: Briefcase,   color: 'text-blue-500',   bg: 'bg-blue-50' },
+    { key: 'hours',  label: '총 근무 시간', value: '집계 예정',             icon: Clock,       color: 'text-purple-500', bg: 'bg-purple-50' },
+    { key: 'rating', label: '평균 별점',    value: avgRatingDisplay,        icon: Star,        color: 'text-yellow-500', bg: 'bg-yellow-50', suffix: '/ 5.0' },
+    { key: 'attend', label: '근태 지수',    value: `노쇼 ${noShowCount}회`, icon: ShieldCheck, color: 'text-green-600',  bg: 'bg-green-50', badge: true },
+  ]
+
   return (
     <div className="space-y-5 max-w-2xl pb-10">
 
-      {/* ── 토스트 ── */}
       {toast && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-navy text-white text-sm font-medium px-5 py-2.5 rounded-xl shadow-lg transition-all">
           {toast}
         </div>
       )}
 
-      {/* ── 페이지 헤더 ── */}
+      {showAvatarAdjust && savedPhotos.length > 0 && (
+        <AvatarCropModal
+          photoUrl={savedPhotos[0].url}
+          onSave={handleAvatarCropSave}
+          onClose={() => setShowAvatarAdjust(false)}
+        />
+      )}
+
       <h1 className="text-2xl font-bold text-navy">내 프로필</h1>
 
-      {/* ── 1. Stats 카드 ── */}
+      {/* Stats 카드 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {(isDemo ? DEMO_STATS : [
-          { key: 'jobs',   label: '완료한 업무',  value: '0건',   icon: Briefcase,   color: 'text-blue-500',   bg: 'bg-blue-50' },
-          { key: 'hours',  label: '총 근무 시간', value: '0시간', icon: Clock,       color: 'text-purple-500', bg: 'bg-purple-50' },
-          { key: 'rating', label: '평균 별점',    value: avgRatingDisplay, icon: Star, color: 'text-yellow-500', bg: 'bg-yellow-50', suffix: '/ 5.0' },
-          { key: 'attend', label: '근태 지수',    value: '0회',   icon: ShieldCheck, color: 'text-green-600',  bg: 'bg-green-50', badge: true },
-        ]).map(s => (
+        {stats.map(s => (
           <button
             key={s.label}
-            onClick={() => setStatModal(s.key)}
-            className="bg-white rounded-2xl border border-offwhite-200 p-4 text-left hover:border-navy hover:shadow-sm transition-all group"
+            onClick={() => s.key !== 'hours' ? setStatModal(s.key) : undefined}
+            className={`bg-white rounded-2xl border border-offwhite-200 p-4 text-left transition-all group ${
+              s.key !== 'hours' ? 'hover:border-navy hover:shadow-sm cursor-pointer' : 'cursor-default'
+            }`}
           >
             <div className={`w-9 h-9 rounded-xl ${s.bg} flex items-center justify-center mb-3`}>
               <s.icon size={18} className={s.color} />
@@ -394,42 +484,55 @@ export default function IndividualProfilePage() {
               {s.value}
               {s.suffix && <span className="text-xs font-normal text-gray-400 ml-1">{s.suffix}</span>}
             </p>
-            <p className="text-xs text-gray-500 mt-0.5 group-hover:text-navy transition-colors">{s.label}</p>
+            <p className={`text-xs text-gray-500 mt-0.5 ${s.key !== 'hours' ? 'group-hover:text-navy transition-colors' : ''}`}>
+              {s.label}
+            </p>
             {s.badge && (
               <span className="inline-block mt-1.5 text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                최근 20회 중 0건
+                최근 {Math.min(totalRelevant, 20)}회 중 {noShowCount}건
               </span>
             )}
           </button>
         ))}
       </div>
 
-      {/* ── 2. 프로필 카드 ── */}
+      {/* 프로필 카드 */}
       <div className="bg-white rounded-2xl border border-offwhite-200 p-5">
-        {/* 헤더 */}
         <div className="flex items-start justify-between gap-3 mb-5">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-orange flex items-center justify-center shrink-0">
-              <span className="text-white text-2xl font-bold">{user?.avatar}</span>
-            </div>
+            <button
+              type="button"
+              onClick={savedPhotos.length > 0 ? () => setShowAvatarAdjust(true) : undefined}
+              className={`w-16 h-16 rounded-full overflow-hidden bg-orange flex items-center justify-center shrink-0 relative group ${savedPhotos.length > 0 ? 'cursor-pointer' : 'cursor-default'}`}
+            >
+              {savedPhotos.length > 0
+                ? <img src={savedPhotos[0].url} alt="" className="w-full h-full object-cover" />
+                : <span className="text-white text-2xl font-bold">{user?.avatar}</span>
+              }
+              {savedPhotos.length > 0 && (
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors rounded-full flex items-center justify-center">
+                  <Pencil size={14} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              )}
+            </button>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-lg font-bold text-navy">{user?.name}</h2>
-                <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <ShieldCheck size={10} />노쇼 제로
-                </span>
+                {hasNoShowZeroBadge && (
+                  <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <ShieldCheck size={10} />노쇼 제로
+                  </span>
+                )}
               </div>
               <p className="text-sm text-orange font-medium mt-0.5">{user?.roleLabel}</p>
             </div>
           </div>
-
           <div className="text-right shrink-0">
             <p className="text-[10px] text-gray-400">정산 대기 중</p>
-            <p className="text-base font-extrabold text-orange">{isDemo ? '120,033원' : '0원'}</p>
+            <p className="text-base font-extrabold text-orange">0원</p>
           </div>
         </div>
 
-        {/* 수정 버튼 행 */}
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => setShowResume(true)}
@@ -439,31 +542,23 @@ export default function IndividualProfilePage() {
           </button>
 
           {!editingProfile ? (
-            <button
-              onClick={openProfileEdit}
-              className="flex items-center gap-1.5 text-sm font-semibold text-orange hover:underline"
-            >
+            <button onClick={openProfileEdit} className="flex items-center gap-1.5 text-sm font-semibold text-orange hover:underline">
               <Pencil size={13} />수정
             </button>
           ) : (
             <div className="flex gap-2">
-              <button
-                onClick={() => setEditingProfile(false)}
-                className="flex items-center gap-1 text-xs text-gray-500 px-3 py-1.5 rounded-lg border border-offwhite-200 hover:border-navy transition-colors"
-              >
+              <button onClick={() => setEditingProfile(false)}
+                className="flex items-center gap-1 text-xs text-gray-500 px-3 py-1.5 rounded-lg border border-offwhite-200 hover:border-navy transition-colors">
                 <X size={12} />취소
               </button>
-              <button
-                onClick={saveProfile}
-                className="flex items-center gap-1 text-xs font-semibold text-white bg-orange px-3 py-1.5 rounded-lg hover:bg-orange-600 transition-colors"
-              >
+              <button onClick={saveProfile}
+                className="flex items-center gap-1 text-xs font-semibold text-white bg-orange px-3 py-1.5 rounded-lg hover:bg-orange-600 transition-colors">
                 <Check size={12} />저장
               </button>
             </div>
           )}
         </div>
 
-        {/* 정보 필드 */}
         {editingProfile ? (
           <div className="space-y-3">
             <div>
@@ -515,26 +610,118 @@ export default function IndividualProfilePage() {
         )}
       </div>
 
-      {/* ── 3. 보유 스킬 ── */}
+      {/* 프로필 사진 */}
+      <SectionCard
+        title="프로필 사진"
+        icon={Camera}
+        action={
+          isDirty ? (
+            <div className="flex items-center gap-1.5">
+              <button onClick={handlePhotoCancel}
+                className="text-xs text-gray-400 px-2.5 py-1 rounded-lg hover:bg-offwhite transition-colors">
+                취소
+              </button>
+              <button onClick={handlePhotoSave}
+                className="text-xs font-semibold text-white bg-orange px-3 py-1 rounded-lg hover:bg-orange-600 transition-colors">
+                저장
+              </button>
+            </div>
+          ) : (
+            <span className="text-xs text-gray-400 font-medium">{savedPhotos.length} / 10</span>
+          )
+        }
+      >
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={handlePhotoFiles}
+        />
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+          {photos.map(photo => {
+            const isPending = !savedPhotoIds.has(photo.id)
+            return (
+              <div key={photo.id}
+                className={`relative aspect-square rounded-xl overflow-hidden group ${isPending ? 'ring-2 ring-orange ring-offset-1' : ''}`}>
+                <img src={photo.url} alt="" className="w-full h-full object-cover" />
+                {isPending && (
+                  <span className="absolute bottom-1 left-1 text-[8px] font-bold bg-orange text-white px-1 py-0.5 rounded leading-none">
+                    저장 전
+                  </span>
+                )}
+                <button
+                  onClick={() => removePhoto(photo.id)}
+                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X size={10} />
+                </button>
+              </div>
+            )
+          })}
+          {photos.length < 10 && (
+            <button
+              onClick={() => photoInputRef.current?.click()}
+              className="aspect-square rounded-xl border-2 border-dashed border-offwhite-200 flex flex-col items-center justify-center gap-1 hover:border-orange hover:bg-orange/5 transition-colors text-gray-300 hover:text-orange"
+            >
+              <Plus size={20} />
+              <span className="text-[10px] font-semibold">추가</span>
+            </button>
+          )}
+        </div>
+        {photos.length === 0 && (
+          <p className="text-xs text-gray-400 mt-3 text-center">
+            사진을 추가하면 기업 담당자에게 더 잘 어필할 수 있어요.
+          </p>
+        )}
+        {savedPhotos.length > 0 && savedPhotos.length < 5 && !isDirty && (
+          <div className="mt-3 p-3 bg-blue-50 rounded-xl border border-blue-100">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-semibold text-blue-700">상단 노출 부스트</span>
+              <span className="text-xs text-blue-500 font-bold tabular-nums">{savedPhotos.length} / 5장</span>
+            </div>
+            <div className="w-full bg-blue-100 rounded-full h-1.5 mb-2">
+              <div className="bg-blue-500 h-1.5 rounded-full transition-all"
+                style={{ width: `${(savedPhotos.length / 5) * 100}%` }} />
+            </div>
+            <p className="text-xs text-blue-600">
+              사진 {5 - savedPhotos.length}장만 더 추가하면 기업 담당자의 추천 인력 목록 상단에 우선 노출돼요.
+            </p>
+          </div>
+        )}
+        {isDirty && photos.length >= 5 && (
+          <p className="text-xs text-blue-500 mt-3 text-center font-medium">
+            저장하면 부스트가 활성화됩니다!
+          </p>
+        )}
+        {savedPhotos.length >= 5 && !isDirty && (
+          <div className="mt-3 p-3 bg-green-50 rounded-xl border border-green-200 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+              <ShieldCheck size={16} className="text-green-600" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-green-700">부스트 활성화 중!</p>
+              <p className="text-xs text-green-600 mt-0.5">기업 담당자 추천 인력 목록 최상단에 우선 노출되고 있어요.</p>
+            </div>
+          </div>
+        )}
+      </SectionCard>
+
+      {/* 보유 스킬 */}
       <SectionCard title="보유 스킬" icon={Star}
         action={
-          <button
-            onClick={() => setShowSkillInput(v => !v)}
-            className="flex items-center gap-1 text-xs font-semibold text-orange hover:underline"
-          >
+          <button onClick={() => setShowSkillInput(v => !v)}
+            className="flex items-center gap-1 text-xs font-semibold text-orange hover:underline">
             <Plus size={13} />{showSkillInput ? '닫기' : '스킬 추가'}
           </button>
         }
       >
-        {/* 등록된 스킬 — 항상 X 버튼 표시 */}
         <div className="flex flex-wrap gap-2 mb-3">
           {displaySkills.map(s => (
             <span key={s} className="flex items-center gap-1 text-sm bg-offwhite px-3 py-1.5 rounded-full text-gray-600 border border-offwhite-200">
               {s}
-              <button
-                onClick={() => handleRemoveSkill(s)}
-                className="hover:text-red-500 transition-colors ml-0.5"
-              >
+              <button onClick={() => handleRemoveSkill(s)} className="hover:text-red-500 transition-colors ml-0.5">
                 <X size={11} />
               </button>
             </span>
@@ -543,40 +730,24 @@ export default function IndividualProfilePage() {
             <p className="text-sm text-gray-400">등록된 스킬이 없습니다. 오른쪽 버튼을 눌러 추가하세요.</p>
           )}
         </div>
-
-        {/* 스킬 추가 패널 */}
         {showSkillInput && (
           <div className="space-y-3 pt-1">
-            {/* 직접 입력 */}
             <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="직접 입력 후 Enter"
-                value={skillInput}
+              <input type="text" placeholder="직접 입력 후 Enter" value={skillInput}
                 onChange={e => setSkillInput(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') { handleAddSkill(skillInput.trim()); setSkillInput('') }
-                }}
-                className="flex-1 border border-offwhite-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-navy"
-              />
-              <button
-                onClick={() => { handleAddSkill(skillInput.trim()); setSkillInput('') }}
-                className="flex items-center gap-1 px-3 py-2 bg-navy text-white text-sm font-semibold rounded-lg hover:bg-navy/80 transition-colors"
-              >
+                onKeyDown={e => { if (e.key === 'Enter') { handleAddSkill(skillInput.trim()); setSkillInput('') } }}
+                className="flex-1 border border-offwhite-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-navy" />
+              <button onClick={() => { handleAddSkill(skillInput.trim()); setSkillInput('') }}
+                className="flex items-center gap-1 px-3 py-2 bg-navy text-white text-sm font-semibold rounded-lg hover:bg-navy/80 transition-colors">
                 <Plus size={13} />추가
               </button>
             </div>
-
-            {/* 추천 스킬 버튼 */}
             <div>
               <p className="text-[11px] text-gray-400 mb-2">추천 스킬 (클릭하여 바로 추가)</p>
               <div className="flex flex-wrap gap-1.5">
                 {SKILL_SUGGESTIONS.filter(s => !displaySkills.includes(s)).map(s => (
-                  <button
-                    key={s}
-                    onClick={() => handleAddSkill(s)}
-                    className="text-xs bg-blue-50 border border-blue-100 text-blue-600 px-2.5 py-1 rounded-full hover:bg-blue-100 active:scale-95 transition-all font-medium"
-                  >
+                  <button key={s} onClick={() => handleAddSkill(s)}
+                    className="text-xs bg-blue-50 border border-blue-100 text-blue-600 px-2.5 py-1 rounded-full hover:bg-blue-100 active:scale-95 transition-all font-medium">
                     + {s}
                   </button>
                 ))}
@@ -586,7 +757,7 @@ export default function IndividualProfilePage() {
         )}
       </SectionCard>
 
-      {/* ── 4. MBTI ── */}
+      {/* MBTI */}
       <SectionCard title="MBTI" icon={User}
         action={
           !editingMbti ? (
@@ -613,14 +784,12 @@ export default function IndividualProfilePage() {
             <p className="text-xs text-gray-400">하나만 선택하세요</p>
             <div className="grid grid-cols-4 gap-2">
               {MBTI_TYPES.map(type => (
-                <button
-                  key={type}
-                  onClick={() => setMbtiDraft(type)}
-                  className={`py-2 rounded-xl text-sm font-bold transition-all border
-                    ${mbtiDraft === type
+                <button key={type} onClick={() => setMbtiDraft(type)}
+                  className={`py-2 rounded-xl text-sm font-bold transition-all border ${
+                    mbtiDraft === type
                       ? 'bg-orange text-white border-orange shadow-sm'
-                      : 'bg-offwhite text-gray-500 border-offwhite-200 hover:border-orange hover:text-orange'}`}
-                >
+                      : 'bg-offwhite text-gray-500 border-offwhite-200 hover:border-orange hover:text-orange'
+                  }`}>
                   {type}
                 </button>
               ))}
@@ -641,12 +810,11 @@ export default function IndividualProfilePage() {
         )}
       </SectionCard>
 
-      {/* ── 5. 활동 가능 지역 (단일) ── */}
+      {/* 활동 가능 지역 */}
       <SectionCard title="활동 가능 지역" icon={MapPin}
         action={
           region && !showRegionInput ? (
-            <button onClick={() => setShowRegionInput(true)}
-              className="text-xs font-semibold text-orange hover:underline">
+            <button onClick={() => setShowRegionInput(true)} className="text-xs font-semibold text-orange hover:underline">
               변경
             </button>
           ) : null
@@ -661,46 +829,31 @@ export default function IndividualProfilePage() {
             <p className="text-xs text-gray-400">본인 거주 지역을 선택해주세요 (1개만 설정 가능)</p>
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <select
-                  value={regionSido}
+                <select value={regionSido}
                   onChange={e => { setRegionSido(e.target.value); setRegionGungu('') }}
-                  className="w-full appearance-none border border-offwhite-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-navy bg-white text-navy"
-                >
+                  className="w-full appearance-none border border-offwhite-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-navy bg-white text-navy">
                   <option value="">시/도 선택</option>
-                  {Object.keys(REGIONS).map(s => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
+                  {Object.keys(REGIONS).map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
                 <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               </div>
               <div className="relative flex-1">
-                <select
-                  value={regionGungu}
-                  onChange={e => setRegionGungu(e.target.value)}
-                  disabled={!regionSido}
-                  className="w-full appearance-none border border-offwhite-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-navy bg-white text-navy disabled:text-gray-300 disabled:bg-offwhite"
-                >
+                <select value={regionGungu} onChange={e => setRegionGungu(e.target.value)} disabled={!regionSido}
+                  className="w-full appearance-none border border-offwhite-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-navy bg-white text-navy disabled:text-gray-300 disabled:bg-offwhite">
                   <option value="">구/군 선택</option>
-                  {(REGIONS[regionSido] ?? []).map(g => (
-                    <option key={g} value={g}>{g}</option>
-                  ))}
+                  {(REGIONS[regionSido] ?? []).map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
                 <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               </div>
             </div>
             <div className="flex gap-2">
-              <button
-                onClick={setRegion}
-                disabled={!regionSido || !regionGungu}
-                className="px-4 py-2 bg-navy text-white text-sm font-semibold rounded-lg hover:bg-navy/80 disabled:opacity-40 transition-colors"
-              >
+              <button onClick={setRegion} disabled={!regionSido || !regionGungu}
+                className="px-4 py-2 bg-navy text-white text-sm font-semibold rounded-lg hover:bg-navy/80 disabled:opacity-40 transition-colors">
                 설정
               </button>
               {region && (
-                <button
-                  onClick={() => { setShowRegionInput(false); setRegionSido(''); setRegionGungu('') }}
-                  className="px-4 py-2 text-sm text-gray-400 rounded-lg border border-offwhite-200 hover:border-gray-400 transition-colors"
-                >
+                <button onClick={() => { setShowRegionInput(false); setRegionSido(''); setRegionGungu('') }}
+                  className="px-4 py-2 text-sm text-gray-400 rounded-lg border border-offwhite-200 hover:border-gray-400 transition-colors">
                   취소
                 </button>
               )}
@@ -709,7 +862,7 @@ export default function IndividualProfilePage() {
         )}
       </SectionCard>
 
-      {/* ── 5. 선호 업무 시간 ── */}
+      {/* 선호 업무 시간 */}
       <SectionCard title="선호 업무 시간" icon={Clock}>
         <div className="flex flex-wrap gap-2">
           {TIME_OPTIONS.map(t => {
@@ -717,9 +870,7 @@ export default function IndividualProfilePage() {
             return (
               <button key={t} onClick={() => toggleTime(t)}
                 className={`text-sm px-4 py-2 rounded-full border font-medium transition-all ${
-                  selected
-                    ? 'bg-orange text-white border-orange'
-                    : 'bg-white text-gray-500 border-offwhite-200 hover:border-orange hover:text-orange'
+                  selected ? 'bg-orange text-white border-orange' : 'bg-white text-gray-500 border-offwhite-200 hover:border-orange hover:text-orange'
                 }`}>
                 {t}
               </button>
@@ -731,20 +882,18 @@ export default function IndividualProfilePage() {
         )}
       </SectionCard>
 
-      {/* ── 6. 정산 계좌 ── */}
+      {/* 정산 계좌 */}
       <SectionCard title="정산 계좌" icon={Banknote}
         action={
           !editingAccount ? (
-            <button onClick={() => { setAccountForm(account); setEditingAccount(true) }}
+            <button onClick={() => { setAccountForm(account ?? { bank: '국민은행', number: '' }); setEditingAccount(true) }}
               className="flex items-center gap-1 text-xs font-semibold text-orange hover:underline">
               <Pencil size={13} />수정
             </button>
           ) : (
             <div className="flex gap-2">
-              <button onClick={() => setEditingAccount(false)}
-                className="text-xs text-gray-400 hover:text-navy">취소</button>
-              <button onClick={saveAccount}
-                className="text-xs font-semibold text-orange hover:underline">저장</button>
+              <button onClick={() => setEditingAccount(false)} className="text-xs text-gray-400 hover:text-navy">취소</button>
+              <button onClick={saveAccount} className="text-xs font-semibold text-orange hover:underline">저장</button>
             </div>
           )
         }
@@ -789,14 +938,12 @@ export default function IndividualProfilePage() {
         )}
       </SectionCard>
 
-      {/* ── 7. 필수 서류 ── */}
+      {/* 필수 서류 */}
       <SectionCard title="필수 서류" icon={FileText}>
-        {/* 숨김 파일 입력 */}
         <input ref={healthFileRef} type="file" accept="image/*,.pdf" className="hidden"
           onChange={e => { handleDocumentUpload('health', e.target.files?.[0]); e.target.value = '' }} />
         <input ref={safetyFileRef} type="file" accept="image/*,.pdf" className="hidden"
           onChange={e => { handleDocumentUpload('safety', e.target.files?.[0]); e.target.value = '' }} />
-
         <div className="space-y-3">
           {[
             { key: 'health', label: '보건증',          desc: '발급일로부터 1년 이내' },
@@ -810,9 +957,7 @@ export default function IndividualProfilePage() {
                   <p className="text-xs text-gray-400 mt-0.5">{doc.desc}</p>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                    submitted ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-500'
-                  }`}>
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${submitted ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-500'}`}>
                     {submitted ? '제출 완료' : '미제출'}
                   </span>
                   {submitted ? (
@@ -833,7 +978,7 @@ export default function IndividualProfilePage() {
         </div>
       </SectionCard>
 
-      {/* ── 8. 계정 관리 ── */}
+      {/* 계정 관리 */}
       <div className="bg-white rounded-2xl border border-offwhite-200 p-5">
         <h2 className="font-bold text-navy mb-4">계정 관리</h2>
         <div className="space-y-2">
@@ -845,7 +990,6 @@ export default function IndividualProfilePage() {
               <p className="text-xs text-gray-400">주기적으로 비밀번호를 변경하면 보안이 강화됩니다</p>
             </div>
           </button>
-
           <button onClick={handleLogout}
             className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-offwhite transition-colors text-left">
             <LogOut size={16} className="text-gray-400 shrink-0" />
@@ -854,7 +998,6 @@ export default function IndividualProfilePage() {
               <p className="text-xs text-gray-400">현재 기기에서 로그아웃됩니다</p>
             </div>
           </button>
-
           <button onClick={() => setShowWithdraw(true)}
             className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-50 transition-colors text-left">
             <Trash2 size={16} className="text-red-400 shrink-0" />
@@ -866,7 +1009,7 @@ export default function IndividualProfilePage() {
         </div>
       </div>
 
-      {/* ── 모달: 디지털 이력서 ── */}
+      {/* 모달: 디지털 이력서 */}
       {showResume && (
         <Modal onClose={() => setShowResume(false)}>
           <div className="flex items-center justify-between px-5 py-4 border-b border-offwhite-200">
@@ -877,39 +1020,24 @@ export default function IndividualProfilePage() {
           </div>
           <div className="p-5">
             <div className="flex items-center gap-3 mb-5 p-4 bg-offwhite rounded-xl">
-              <div className="w-12 h-12 rounded-full bg-orange flex items-center justify-center shrink-0">
-                <span className="text-white text-xl font-bold">{user?.avatar}</span>
+              <div className="w-12 h-12 rounded-full overflow-hidden bg-orange flex items-center justify-center shrink-0">
+                {savedPhotos.length > 0
+                  ? <img src={savedPhotos[0].url} alt="" className="w-full h-full object-cover" />
+                  : <span className="text-white text-xl font-bold">{user?.avatar}</span>
+                }
               </div>
               <div>
                 <p className="font-bold text-navy">{user?.name}</p>
                 <p className="text-sm text-gray-500">{user?.email}</p>
               </div>
-              <span className="ml-auto text-[10px] font-bold bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                노쇼 제로
-              </span>
-            </div>
-
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">경력 사항</h4>
-            <div className="space-y-3">
-              {!isDemo && (
-                <p className="text-sm text-gray-400 text-center py-4">등록된 경력이 없습니다.</p>
+              {hasNoShowZeroBadge && (
+                <span className="ml-auto text-[10px] font-bold bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                  노쇼 제로
+                </span>
               )}
-              {isDemo && CAREER_LIST.map(c => (
-                <div key={c.id} className="flex items-start gap-3 p-3 border border-offwhite-200 rounded-xl hover:border-navy/20 transition-colors">
-                  <div className="w-8 h-8 rounded-lg bg-navy/10 flex items-center justify-center shrink-0 mt-0.5">
-                    <Briefcase size={14} className="text-navy" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-navy">{c.role}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{c.company}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{c.period}</p>
-                  </div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${TYPE_COLOR[c.type] || 'bg-gray-100 text-gray-500'}`}>
-                    {c.type}
-                  </span>
-                </div>
-              ))}
             </div>
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">경력 사항</h4>
+            <p className="text-sm text-gray-400 text-center py-4">등록된 경력이 없습니다.</p>
           </div>
           <div className="px-5 pb-4">
             <button onClick={() => setShowResume(false)}
@@ -920,7 +1048,7 @@ export default function IndividualProfilePage() {
         </Modal>
       )}
 
-      {/* ── 모달: 비밀번호 변경 ── */}
+      {/* 모달: 비밀번호 변경 */}
       {showPwChange && (
         <Modal onClose={() => { setShowPwChange(false); setPwForm({ current: '', next: '', confirm: '' }); setPwError('') }}>
           <div className="flex items-center justify-between px-5 py-4 border-b border-offwhite-200">
@@ -931,8 +1059,8 @@ export default function IndividualProfilePage() {
           </div>
           <div className="p-5 space-y-3">
             {[
-              { key: 'current', label: '현재 비밀번호', placeholder: '현재 비밀번호 입력' },
-              { key: 'next',    label: '새 비밀번호',   placeholder: '8자 이상 입력' },
+              { key: 'current', label: '현재 비밀번호',    placeholder: '현재 비밀번호 입력' },
+              { key: 'next',    label: '새 비밀번호',      placeholder: '8자 이상 입력' },
               { key: 'confirm', label: '새 비밀번호 확인', placeholder: '새 비밀번호 재입력' },
             ].map(f => (
               <div key={f.key}>
@@ -957,7 +1085,7 @@ export default function IndividualProfilePage() {
         </Modal>
       )}
 
-      {/* ── 모달: 회원 탈퇴 ── */}
+      {/* 모달: 회원 탈퇴 */}
       {showWithdraw && (
         <Modal onClose={() => setShowWithdraw(false)}>
           <div className="p-6 text-center">
@@ -969,7 +1097,6 @@ export default function IndividualProfilePage() {
               <p className="text-sm font-semibold text-yellow-800 mb-1.5">⚠️ 탈퇴 전 반드시 확인하세요</p>
               <ul className="text-xs text-yellow-700 space-y-1 list-disc list-inside">
                 <li>정산되지 않은 금액이 있는지 확인하세요.</li>
-                <li>현재 정산 대기 중인 금액: <span className="font-bold">120,033원</span></li>
                 <li>탈퇴 후에는 계정 및 모든 데이터를 복구할 수 없습니다.</li>
               </ul>
             </div>
@@ -987,7 +1114,7 @@ export default function IndividualProfilePage() {
         </Modal>
       )}
 
-      {/* ── 모달: 완료한 업무 ── */}
+      {/* 모달: 완료한 업무 */}
       {statModal === 'jobs' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
           onClick={e => e.target === e.currentTarget && setStatModal(null)}>
@@ -997,99 +1124,52 @@ export default function IndividualProfilePage() {
                 <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
                   <Briefcase size={16} className="text-blue-500" />
                 </div>
-                <h3 className="font-bold text-navy">완료한 업무 <span className="text-blue-500">23건</span></h3>
+                <h3 className="font-bold text-navy">완료한 업무 <span className="text-blue-500">{completedCount}건</span></h3>
               </div>
               <button onClick={() => setStatModal(null)} className="text-gray-400 hover:text-navy transition-colors">
                 <X size={18} />
               </button>
             </div>
             <div className="overflow-y-auto flex-1">
-              {Object.entries(
-                DEMO_COMPLETED_JOBS.reduce((acc, j) => {
-                  if (!acc[j.company]) acc[j.company] = []
-                  acc[j.company].push(j)
-                  return acc
-                }, {})
-              ).map(([company, jobs]) => (
-                <div key={company}>
-                  <div className="px-5 py-2.5 bg-offwhite border-b border-offwhite-200 flex items-center justify-between">
-                    <p className="text-xs font-bold text-navy">{company}</p>
-                    <span className="text-xs text-gray-400">{jobs.length}건</span>
+              {completedCount === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-10">완료한 업무가 없습니다.</p>
+              ) : (
+                Object.entries(
+                  completedApps.reduce((acc, app) => {
+                    const co = app.jobPost?.companyName ?? '미상'
+                    if (!acc[co]) acc[co] = []
+                    acc[co].push(app)
+                    return acc
+                  }, {})
+                ).map(([company, apps]) => (
+                  <div key={company}>
+                    <div className="px-5 py-2.5 bg-offwhite border-b border-offwhite-200 flex items-center justify-between">
+                      <p className="text-xs font-bold text-navy">{company}</p>
+                      <span className="text-xs text-gray-400">{apps.length}건</span>
+                    </div>
+                    {apps.map(app => (
+                      <div key={app.id} className="px-5 py-3 border-b border-offwhite-200 flex items-center justify-between gap-4 hover:bg-offwhite-100 transition-colors">
+                        <div>
+                          <p className="text-sm font-medium text-navy">{app.jobPost?.title ?? '-'}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">{app.createdAt?.substring(0, 10)}</p>
+                        </div>
+                        <span className="text-sm font-semibold text-orange shrink-0">
+                          {WAGE_LABEL[app.jobPost?.wageType] ?? '시급'} {(app.jobPost?.wageAmount ?? 0).toLocaleString()}원
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                  {jobs.map(j => (
-                    <div key={j.id} className="px-5 py-3 border-b border-offwhite-200 flex items-center justify-between gap-4 hover:bg-offwhite-100 transition-colors">
-                      <div>
-                        <p className="text-sm font-medium text-navy">{j.role}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{j.date} · {j.hours}시간</p>
-                      </div>
-                      <span className="text-sm font-semibold text-orange shrink-0">
-                        {j.pay.toLocaleString()}원
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ))}
+                ))
+              )}
             </div>
-            <div className="px-5 py-3 bg-offwhite-100 border-t border-offwhite-200 flex items-center justify-between shrink-0">
-              <span className="text-xs text-gray-500">총 수입</span>
-              <span className="text-sm font-extrabold text-navy">
-                {DEMO_COMPLETED_JOBS.reduce((s, j) => s + j.pay, 0).toLocaleString()}원
-              </span>
+            <div className="px-5 py-3 bg-offwhite-100 border-t border-offwhite-200 shrink-0">
+              <span className="text-xs text-gray-500">총 {completedCount}건</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── 모달: 총 근무 시간 ── */}
-      {statModal === 'hours' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={e => e.target === e.currentTarget && setStatModal(null)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden flex flex-col max-h-[80vh]">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-offwhite-200 shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center">
-                  <Clock size={16} className="text-purple-500" />
-                </div>
-                <h3 className="font-bold text-navy">총 근무 시간 <span className="text-purple-500">184시간</span></h3>
-              </div>
-              <button onClick={() => setStatModal(null)} className="text-gray-400 hover:text-navy transition-colors">
-                <X size={18} />
-              </button>
-            </div>
-            <div className="overflow-y-auto flex-1 p-5 space-y-3">
-              {Object.entries(
-                DEMO_COMPLETED_JOBS.reduce((acc, j) => {
-                  if (!acc[j.company]) acc[j.company] = 0
-                  acc[j.company] += j.hours
-                  return acc
-                }, {})
-              )
-                .sort((a, b) => b[1] - a[1])
-                .map(([company, hours]) => {
-                  const pct = Math.round((hours / 184) * 100)
-                  return (
-                    <div key={company}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-navy">{company}</span>
-                        <span className="text-sm font-bold text-purple-600">{hours}시간</span>
-                      </div>
-                      <div className="h-2 bg-offwhite rounded-full overflow-hidden">
-                        <div className="h-full bg-purple-400 rounded-full transition-all" style={{ width: `${pct}%` }} />
-                      </div>
-                      <p className="text-[10px] text-gray-400 mt-0.5 text-right">{pct}%</p>
-                    </div>
-                  )
-                })}
-            </div>
-            <div className="px-5 py-3 bg-offwhite-100 border-t border-offwhite-200 flex items-center justify-between shrink-0">
-              <span className="text-xs text-gray-500">총 근무 시간</span>
-              <span className="text-sm font-extrabold text-navy">184시간</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── 모달: 평균 별점 ── */}
+      {/* 모달: 평균 별점 */}
       {statModal === 'rating' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
           onClick={e => e.target === e.currentTarget && setStatModal(null)}>
@@ -1099,7 +1179,10 @@ export default function IndividualProfilePage() {
                 <div className="w-8 h-8 rounded-xl bg-yellow-50 flex items-center justify-center">
                   <Star size={16} className="text-yellow-500" />
                 </div>
-                <h3 className="font-bold text-navy">기업별 평점 <span className="text-yellow-500">평균 4.8</span></h3>
+                <h3 className="font-bold text-navy">
+                  기업별 평점
+                  {avgRatingDisplay !== '-' && <span className="text-yellow-500 ml-1">평균 {avgRatingDisplay}</span>}
+                </h3>
               </div>
               <button onClick={() => setStatModal(null)} className="text-gray-400 hover:text-navy transition-colors">
                 <X size={18} />
@@ -1138,7 +1221,7 @@ export default function IndividualProfilePage() {
         </div>
       )}
 
-      {/* ── 모달: 근태 지수 ── */}
+      {/* 모달: 근태 지수 */}
       {statModal === 'attend' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
           onClick={e => e.target === e.currentTarget && setStatModal(null)}>
@@ -1157,28 +1240,40 @@ export default function IndividualProfilePage() {
             <div className="px-5 py-4 bg-green-50 border-b border-green-100 flex items-center gap-4 shrink-0">
               <div className="flex items-center gap-2">
                 <ShieldCheck size={20} className="text-green-600" />
-                <span className="text-sm font-bold text-green-700">노쇼 0회</span>
+                <span className="text-sm font-bold text-green-700">노쇼 {noShowCount}회</span>
               </div>
               <span className="text-xs text-gray-500 bg-white border border-green-200 px-2.5 py-1 rounded-full">
-                최근 20회 근무 중 0건 결근
+                최근 {Math.min(totalRelevant, 20)}회 근무 중 {noShowCount}건 결근
               </span>
             </div>
             <div className="overflow-y-auto flex-1 divide-y divide-offwhite-200">
-              {DEMO_ATTENDANCE.map((a, i) => (
-                <div key={i} className="px-5 py-3 flex items-center justify-between hover:bg-offwhite-100 transition-colors">
-                  <div>
-                    <p className="text-sm font-medium text-navy">{a.company}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{a.date}</p>
-                  </div>
-                  <span className="text-xs font-bold bg-green-100 text-green-700 px-2.5 py-1 rounded-full">
-                    {a.status}
-                  </span>
-                </div>
-              ))}
+              {totalRelevant === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-10">근태 기록이 없습니다.</p>
+              ) : (
+                [...completedApps, ...noShowApps]
+                  .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                  .map(app => (
+                    <div key={app.id} className="px-5 py-3 flex items-center justify-between hover:bg-offwhite-100 transition-colors">
+                      <div>
+                        <p className="text-sm font-medium text-navy">{app.jobPost?.companyName ?? '-'}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{app.createdAt?.substring(0, 10)}</p>
+                      </div>
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                        app.status === 'NO_SHOW' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'
+                      }`}>
+                        {app.status === 'NO_SHOW' ? '노쇼' : '정상 출근'}
+                      </span>
+                    </div>
+                  ))
+              )}
             </div>
             <div className="px-5 py-3 bg-offwhite-100 border-t border-offwhite-200 flex items-center justify-between shrink-0">
-              <span className="text-xs text-gray-500">총 {DEMO_ATTENDANCE.length}건 기록</span>
-              <span className="text-xs font-bold text-green-600">출근율 100%</span>
+              <span className="text-xs text-gray-500">총 {totalRelevant}건 기록</span>
+              {totalRelevant > 0 && (
+                <span className="text-xs font-bold text-green-600">
+                  출근율 {Math.round((completedCount / totalRelevant) * 100)}%
+                </span>
+              )}
             </div>
           </div>
         </div>

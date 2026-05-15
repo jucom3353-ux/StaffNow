@@ -253,8 +253,8 @@ export default function IndividualJobsPage() {
                 <div className="text-right shrink-0">
                   <p className="text-base font-bold text-orange">{job.wage}</p>
                   <button
-                    onClick={e => { e.stopPropagation(); toggleSave(job.id) }}
-                    className={`mt-2 p-1.5 rounded-lg transition-colors ${isSaved(job.id) ? 'text-orange' : 'text-gray-300 hover:text-orange'}`}
+                    onClick={e => { e.stopPropagation(); toggleSave(String(job.id)) }}
+                    className={`mt-2 p-1.5 rounded-lg transition-colors ${isSaved(String(job.id)) ? 'text-orange' : 'text-gray-300 hover:text-orange'}`}
                   >
                     <Bookmark size={18} fill={isSaved(job.id) ? 'currentColor' : 'none'} />
                   </button>

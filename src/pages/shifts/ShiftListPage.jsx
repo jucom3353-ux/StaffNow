@@ -6,7 +6,6 @@ import StatusBadge from '../../components/ui/StatusBadge'
 import Button from '../../components/ui/Button'
 import EmptyState from '../../components/ui/EmptyState'
 import { useAppData } from '../../context/AppDataContext'
-import { useAuth } from '../../context/AuthContext'
 
 const TABS = [
   { key: 'all',        label: '전체' },
@@ -16,14 +15,11 @@ const TABS = [
 ]
 
 export default function ShiftListPage() {
-  const { shifts, jobs } = useAppData()
-  const { user } = useAuth()
+  const { shifts } = useAppData()
   const [searchParams] = useSearchParams()
   const [tab, setTab] = useState(searchParams.get('tab') || 'all')
 
-  const isAdmin = user?.role === 'ADMIN'
-  const myJobIds = isAdmin ? null : new Set(jobs.filter(j => j.createdBy === user?.name).map(j => j.id))
-  const myShifts = isAdmin ? shifts : shifts.filter(s => myJobIds.has(s.jobId))
+  const myShifts = shifts
 
   const filtered = myShifts.filter(s => tab === 'all' || s.status === tab)
 

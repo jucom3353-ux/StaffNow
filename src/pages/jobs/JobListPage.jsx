@@ -8,7 +8,6 @@ import EmptyState from '../../components/ui/EmptyState'
 import ConfirmModal from '../../components/ui/ConfirmModal'
 import { Briefcase } from 'lucide-react'
 import { useAppData } from '../../context/AppDataContext'
-import { useAuth } from '../../context/AuthContext'
 
 const JOB_STATUS_OPTIONS = ['active', 'draft', 'closed', 'completed', 'cancelled']
 
@@ -50,9 +49,7 @@ function SortIcon({ colKey, sortKey, sortDir }) {
 
 export default function JobListPage() {
   const { jobs, shifts, deleteJob, updateJobStatus } = useAppData()
-  const { user } = useAuth()
-  const isAdmin = user?.role === 'ADMIN'
-  const myJobs = isAdmin ? jobs : jobs.filter(j => j.createdBy === user?.name)
+  const myJobs = jobs
   const [searchParams] = useSearchParams()
   const [tab, setTab] = useState('all')
   const [search, setSearch] = useState(searchParams.get('q') || '')

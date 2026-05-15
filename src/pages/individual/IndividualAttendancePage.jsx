@@ -7,7 +7,10 @@ import {
   Camera, Wifi, ImageIcon, Navigation,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
-import { useAttendance, getAssignedShifts, loadDisputes, loadLateRequests, saveLateRequests } from '../../hooks/useAttendance'
+import { useAttendance, loadDisputes, loadLateRequests, saveLateRequests } from '../../hooks/useAttendance'
+import { applicationApi, workAttendanceApi } from '../../services/api'
+
+const WAGE_LABEL = { HOURLY: '시급', DAILY: '일급', MONTHLY: '월급', FIXED: '고정급' }
 
 // ── Leaflet 마커 아이콘 ────────────────────────────────────
 const userLocationIcon = L.divIcon({
@@ -588,8 +591,37 @@ function AttendanceFlowModal({ type, shift, now, onRecord, onClose }) {
 export default function IndividualAttendancePage() {
   const { user } = useAuth()
   const { checkIn, checkOut, editRecord, deleteRecord, submitRecord, submitDispute, getRecord } = useAttendance()
-  const shifts = getAssignedShifts(user?.name, user?.email)
-  const today  = todayStr()
+  const [shifts, setShifts] = useState([])
+  const today = todayStr()
+
+  useEffect(() => {
+    if (!user) return
+    applicationApi.myList()
+      .then(res => res.ok ? res.json() : [])
+      .then(data => {
+        const list = Array.isArray(data) ? data : []
+        setShifts(
+          list
+            .filter(app => app.status === 'APPROVED')
+            .map(app => ({
+              shiftId:        String(app.id),
+              applicationId:  app.id,
+              jobTitle:       app.jobPost?.title ?? '—',
+              company:        app.jobPost?.companyName ?? '—',
+              location:       app.jobPost?.workLocation ?? '—',
+              wage:           app.jobPost?.wageAmount
+                                ? `${WAGE_LABEL[app.jobPost.wageType] || '시급'} ${Number(app.jobPost.wageAmount).toLocaleString()}원`
+                                : '—',
+              shiftDate:      app.jobPost?.deadline?.substring(0, 10) ?? today,
+              scheduledStart: '09:00',
+              scheduledEnd:   '18:00',
+              shiftLat:       null,
+              shiftLng:       null,
+            }))
+        )
+      })
+      .catch(() => {})
+  }, [user])
 
   const [editTarget,    setEditTarget]    = useState(null)
   const [submitTarget,  setSubmitTarget]  = useState(null)
@@ -625,6 +657,7 @@ export default function IndividualAttendancePage() {
     if (lateReason) setLateReasonMap(prev => ({ ...prev, [shift.shiftId]: lateReason }))
     if (type === 'in') {
       checkIn(shift.shiftId, location ?? null)
+      workAttendanceApi.checkIn(shift.shiftId).catch(() => {})
       if (lateReason) {
         const nowDate = new Date()
         const nowStr  = `${String(nowDate.getHours()).padStart(2, '0')}:${String(nowDate.getMinutes()).padStart(2, '0')}`
@@ -650,6 +683,7 @@ export default function IndividualAttendancePage() {
       }
     } else {
       checkOut(shift.shiftId, location ?? null)
+      workAttendanceApi.checkOut(shift.shiftId).catch(() => {})
     }
   }
 

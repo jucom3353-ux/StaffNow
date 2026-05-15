@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { bookmarkApi } from '../services/api'
 
 function getKey(user, type) {
   const email = user?.email?.replace(/[^a-zA-Z0-9]/g, '_') || 'anon'
@@ -34,9 +35,7 @@ const DEFAULT_PROFILE = {
 export function useIndividualData() {
   const { user } = useAuth()
 
-  const [savedJobIds, setSavedJobIds] = useState(() =>
-    loadJSON(getKey(user, 'saved'), [])
-  )
+  const [savedJobIds, setSavedJobIds] = useState([])
 
   const [applications, setApplications] = useState(() =>
     loadJSON(getKey(user, 'applications'), [])
@@ -53,18 +52,36 @@ export function useIndividualData() {
     }
   })
 
-  const toggleSave = useCallback((jobId) => {
-    setSavedJobIds(prev => {
-      const next = prev.includes(jobId)
-        ? prev.filter(id => id !== jobId)
-        : [...prev, jobId]
-      saveJSON(getKey(user, 'saved'), next)
-      return next
-    })
+  useEffect(() => {
+    if (!user) return
+    bookmarkApi.myList()
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        const ids = Array.isArray(data) ? data.map(job => String(job.id)) : []
+        setSavedJobIds(ids)
+      })
+      .catch(() => {})
   }, [user])
 
-  // plain function — savedJobIds가 바뀌면 컴포넌트가 이미 재렌더되므로 useCallback 불필요
-  const isSaved = (jobId) => savedJobIds.includes(jobId)
+  const toggleSave = useCallback((jobId) => {
+    const id = String(jobId)
+    setSavedJobIds(prev => {
+      const isCurrentlySaved = prev.includes(id)
+      const next = isCurrentlySaved ? prev.filter(x => x !== id) : [...prev, id]
+
+      const apiCall = isCurrentlySaved ? bookmarkApi.remove(id) : bookmarkApi.add(id)
+      apiCall.catch(() => setSavedJobIds(prev2 => {
+        const stillToggled = !prev2.includes(id)
+        return stillToggled
+          ? isCurrentlySaved ? [...prev2, id] : prev2.filter(x => x !== id)
+          : prev2
+      }))
+
+      return next
+    })
+  }, [])
+
+  const isSaved = (jobId) => savedJobIds.includes(String(jobId))
 
   const applyJob = useCallback(({ jobId, jobTitle, company, wage, location }) => {
     setApplications(prev => {
@@ -86,14 +103,6 @@ export function useIndividualData() {
 
   const isApplied = useCallback((jobId) => applications.some(a => a.jobId === jobId), [applications])
 
-  const cancelApplication = useCallback((appId) => {
-    setApplications(prev => {
-      const next = prev.filter(a => a.id !== appId)
-      saveJSON(getKey(user, 'applications'), next)
-      return next
-    })
-  }, [user])
-
   const updateProfile = useCallback((patch) => {
     setProfile(prev => {
       const next = { ...prev, ...patch }
@@ -110,7 +119,6 @@ export function useIndividualData() {
     isSaved,
     applyJob,
     isApplied,
-    cancelApplication,
     updateProfile,
   }
 }

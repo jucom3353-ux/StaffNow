@@ -19,6 +19,11 @@ export default function UserMenu() {
   const name = user?.name ?? '사용자'
   const roleLabel = ROLE_LABEL[user?.role] ?? user?.roleLabel ?? ''
 
+  const [avatarSrc, setAvatarSrc] = useState(() => {
+    try { return localStorage.getItem(`staffnow_avatar_${name}`) || null }
+    catch { return null }
+  })
+
   useEffect(() => {
     function handleClickOutside(e) {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false)
@@ -26,6 +31,15 @@ export default function UserMenu() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  useEffect(() => {
+    function onAvatarUpdated() {
+      try { setAvatarSrc(localStorage.getItem(`staffnow_avatar_${name}`) || null) }
+      catch { setAvatarSrc(null) }
+    }
+    window.addEventListener('staffnow:avatar-updated', onAvatarUpdated)
+    return () => window.removeEventListener('staffnow:avatar-updated', onAvatarUpdated)
+  }, [name])
 
   function handleLogout() {
     logout()
@@ -42,7 +56,7 @@ export default function UserMenu() {
         onClick={() => setOpen(v => !v)}
         className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-offwhite-100 transition-colors duration-150 group"
       >
-        <Avatar initials={name.slice(0, 1)} size="sm" />
+        <Avatar initials={name.slice(0, 1)} src={avatarSrc} size="sm" />
         <div className="text-left hidden sm:block">
           <p className="text-sm font-semibold text-navy leading-tight">{name}</p>
           <p className="text-xs text-gray-400 leading-tight">{roleLabel}</p>

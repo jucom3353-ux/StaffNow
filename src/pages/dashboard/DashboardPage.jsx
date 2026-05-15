@@ -15,11 +15,9 @@ export default function DashboardPage() {
   const { jobs, shifts, invitations } = useAppData()
   const { user } = useAuth()
 
-  const isAdmin   = user?.role === 'ADMIN'
-  const myJobs    = isAdmin ? jobs    : jobs.filter(j => j.createdBy === user?.name)
-  const myJobIds  = new Set(myJobs.map(j => j.id))
-  const myShifts  = isAdmin ? shifts  : shifts.filter(s => myJobIds.has(s.jobId))
-  const myInvites = isAdmin ? invitations : invitations.filter(i => myJobIds.has(i.jobId) || i.sentBy === user?.name)
+  const myJobs    = jobs
+  const myShifts  = shifts
+  const myInvites = invitations
 
   const activeJobsCount      = myJobs.filter(j => j.status === 'active').length
   const scheduledShiftsCount = myShifts.filter(s => s.status === 'scheduled' || s.status === 'in_progress').length

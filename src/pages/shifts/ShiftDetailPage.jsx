@@ -24,8 +24,8 @@ const BACKEND_TO_LOCAL = {
 function transformApplicant(app) {
   return {
     id:          app.id,
-    userId:      app.user?.id,
-    name:        app.user?.name ?? '알 수 없음',
+    userId:      app.workerId,
+    name:        app.workerName ?? '알 수 없음',
     email:       app.user?.email ?? '',
     rating:      app.user?.rating ?? null,
     noShowCount: app.user?.noShowCount ?? 0,
@@ -289,10 +289,11 @@ export default function ShiftDetailPage() {
 
   useEffect(() => {
     async function load() {
+      if (!shift?.jobId) return
       setLoading(true)
       setError(null)
       try {
-        const res = await applicationApi.jobApplicants(id)
+        const res = await applicationApi.jobApplicants(shift.jobId)
         if (!res.ok) throw new Error('지원자 목록을 불러오지 못했습니다.')
         const data = await res.json()
         const list = (Array.isArray(data) ? data : []).map(transformApplicant)
@@ -324,7 +325,7 @@ export default function ShiftDetailPage() {
       }
     }
     load()
-  }, [id])
+  }, [id, shift?.jobId])
 
   // 별표 상태 변경 시 자동 저장 (600ms 디바운스, 초기 렌더 제외)
   useEffect(() => {

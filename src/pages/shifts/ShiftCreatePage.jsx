@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, AlertCircle } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import WheelPicker from '../../components/ui/WheelPicker'
 import { useAppData } from '../../context/AppDataContext'
+import { jobApi } from '../../services/api'
 
 const INITIAL = {
   jobId: '',
@@ -46,25 +47,51 @@ const inputCls = (err) =>
 export default function ShiftCreatePage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { jobs, addShift } = useAppData()
+  const { addShift } = useAppData()
 
   const preselectedJobId = searchParams.get('jobId') ?? ''
   const [form, setForm] = useState({ ...INITIAL, jobId: preselectedJobId })
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
+  const [activeJobs, setActiveJobs] = useState([])
+  const [jobsLoading, setJobsLoading] = useState(true)
 
-  const activeJobs = jobs.filter(j => j.status === 'active')
+  useEffect(() => {
+    jobApi.myList()
+      .then(res => res.ok ? res.json() : [])
+      .then(data => {
+        const list = Array.isArray(data) ? data : []
+        setActiveJobs(list.map(j => ({
+          id: String(j.id),
+          title: j.title ?? '',
+          location: j.workLocation ?? '',
+          startTime: j.startTime ?? '',
+          endTime: j.endTime ?? '',
+          deadline: j.deadline ? String(j.deadline).slice(0, 10) : '',
+        })))
+      })
+      .catch(() => setActiveJobs([]))
+      .finally(() => setJobsLoading(false))
+  }, [])
 
   const set = (key) => (e) => setForm(prev => ({ ...prev, [key]: e.target.value }))
+
+  const selectedJob = form.jobId ? (activeJobs.find(j => j.id === form.jobId) ?? null) : null
 
   function validate() {
     const e = {}
     if (!form.jobId)               e.jobId         = '연결할 공고를 선택하세요'
     if (!form.date)                e.date          = '날짜를 선택하세요'
+    if (selectedJob?.deadline && form.date > selectedJob.deadline)
+                                   e.date          = `공고 마감일(${selectedJob.deadline}) 이전 날짜를 선택하세요`
     if (!form.startTime)           e.startTime     = '시작 시간을 입력하세요'
     if (!form.endTime)             e.endTime       = '종료 시간을 입력하세요'
     if (form.startTime && form.endTime && form.startTime >= form.endTime)
                                    e.endTime       = '종료 시간은 시작 시간 이후여야 합니다'
+    if (selectedJob?.startTime && form.startTime && form.startTime < selectedJob.startTime)
+                                   e.startTime     = `공고 시작 시간(${selectedJob.startTime}) 이후로 설정하세요`
+    if (selectedJob?.endTime && form.endTime && form.endTime > selectedJob.endTime)
+                                   e.endTime       = `공고 종료 시간(${selectedJob.endTime}) 이전으로 설정하세요`
     if (!form.requiredStaff || Number(form.requiredStaff) < 1)
                                    e.requiredStaff = '필요 인원을 1명 이상 입력하세요'
     return e
@@ -107,7 +134,11 @@ export default function ShiftCreatePage() {
           }
         >
           <FormField label="연결 공고" required error={errors.jobId}>
-            {activeJobs.length === 0 ? (
+            {jobsLoading ? (
+              <div className="rounded-lg bg-offwhite-100 border border-offwhite-200 px-4 py-3 text-sm text-gray-400">
+                공고 목록을 불러오는 중...
+              </div>
+            ) : activeJobs.length === 0 ? (
               <div className="rounded-lg bg-offwhite-100 border border-offwhite-200 px-4 py-3 text-sm text-gray-500">
                 진행 중인 공고가 없습니다.{' '}
                 <button
@@ -171,7 +202,11 @@ export default function ShiftCreatePage() {
                 onChange={set('date')}
                 onFocus={() => setErrors(p => ({ ...p, date: '' }))}
                 min={new Date().toISOString().slice(0, 10)}
+                max={selectedJob?.deadline || undefined}
               />
+              {selectedJob?.deadline && (
+                <p className="text-xs text-gray-400 mt-1">공고 마감일: {selectedJob.deadline}까지</p>
+              )}
             </FormField>
 
             <div className="flex items-end gap-3">
@@ -191,6 +226,13 @@ export default function ShiftCreatePage() {
                 />
               </FormField>
             </div>
+
+            {selectedJob?.startTime && selectedJob?.endTime && (
+              <div className="flex items-center gap-2 bg-blue-50 rounded-lg px-3 py-2 text-xs text-blue-600">
+                <span>ℹ️</span>
+                공고 근무 시간: <strong>{selectedJob.startTime} ~ {selectedJob.endTime}</strong> 범위 내로 설정하세요
+              </div>
+            )}
 
             {form.startTime && form.endTime && form.startTime < form.endTime && (
               <div className="flex items-center gap-2 bg-navy-50 rounded-lg px-3 py-2">

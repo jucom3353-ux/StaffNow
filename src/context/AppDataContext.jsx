@@ -3,9 +3,9 @@ import { jobApi } from '../services/api'
 
 const AppDataContext = createContext(null)
 
-const STATUS_FROM_API = { ACTIVE: 'active', DRAFT: 'draft', CLOSED: 'closed', COMPLETED: 'completed', CANCELLED: 'cancelled' }
+const STATUS_FROM_API = { OPEN: 'active', DRAFT: 'draft', CLOSED: 'closed' }
 const WAGE_TYPE_FROM_API = { HOURLY: 'hourly', DAILY: 'daily', MONTHLY: 'fixed', FIXED: 'fixed' }
-const STATUS_TO_API = { active: 'ACTIVE', draft: 'DRAFT', closed: 'CLOSED', completed: 'COMPLETED', cancelled: 'CANCELLED' }
+const STATUS_TO_API = { active: 'OPEN', draft: 'DRAFT', closed: 'CLOSED' }
 const WAGE_TYPE_TO_API = { hourly: 'HOURLY', daily: 'DAILY', fixed: 'MONTHLY' }
 
 function normalizeJob(j) {
@@ -37,7 +37,7 @@ function denormalizeJob(formData, status = 'ACTIVE') {
     workLocation: formData.location ?? '',
     startTime: formData.startTime ?? null,
     endTime: formData.endTime ?? null,
-    breakTime: formData.breakMin ? Number(formData.breakMin) : null,
+    breakTime: formData.breakMin != null ? String(Number(formData.breakMin)) : null,
     wageType: WAGE_TYPE_TO_API[formData.wageType] ?? 'HOURLY',
     wageAmount,
     includeHolidayPay: false,
@@ -53,7 +53,7 @@ function denormalizeJob(formData, status = 'ACTIVE') {
     preferredEtc: null,
     recruitCount: Number(formData.headcount) || 1,
     postStatus: STATUS_TO_API[formData.status] ?? status,
-    category: Array.isArray(formData.categories) ? formData.categories.join(', ') : (formData.category ?? null),
+    category: null,
     deadline: formData.deadline ?? null,
   }
 }
@@ -131,16 +131,17 @@ export function AppDataProvider({ children }) {
 
   const addJob = useCallback(async (formData) => {
     try {
-      const payload = denormalizeJob(formData, 'ACTIVE')
+      const payload = denormalizeJob(formData, 'OPEN')
       const res = await jobApi.create(payload)
       if (!res.ok) {
         addToast({ type: 'error', message: '공고 생성에 실패했습니다' })
         return null
       }
       const updated = await refreshJobs()
-      const newJob = updated[0] ?? null
+      const newJob = updated.length > 0
+        ? updated.reduce((max, j) => Number(j.id) > Number(max.id) ? j : max)
+        : null
       if (newJob) {
-        addToast({ type: 'success', message: `"${formData.title}" 공고가 생성되었습니다` })
         setActivities(prev => [{
           id: Date.now(), type: 'job_created',
           text: `"${formData.title}" 공고가 생성되었습니다`,
@@ -173,12 +174,21 @@ export function AppDataProvider({ children }) {
     return newShift
   }, [jobs, addToast])
 
-  const updateJobStatus = useCallback((jobId, status) => {
+  const updateJobStatus = useCallback(async (jobId, status) => {
     setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status } : j))
-    jobApi.updateStatus(jobId, STATUS_TO_API[status] ?? status.toUpperCase())
-      .catch(() => {})
-    addToast({ type: 'info', message: '공고 상태가 변경되었습니다' })
-  }, [addToast])
+    try {
+      const res = await jobApi.updateStatus(jobId, STATUS_TO_API[status] ?? status.toUpperCase())
+      if (!res.ok) {
+        await refreshJobs()
+        addToast({ type: 'error', message: `공고 상태 변경 실패 (${res.status} — 백엔드 권한을 확인해주세요)` })
+        return
+      }
+      addToast({ type: 'success', message: '공고 상태가 변경되었습니다' })
+    } catch {
+      await refreshJobs()
+      addToast({ type: 'error', message: '공고 상태 변경 중 오류가 발생했습니다' })
+    }
+  }, [addToast, refreshJobs])
 
   const updateJob = useCallback((jobId, formData) => {
     setJobs(prev => prev.map(j => j.id === jobId ? {

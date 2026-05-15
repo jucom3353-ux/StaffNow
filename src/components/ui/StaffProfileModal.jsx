@@ -34,7 +34,16 @@ function getNowLabel(score) {
 }
 
 function Avatar({ name, colorIndex }) {
+  let photoUrl = null
+  try { photoUrl = localStorage.getItem(`staffnow_avatar_${name}`) || null } catch {}
   const bg = AVATAR_COLORS[(colorIndex ?? 0) % AVATAR_COLORS.length]
+  if (photoUrl) {
+    return (
+      <div className="w-16 h-16 rounded-full overflow-hidden shrink-0">
+        <img src={photoUrl} alt="" className="w-full h-full object-cover" />
+      </div>
+    )
+  }
   return (
     <div className={`w-16 h-16 rounded-full ${bg} flex items-center justify-center shrink-0`}>
       <span className="text-white text-2xl font-bold">{name?.[0] ?? '?'}</span>

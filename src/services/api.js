@@ -97,11 +97,14 @@ export const jobApi = {
 }
 
 export const jobSearchApi = {
-  search: ({ title, category, sort, page = 0, size = 20 } = {}) => {
-    const params = new URLSearchParams({ page, size })
+  search: ({ title, workLocation, category, sort, page, size } = {}) => {
+    const params = new URLSearchParams()
     if (title) params.set('title', title)
+    if (workLocation) params.set('workLocation', workLocation)
     if (category) params.set('category', category)
     if (sort) params.set('sort', sort)
+    if (page != null) params.set('page', page)
+    if (size != null) params.set('size', size)
     return request('GET', `/job-posts/search?${params}`)
   },
   get: (id) => request('GET', `/job-posts/${id}`),
@@ -116,4 +119,24 @@ export const applicationApi = {
   reject: (applicationId) => request('PATCH', `/applications/${applicationId}/reject`),
   complete: (applicationId) => request('PATCH', `/applications/${applicationId}/complete`),
   noShow: (applicationId) => request('PATCH', `/applications/${applicationId}/no-show`),
+}
+
+export const bookmarkApi = {
+  add: (jobPostId) => request('POST', `/job-posts/${jobPostId}/bookmark`),
+  remove: (jobPostId) => request('DELETE', `/job-posts/${jobPostId}/bookmark`),
+  myList: () => request('GET', '/job-posts/bookmarks'),
+}
+
+export const contractApi = {
+  myList: () => request('GET', '/contracts'),
+  get: (contractId) => request('GET', `/contracts/${contractId}`),
+  create: (data) => request('POST', '/contracts', data),
+  sign: (contractId) => request('PATCH', `/contracts/${contractId}/sign`),
+  cancel: (contractId) => request('PATCH', `/contracts/${contractId}/cancel`),
+}
+
+export const workAttendanceApi = {
+  checkIn: (applicationId) => request('POST', `/work-attendance/${applicationId}/check-in`),
+  checkOut: (applicationId) => request('POST', `/work-attendance/${applicationId}/check-out`),
+  get: (applicationId) => request('GET', `/work-attendance/${applicationId}`),
 }

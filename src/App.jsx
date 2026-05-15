@@ -41,6 +41,7 @@ import IndividualProfilePage from './pages/individual/IndividualProfilePage'
 import IndividualCompanyPage from './pages/individual/IndividualCompanyPage'
 import IndividualAttendancePage from './pages/individual/IndividualAttendancePage'
 import IndividualPayrollPage from './pages/individual/IndividualPayrollPage'
+import IndividualContractsPage from './pages/individual/IndividualContractsPage'
 
 // Admin portal
 import AdminDashboardPage from './pages/admin/AdminDashboardPage'
@@ -114,6 +115,7 @@ export default function App() {
               <Route path="/individual/company/:name" element={<IndividualCompanyPage />} />
               <Route path="/individual/profile" element={<IndividualProfilePage />} />
               <Route path="/individual/payroll" element={<IndividualPayrollPage />} />
+              <Route path="/individual/contracts" element={<IndividualContractsPage />} />
             </Route>
 
             {/* Admin portal */}

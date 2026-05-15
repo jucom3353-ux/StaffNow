@@ -20,6 +20,16 @@ const TIER_FILTERS = [
   { key: 'new', label: '신규' },
 ]
 
+function getPublicPhotoCount(name) {
+  try { return parseInt(localStorage.getItem(`staffnow_photocount_${name}`) ?? '0', 10) || 0 }
+  catch { return 0 }
+}
+
+function getPublicAvatar(name) {
+  try { return localStorage.getItem(`staffnow_avatar_${name}`) || null }
+  catch { return null }
+}
+
 function getTier(rating) {
   if (rating === null) return 'new'
   if (rating >= 4.5) return 'top'
@@ -64,6 +74,7 @@ function InviteModal({ person, myShifts, onSend, onClose, companyName }) {
   }
 
   const personIdx = MOCK_APPLICANTS.indexOf(person)
+  const inviteAvatarUrl = getPublicAvatar(person.name)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
@@ -89,9 +100,15 @@ function InviteModal({ person, myShifts, onSend, onClose, companyName }) {
           <>
             {/* 대상 스태프 */}
             <div className="flex items-center gap-3 p-3 bg-offwhite rounded-xl">
-              <div className={`w-9 h-9 rounded-full ${AVATAR_COLORS[personIdx % AVATAR_COLORS.length]} flex items-center justify-center shrink-0`}>
-                <span className="text-white text-sm font-bold">{person.name[0]}</span>
-              </div>
+              {inviteAvatarUrl ? (
+                <div className="w-9 h-9 rounded-full overflow-hidden shrink-0">
+                  <img src={inviteAvatarUrl} alt="" className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className={`w-9 h-9 rounded-full ${AVATAR_COLORS[personIdx % AVATAR_COLORS.length]} flex items-center justify-center shrink-0`}>
+                  <span className="text-white text-sm font-bold">{person.name[0]}</span>
+                </div>
+              )}
               <div>
                 <p className="text-sm font-semibold text-navy">{person.name}</p>
                 <p className="text-xs text-gray-400">{person.age}세 · {person.region} · ★{person.rating ?? '신규'}</p>
@@ -217,7 +234,7 @@ export default function StaffRecommendationsPage() {
       (filter === 'new' && getTier(eff) === 'new')
     const searchMatch = !search || p.name.includes(search) || p.region.includes(search)
     return tierMatch && searchMatch
-  })
+  }).sort((a, b) => getPublicPhotoCount(b.name) - getPublicPhotoCount(a.name))
 
   function handleSend(data) {
     addInvitation(data)
@@ -293,18 +310,31 @@ export default function StaffRecommendationsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {visible.map((person, idx) => {
             const effectiveRating = getAverageRating(person.name) ?? person.rating
+            const isBoosted = getPublicPhotoCount(person.name) >= 5
+            const avatarUrl = getPublicAvatar(person.name)
             return (
               <Card key={person.id}>
                 <div
                   className="flex items-start gap-3 cursor-pointer"
                   onClick={() => { setProfileTarget(person); setProfileColorIdx(idx) }}
                 >
-                  <div className={`w-10 h-10 rounded-full ${AVATAR_COLORS[idx % AVATAR_COLORS.length]} flex items-center justify-center shrink-0`}>
-                    <span className="text-white text-sm font-bold">{person.name[0]}</span>
-                  </div>
+                  {avatarUrl ? (
+                    <div className="w-10 h-10 rounded-full overflow-hidden shrink-0">
+                      <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className={`w-10 h-10 rounded-full ${AVATAR_COLORS[idx % AVATAR_COLORS.length]} flex items-center justify-center shrink-0`}>
+                      <span className="text-white text-sm font-bold">{person.name[0]}</span>
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1">
-                      <p className="font-semibold text-navy text-sm hover:underline">{person.name}</p>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="font-semibold text-navy text-sm hover:underline truncate">{person.name}</p>
+                        {isBoosted && (
+                          <span className="shrink-0 text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">📷 부스트</span>
+                        )}
+                      </div>
                       {effectiveRating !== null && (
                         <span className="text-xs text-yellow-600 font-semibold shrink-0">★{effectiveRating}</span>
                       )}
