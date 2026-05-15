@@ -95,3 +95,25 @@ export const jobApi = {
   updateStatus: (id, status) => request('PATCH', `/job-posts/${id}/status?postStatus=${status}`),
   delete: (id) => request('DELETE', `/job-posts/${id}`),
 }
+
+export const jobSearchApi = {
+  search: ({ title, category, sort, page = 0, size = 20 } = {}) => {
+    const params = new URLSearchParams({ page, size })
+    if (title) params.set('title', title)
+    if (category) params.set('category', category)
+    if (sort) params.set('sort', sort)
+    return request('GET', `/job-posts/search?${params}`)
+  },
+  get: (id) => request('GET', `/job-posts/${id}`),
+}
+
+export const applicationApi = {
+  apply: (jobPostId) => request('POST', `/applications/${jobPostId}`),
+  cancel: (applicationId) => request('DELETE', `/applications/${applicationId}`),
+  myList: () => request('GET', '/applications/my'),
+  jobApplicants: (jobPostId) => request('GET', `/applications/job-posts/${jobPostId}`),
+  approve: (applicationId) => request('PATCH', `/applications/${applicationId}/approve`),
+  reject: (applicationId) => request('PATCH', `/applications/${applicationId}/reject`),
+  complete: (applicationId) => request('PATCH', `/applications/${applicationId}/complete`),
+  noShow: (applicationId) => request('PATCH', `/applications/${applicationId}/no-show`),
+}

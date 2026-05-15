@@ -1,22 +1,67 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ClipboardList, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { useIndividualData } from '../../hooks/useIndividualData'
+import { applicationApi } from '../../services/api'
 
 const STATUS_CONFIG = {
-  pending:  { label: '검토 중', color: 'bg-yellow-100 text-yellow-700' },
-  accepted: { label: '합격',    color: 'bg-green-100 text-green-700' },
-  rejected: { label: '불합격',  color: 'bg-red-100 text-red-700' },
+  APPLIED:   { label: '검토 중', color: 'bg-yellow-100 text-yellow-700' },
+  APPROVED:  { label: '합격',    color: 'bg-green-100 text-green-700' },
+  REJECTED:  { label: '불합격',  color: 'bg-red-100 text-red-700' },
+  COMPLETED: { label: '완료',    color: 'bg-blue-100 text-blue-700' },
+  NO_SHOW:   { label: '노쇼',    color: 'bg-gray-100 text-gray-500' },
 }
 
 export default function IndividualApplicationsPage() {
   const navigate = useNavigate()
-  const { applications, cancelApplication } = useIndividualData()
-  const [confirmId, setConfirmId] = useState(null)
+  const [applications, setApplications] = useState([])
+  const [loading,      setLoading]      = useState(false)
+  const [error,        setError]        = useState(null)
+  const [confirmId,    setConfirmId]    = useState(null)
 
-  function handleCancel(appId) {
-    cancelApplication(appId)
-    setConfirmId(null)
+  useEffect(() => {
+    fetchApplications()
+  }, [])
+
+  async function fetchApplications() {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await applicationApi.myList()
+      if (!res.ok) throw new Error('지원 내역을 불러오지 못했습니다.')
+      const data = await res.json()
+      setApplications(Array.isArray(data) ? data : [])
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleCancel(applicationId) {
+    try {
+      const res = await applicationApi.cancel(applicationId)
+      if (!res.ok) throw new Error('지원 취소에 실패했습니다.')
+      setApplications(prev => prev.filter(a => a.id !== applicationId))
+      setConfirmId(null)
+    } catch (e) {
+      alert(e.message)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="text-center py-16 text-gray-400">
+        <p className="text-sm">지원 내역을 불러오는 중...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-16 text-gray-400">
+        <p className="text-sm text-red-400">{error}</p>
+      </div>
+    )
   }
 
   return (
@@ -41,9 +86,10 @@ export default function IndividualApplicationsPage() {
       ) : (
         <div className="space-y-3">
           {applications.map(app => {
-            const s = STATUS_CONFIG[app.status] ?? STATUS_CONFIG.pending
-            const isPending = app.status === 'pending'
+            const s = STATUS_CONFIG[app.status] ?? STATUS_CONFIG.APPLIED
+            const isPending = app.status === 'APPLIED'
             const isConfirming = confirmId === app.id
+            const appliedAt = app.createdAt ? app.createdAt.substring(0, 10) : ''
 
             return (
               <div key={app.id} className="bg-white rounded-2xl border border-offwhite-200 p-5">
@@ -53,9 +99,9 @@ export default function IndividualApplicationsPage() {
                       <ClipboardList size={18} className="text-navy" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-navy truncate">{app.jobTitle}</p>
-                      <p className="text-sm text-gray-500">{app.company}</p>
-                      <p className="text-xs text-gray-400 mt-1">지원일 {app.appliedAt}</p>
+                      <p className="font-semibold text-navy truncate">{app.jobPost?.title}</p>
+                      <p className="text-sm text-gray-500">{app.jobPost?.companyName}</p>
+                      <p className="text-xs text-gray-400 mt-1">지원일 {appliedAt}</p>
                     </div>
                   </div>
 
@@ -75,7 +121,6 @@ export default function IndividualApplicationsPage() {
                   </div>
                 </div>
 
-                {/* 취소 확인 */}
                 {isConfirming && (
                   <div className="mt-3 pt-3 border-t border-offwhite-200 flex items-center justify-between gap-3">
                     <p className="text-xs text-gray-500">정말 지원을 취소하시겠습니까?</p>

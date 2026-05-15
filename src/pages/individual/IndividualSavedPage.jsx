@@ -1,13 +1,57 @@
+import { useState, useEffect } from 'react'
 import { Heart, MapPin, Clock, Bookmark } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { RECOMMENDED_JOBS } from '../../data/mockIndividual'
 import { useIndividualData } from '../../hooks/useIndividualData'
+import { jobSearchApi } from '../../services/api'
+
+const WAGE_LABEL = { HOURLY: '시급', DAILY: '일급', MONTHLY: '월급', FIXED: '고정급' }
+
+function transformJob(data) {
+  return {
+    id:       data.id,
+    title:    data.title,
+    company:  data.companyName,
+    location: data.workLocation,
+    wage:     `${WAGE_LABEL[data.wageType] || '시급'} ${(data.wageAmount || 0).toLocaleString()}원`,
+    deadline: data.deadline ? data.deadline.substring(0, 10) : '',
+  }
+}
 
 export default function IndividualSavedPage() {
   const navigate = useNavigate()
   const { savedJobIds, toggleSave } = useIndividualData()
+  const [saved,   setSaved]   = useState([])
+  const [loading, setLoading] = useState(false)
 
-  const saved = RECOMMENDED_JOBS.filter(j => savedJobIds.includes(j.id))
+  const savedKey = savedJobIds.join(',')
+
+  useEffect(() => {
+    if (savedJobIds.length === 0) {
+      setSaved([])
+      return
+    }
+    setLoading(true)
+    Promise.all(
+      savedJobIds.map(id =>
+        jobSearchApi.get(id).then(r => r.ok ? r.json() : null).catch(() => null)
+      )
+    ).then(results => {
+      setSaved(results.filter(Boolean).map(transformJob))
+    }).finally(() => setLoading(false))
+  }, [savedKey])
+
+  if (loading) {
+    return (
+      <div className="space-y-5">
+        <div>
+          <h1 className="text-2xl font-bold text-navy">관심 공고</h1>
+        </div>
+        <div className="text-center py-16 text-gray-400">
+          <p className="text-sm">관심 공고를 불러오는 중...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-5">
@@ -42,7 +86,7 @@ export default function IndividualSavedPage() {
                 <div className="text-right shrink-0">
                   <p className="font-bold text-orange">{job.wage}</p>
                   <button
-                    onClick={e => { e.stopPropagation(); toggleSave(job.id) }}
+                    onClick={e => { e.stopPropagation(); toggleSave(String(job.id)) }}
                     className="mt-2 p-1.5 text-orange hover:text-gray-400 transition-colors"
                   >
                     <Bookmark size={18} fill="currentColor" />

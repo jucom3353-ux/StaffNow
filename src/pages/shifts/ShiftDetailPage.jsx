@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   Star, ChevronLeft, ChevronRight, X,
@@ -11,7 +11,33 @@ import StatusBadge from '../../components/ui/StatusBadge'
 import EmptyState from '../../components/ui/EmptyState'
 import StaffProfileModal from '../../components/ui/StaffProfileModal'
 import { useAppData } from '../../context/AppDataContext'
-import { MOCK_APPLICANTS } from '../../data/mockApplicants'
+import { applicationApi } from '../../services/api'
+
+const BACKEND_TO_LOCAL = {
+  APPLIED:   'pending',
+  APPROVED:  'hired',
+  REJECTED:  'rejected',
+  COMPLETED: 'hired',
+  NO_SHOW:   'rejected',
+}
+
+function transformApplicant(app) {
+  return {
+    id:          app.id,
+    userId:      app.user?.id,
+    name:        app.user?.name ?? '알 수 없음',
+    email:       app.user?.email ?? '',
+    rating:      app.user?.rating ?? null,
+    noShowCount: app.user?.noShowCount ?? 0,
+    age:         null,
+    gender:      null,
+    region:      null,
+    hireCount:   null,
+    joinedAt:    null,
+    status:      BACKEND_TO_LOCAL[app.status] ?? 'pending',
+    pinned:      false,
+  }
+}
 
 // ── 별점 표시 ────────────────────────────────────────────
 function StarRating({ rating, size = 11 }) {
@@ -53,7 +79,7 @@ const STATUS_CFG = {
   rejected: { label: '거절',      cls: 'text-red-500 bg-red-50 border-red-200' },
 }
 function StatusChip({ status }) {
-  const cfg = STATUS_CFG[status]
+  const cfg = STATUS_CFG[status] ?? STATUS_CFG.pending
   return (
     <span className={`inline-flex text-xs font-semibold px-2.5 py-1 rounded-full border ${cfg.cls}`}>
       {cfg.label}
@@ -85,7 +111,7 @@ function ConfirmModal({ type, hiredCount, requiredStaff, onConfirm, onCancel }) 
 
         {isReset && (
           <p className="text-sm text-gray-600">
-            모든 채용·거절 결정과 별표 고정이 초기화되며 저장된 데이터도 삭제됩니다. 계속하시겠습니까?
+            모든 별표 고정이 초기화되며 저장된 데이터도 삭제됩니다. 계속하시겠습니까?
           </p>
         )}
         {!isReset && isUnder && (
@@ -136,13 +162,6 @@ function SideDrawer({ applicant, index, onClose, onPin, onHire, onReject, onView
     applicant.rating >= 4.0 ? '양호' :
     applicant.rating >= 3.5 ? '보통' : '주의'
 
-  const distanceNote =
-    applicant.region.includes('강남') || applicant.region.includes('서초') || applicant.region.includes('송파')
-      ? '근무지와 가까운 편 (30분 이내 예상)' :
-    applicant.region.includes('경기')
-      ? '다소 거리 있음 (1시간+ 예상)'
-      : '이동 가능 거리 (약 40–60분 예상)'
-
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
@@ -162,27 +181,8 @@ function SideDrawer({ applicant, index, onClose, onPin, onHire, onReject, onView
                 <h2 className="text-lg font-bold text-navy">{applicant.name}</h2>
                 {applicant.pinned && <Star size={15} className="text-yellow-400" fill="currentColor" />}
               </div>
-              <p className="text-sm text-gray-500 mt-0.5">
-                {applicant.age}세 · {applicant.gender} · {applicant.region}
-              </p>
+              <p className="text-sm text-gray-500 mt-0.5">{applicant.email}</p>
               <div className="mt-1.5"><StatusChip status={applicant.status} /></div>
-            </div>
-          </div>
-
-          <div className="bg-offwhite rounded-xl p-4">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">기본 정보</p>
-            <div className="space-y-2">
-              {[
-                { label: '나이',     value: `${applicant.age}세` },
-                { label: '성별',     value: applicant.gender === '여' ? '여성' : '남성' },
-                { label: '거주 지역', value: applicant.region },
-                { label: '가입일',   value: applicant.joinedAt.replace('-', '.') },
-              ].map(r => (
-                <div key={r.label} className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">{r.label}</span>
-                  <span className="font-semibold text-navy">{r.value}</span>
-                </div>
-              ))}
             </div>
           </div>
 
@@ -205,32 +205,11 @@ function SideDrawer({ applicant, index, onClose, onPin, onHire, onReject, onView
                 </div>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">총 고용 횟수</span>
-                <span className="font-bold text-navy">
-                  {applicant.hireCount > 0 ? `${applicant.hireCount}회` : '없음 (신규)'}
+                <span className="text-gray-500">노쇼 횟수</span>
+                <span className={`font-bold ${applicant.noShowCount > 0 ? 'text-red-500' : 'text-green-600'}`}>
+                  {applicant.noShowCount > 0 ? `${applicant.noShowCount}회` : '없음'}
                 </span>
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">경력 등급</span>
-                <span className={`font-bold
-                  ${applicant.hireCount >= 15 ? 'text-orange' :
-                    applicant.hireCount >= 5  ? 'text-blue-600' :
-                    applicant.hireCount >= 1  ? 'text-gray-600' : 'text-gray-400'}`}>
-                  {applicant.hireCount >= 15 ? '🏆 베테랑' :
-                   applicant.hireCount >= 5  ? '⭐ 숙련' :
-                   applicant.hireCount >= 1  ? '📋 초보' : '🆕 신규'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-blue-50 rounded-xl p-3.5 flex items-start gap-2.5">
-            <MapPin size={14} className="text-blue-500 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-xs font-semibold text-blue-700">거주지 참고</p>
-              <p className="text-xs text-blue-600 mt-0.5">
-                {applicant.region} 거주 — {distanceNote}
-              </p>
             </div>
           </div>
         </div>
@@ -294,64 +273,68 @@ export default function ShiftDetailPage() {
   const { shifts, finalizeShift, addToast } = useAppData()
   const shift = shifts.find(s => s.id === id)
 
-  const STORAGE_KEY = `staffnow_shift_${id}`
+  const STORAGE_KEY = `staffnow_shift_${id}_pinned`
 
-  const baseApplicants = useMemo(() => {
-    if (!shift?.applicantIds?.length) return []
-    return MOCK_APPLICANTS
-      .filter(a => shift.applicantIds.includes(a.id))
-      .map(a => ({ ...a, pinned: false, status: 'pending' }))
-  }, [shift?.id])
-
-  const [applicants, setApplicants] = useState(baseApplicants)
-  const [sortBy,   setSortBy]   = useState('default')
-  const [filterBy, setFilterBy] = useState('all')
+  const [applicants, setApplicants] = useState([])
+  const [loading,    setLoading]    = useState(true)
+  const [error,      setError]      = useState(null)
+  const [sortBy,     setSortBy]     = useState('default')
+  const [filterBy,   setFilterBy]   = useState('all')
   const [drawerApplicantId, setDrawerApplicantId] = useState(null)
-  const [profileTarget, setProfileTarget] = useState(null)
-  const [profileColorIdx, setProfileColorIdx] = useState(0)
-  const [modal, setModal] = useState(null) // 'reset' | 'finalize' | null
+  const [profileTarget,     setProfileTarget]     = useState(null)
+  const [profileColorIdx,   setProfileColorIdx]   = useState(0)
+  const [modal, setModal] = useState(null)
 
-  const initialized  = useRef(false)
-  const isFirstSave  = useRef(true)
+  const isFirstSave = useRef(true)
 
-  // 마운트 시 이전 작업 복원 (우선순위: 임시저장 > 확정 데이터 > 초기값)
   useEffect(() => {
-    if (initialized.current || !baseApplicants.length) return
-    initialized.current = true
+    async function load() {
+      setLoading(true)
+      setError(null)
+      try {
+        const res = await applicationApi.jobApplicants(id)
+        if (!res.ok) throw new Error('지원자 목록을 불러오지 못했습니다.')
+        const data = await res.json()
+        const list = (Array.isArray(data) ? data : []).map(transformApplicant)
 
-    // 1순위: 임시 저장 데이터
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        const { states } = JSON.parse(saved)
-        if (Array.isArray(states)) {
-          setApplicants(prev => prev.map(a => {
-            const s = states.find(x => x.id === a.id)
-            return s ? { ...a, pinned: s.pinned, status: s.status } : a
+        // 로컬 저장된 별표 고정 복원
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY)
+          if (saved) {
+            const pinnedMap = JSON.parse(saved)
+            setApplicants(list.map(a => ({ ...a, pinned: !!pinnedMap[a.id] })))
+            return
+          }
+        } catch {}
+
+        // context 확정 데이터로 별표 복원
+        if (shift?.applicantStates?.length) {
+          setApplicants(list.map(a => {
+            const s = shift.applicantStates.find(x => x.id === a.id)
+            return s ? { ...a, pinned: s.pinned } : a
           }))
           return
         }
+
+        setApplicants(list)
+      } catch (e) {
+        setError(e.message)
+      } finally {
+        setLoading(false)
       }
-    } catch {}
-
-    // 2순위: 확정 저장 데이터 (context에서 shift.applicantStates로 복원)
-    if (shift?.applicantStates?.length) {
-      setApplicants(prev => prev.map(a => {
-        const s = shift.applicantStates.find(x => x.id === a.id)
-        return s ? { ...a, pinned: s.pinned, status: s.status } : a
-      }))
     }
-  }, [baseApplicants, STORAGE_KEY, shift?.applicantStates])
+    load()
+  }, [id])
 
-  // 상태 변경 시 자동 저장 (600ms 디바운스, 초기 렌더 제외)
+  // 별표 상태 변경 시 자동 저장 (600ms 디바운스, 초기 렌더 제외)
   useEffect(() => {
     if (isFirstSave.current) { isFirstSave.current = false; return }
+    if (applicants.length === 0) return
     const timer = setTimeout(() => {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({
-          states: applicants.map(a => ({ id: a.id, pinned: a.pinned, status: a.status })),
-          savedAt: Date.now(),
-        }))
+        const pinnedMap = {}
+        applicants.forEach(a => { if (a.pinned) pinnedMap[a.id] = true })
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(pinnedMap))
       } catch {}
     }, 600)
     return () => clearTimeout(timer)
@@ -361,6 +344,22 @@ export default function ShiftDetailPage() {
     <EmptyState icon={Calendar} title="Shift를 찾을 수 없습니다"
       action={{ label: 'Shift 목록', to: '/shifts' }} />
   )
+
+  if (loading) {
+    return (
+      <div className="text-center py-16 text-gray-400">
+        <p className="text-sm">지원자 정보를 불러오는 중...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-16">
+        <p className="text-sm text-red-400">{error}</p>
+      </div>
+    )
+  }
 
   const hiredCount    = applicants.filter(a => a.status === 'hired').length
   const rejectedCount = applicants.filter(a => a.status === 'rejected').length
@@ -383,8 +382,20 @@ export default function ShiftDetailPage() {
   function togglePin(appId) {
     setApplicants(prev => prev.map(a => a.id === appId ? { ...a, pinned: !a.pinned } : a))
   }
-  function setStatus(appId, status) {
-    setApplicants(prev => prev.map(a => a.id === appId ? { ...a, status } : a))
+
+  async function setStatus(appId, newStatus) {
+    try {
+      if (newStatus === 'hired') {
+        const res = await applicationApi.approve(appId)
+        if (!res.ok) throw new Error('채용 확정에 실패했습니다.')
+      } else if (newStatus === 'rejected') {
+        const res = await applicationApi.reject(appId)
+        if (!res.ok) throw new Error('거절에 실패했습니다.')
+      }
+      setApplicants(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus } : a))
+    } catch (e) {
+      addToast({ type: 'error', message: e.message })
+    }
   }
 
   const drawerApplicant = drawerApplicantId
@@ -396,19 +407,18 @@ export default function ShiftDetailPage() {
   const isComplete = hiredCount >= shift.requiredStaff
 
   function handleReset() {
-    setApplicants(baseApplicants.map(a => ({ ...a })))
+    setApplicants(prev => prev.map(a => ({ ...a, pinned: false })))
     isFirstSave.current = false
     localStorage.removeItem(STORAGE_KEY)
     setModal(null)
-    addToast({ type: 'info', message: '선택이 초기화되었습니다' })
+    addToast({ type: 'info', message: '별표 고정이 초기화되었습니다' })
   }
 
   function handleSave() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        states: applicants.map(a => ({ id: a.id, pinned: a.pinned, status: a.status })),
-        savedAt: Date.now(),
-      }))
+      const pinnedMap = {}
+      applicants.forEach(a => { if (a.pinned) pinnedMap[a.id] = true })
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(pinnedMap))
       addToast({ type: 'success', message: '임시 저장되었습니다' })
     } catch {
       addToast({ type: 'error', message: '저장에 실패했습니다' })
@@ -425,7 +435,6 @@ export default function ShiftDetailPage() {
 
   return (
     <div className="space-y-5 max-w-5xl pb-24">
-      {/* 뒤로가기 */}
       <Link to="/shifts" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-navy transition-colors">
         <ChevronLeft size={16} />목록으로
       </Link>
@@ -471,7 +480,6 @@ export default function ShiftDetailPage() {
             </div>
           </div>
 
-          {/* 오른쪽: [지원] 총수 + [확정] 핵심 지표 */}
           <div className="grid grid-cols-2 md:flex md:flex-col md:items-end gap-3 md:gap-3 shrink-0 pt-1 md:pt-0 border-t border-offwhite-100 md:border-0">
             <div className="md:text-right">
               <div className="flex items-center gap-1.5 md:justify-end">
@@ -516,9 +524,7 @@ export default function ShiftDetailPage() {
       {/* ── 지원자 선별 섹션 ──────────────────────────────── */}
       {applicants.length > 0 ? (
         <div className="space-y-3">
-          {/* 컨트롤 바 */}
           <div className="space-y-2">
-            {/* 정렬 */}
             <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-0.5">
               <ArrowUpDown size={14} className="text-gray-400 shrink-0" />
               <span className="text-xs text-gray-500 font-medium mr-0.5 shrink-0">정렬</span>
@@ -537,7 +543,6 @@ export default function ShiftDetailPage() {
               ))}
             </div>
 
-            {/* 필터 */}
             <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-0.5">
               <SlidersHorizontal size={14} className="text-gray-400 shrink-0" />
               <span className="text-xs text-gray-500 font-medium mr-0.5 shrink-0">필터</span>
@@ -562,7 +567,6 @@ export default function ShiftDetailPage() {
             </div>
           </div>
 
-          {/* 지원자 카드 리스트 */}
           <Card padding={false}>
             {sortedFiltered.length === 0 ? (
               <div className="py-10 text-center text-sm text-gray-400">해당 조건의 지원자가 없습니다.</div>
@@ -578,7 +582,6 @@ export default function ShiftDetailPage() {
                           a.status === 'rejected' ? 'bg-red-50/30'   : 'hover:bg-offwhite-100/60'}
                         ${a.pinned ? 'border-l-2 border-yellow-400' : 'border-l-2 border-transparent'}`}
                     >
-                      {/* 별표 (모바일에서 숨김) */}
                       <button
                         onClick={() => togglePin(a.id)}
                         className={`shrink-0 transition-colors hidden sm:block ${
@@ -593,7 +596,6 @@ export default function ShiftDetailPage() {
                         <Avatar name={a.name} index={origIdx} />
                       </button>
 
-                      {/* 이름·정보 */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {a.pinned && (
@@ -603,19 +605,17 @@ export default function ShiftDetailPage() {
                             onClick={() => { setProfileTarget(a); setProfileColorIdx(origIdx) }}
                             className="font-semibold text-navy text-sm truncate hover:underline"
                           >{a.name}</button>
-                          <span className="text-xs text-gray-400 whitespace-nowrap">{a.age}세 · {a.gender}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
                           <StarRating rating={a.rating} />
-                          <span className={`text-xs font-semibold hidden sm:inline
-                            ${a.hireCount >= 15 ? 'text-orange' :
-                              a.hireCount >= 5  ? 'text-blue-600' : 'text-gray-400'}`}>
-                            고용 {a.hireCount}회
-                          </span>
+                          {a.noShowCount > 0 && (
+                            <span className="text-xs font-semibold text-red-400 hidden sm:inline">
+                              노쇼 {a.noShowCount}회
+                            </span>
+                          )}
                         </div>
                       </div>
 
-                      {/* 상태 버튼 */}
                       <div className="flex items-center gap-1.5 shrink-0">
                         {a.status === 'pending' ? (
                           <>
@@ -633,15 +633,7 @@ export default function ShiftDetailPage() {
                             </button>
                           </>
                         ) : (
-                          <div className="flex items-center gap-1">
-                            <StatusChip status={a.status} />
-                            <button
-                              onClick={() => setStatus(a.id, 'pending')}
-                              className="text-xs text-gray-400 hover:text-navy transition-colors underline"
-                            >
-                              취소
-                            </button>
-                          </div>
+                          <StatusChip status={a.status} />
                         )}
                       </div>
 
@@ -704,7 +696,6 @@ export default function ShiftDetailPage() {
       {applicants.length > 0 && (
         <div className="sticky bottom-0 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2.5 bg-white border-t border-offwhite-200 shadow-[0_-2px_12px_rgba(27,43,72,0.08)]">
           <div className="max-w-5xl flex items-center justify-between gap-2">
-            {/* 왼쪽 현황 */}
             <div className="flex items-center gap-1.5 text-xs text-gray-400 min-w-0">
               <span className="tabular-nums font-medium whitespace-nowrap">
                 확정 <strong className={isComplete ? 'text-green-600' : 'text-navy'}>{hiredCount}</strong>/{shift.requiredStaff}명
@@ -713,7 +704,6 @@ export default function ShiftDetailPage() {
                 <span className="hidden sm:inline whitespace-nowrap">· 미결정 {pendingCount}명</span>
               )}
             </div>
-            {/* 오른쪽 버튼 */}
             <div className="flex items-center gap-1.5 shrink-0">
               <button
                 onClick={() => setModal('reset')}
@@ -739,7 +729,6 @@ export default function ShiftDetailPage() {
         </div>
       )}
 
-      {/* 사이드 드로워 */}
       {profileTarget && (
         <StaffProfileModal
           person={profileTarget}
@@ -759,7 +748,6 @@ export default function ShiftDetailPage() {
         />
       )}
 
-      {/* 확인 모달 */}
       {modal && (
         <ConfirmModal
           type={modal}
