@@ -101,6 +101,7 @@ public class ApplicationService {
                 .map(a -> new ApplicationResponseDto(
                         a.getId(),
                         a.getUser().getName(),
+                        a.getUser().getId(),
                         a.getStatus().name()
                 ))
                 .collect(Collectors.toList());

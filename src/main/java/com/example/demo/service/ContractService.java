@@ -50,6 +50,7 @@ public class ContractService {
         contract.setWorker(worker);
         contract.setContractStartDate(requestDto.getContractStartDate());
         contract.setContractEndDate(requestDto.getContractEndDate());
+        contract.setCompanySignedAt(LocalDateTime.now());
         contract.setStatus(ContractStatus.PENDING);
 
         contractRepository.save(contract);
