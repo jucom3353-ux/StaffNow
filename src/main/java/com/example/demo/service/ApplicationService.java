@@ -29,7 +29,7 @@ public class ApplicationService {
     @Transactional
     public void apply(Long jobPostId, User loginUser) {
 
-        if (loginUser.getRole() != Role.USER) {
+        if (loginUser.getRole() != Role.INDIVIDUAL) {
             throw new RuntimeException("구직자만 지원할 수 있습니다.");
         }
 
@@ -59,11 +59,18 @@ public class ApplicationService {
     public List<ApplicationResponseDto> getMyApplications(User loginUser) {
         return applicationRepository.findAll().stream()
                 .filter(a -> a.getUser().getId().equals(loginUser.getId()))
-                .map(a -> new ApplicationResponseDto(
-                        a.getId(),
-                        a.getJobPost().getTitle(),
-                        a.getStatus().name()
-                ))
+                .map(a -> {
+                    com.example.demo.entity.User company = a.getJobPost().getUser();
+                    String cn = company.getCompanyName();
+                    String companyDisplay = (cn != null && !cn.isBlank()) ? cn : company.getName();
+                    return new ApplicationResponseDto(
+                            a.getId(),
+                            a.getJobPost().getId(),
+                            a.getJobPost().getTitle(),
+                            companyDisplay,
+                            a.getStatus().name()
+                    );
+                })
                 .collect(Collectors.toList());
     }
 

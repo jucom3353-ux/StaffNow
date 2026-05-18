@@ -40,8 +40,14 @@ public class ContractService {
         User worker = userRepository.findById(requestDto.getWorkerId())
                 .orElseThrow(() -> new RuntimeException("근로자 없음"));
 
-        if (worker.getRole() != Role.USER) {
+        if (worker.getRole() != Role.INDIVIDUAL) {
             throw new RuntimeException("구직자만 계약 대상이 될 수 있습니다.");
+        }
+
+        boolean alreadyExists = contractRepository.existsByJobPostAndWorkerAndStatusNot(
+                jobPost, worker, ContractStatus.CANCELLED);
+        if (alreadyExists) {
+            throw new RuntimeException("이미 해당 근로자에게 계약서가 발송되어 있습니다.");
         }
 
         Contract contract = new Contract();
@@ -50,6 +56,13 @@ public class ContractService {
         contract.setWorker(worker);
         contract.setContractStartDate(requestDto.getContractStartDate());
         contract.setContractEndDate(requestDto.getContractEndDate());
+        contract.setWorkType(requestDto.getWorkType());
+        contract.setWageType(requestDto.getWageType());
+        contract.setWageAmount(requestDto.getWageAmount());
+        contract.setWorkLocation(requestDto.getWorkLocation());
+        contract.setStartTime(requestDto.getStartTime());
+        contract.setEndTime(requestDto.getEndTime());
+        contract.setBreakTime(requestDto.getBreakTime());
         contract.setCompanySignedAt(LocalDateTime.now());
         contract.setStatus(ContractStatus.PENDING);
 

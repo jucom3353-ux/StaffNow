@@ -32,15 +32,23 @@ public class ContractResponseDto {
         this.id = contract.getId();
         this.jobPostId = contract.getJobPost().getId();
         this.jobPostTitle = contract.getJobPost().getTitle();
-        this.workLocation = contract.getJobPost().getWorkLocation();
-        this.workType = contract.getJobPost().getWorkType();
-        this.startTime = contract.getJobPost().getStartTime();
-        this.endTime = contract.getJobPost().getEndTime();
-        this.breakTime = contract.getJobPost().getBreakTime();
-        this.wageType = contract.getJobPost().getWageType() != null
-                ? contract.getJobPost().getWageType().name() : null;
-        this.wageAmount = contract.getJobPost().getWageAmount();
-        this.companyName = contract.getCompany().getCompanyName();
+        this.workLocation = contract.getWorkLocation() != null
+                ? contract.getWorkLocation() : contract.getJobPost().getWorkLocation();
+        this.workType = contract.getWorkType() != null
+                ? contract.getWorkType() : contract.getJobPost().getWorkType();
+        this.startTime = contract.getStartTime() != null
+                ? contract.getStartTime() : contract.getJobPost().getStartTime();
+        this.endTime = contract.getEndTime() != null
+                ? contract.getEndTime() : contract.getJobPost().getEndTime();
+        this.breakTime = contract.getBreakTime() != null
+                ? contract.getBreakTime() : contract.getJobPost().getBreakTime();
+        this.wageType = contract.getWageType() != null
+                ? contract.getWageType()
+                : (contract.getJobPost().getWageType() != null ? contract.getJobPost().getWageType().name() : null);
+        this.wageAmount = contract.getWageAmount() != null
+                ? contract.getWageAmount() : contract.getJobPost().getWageAmount();
+        String cn = contract.getCompany().getCompanyName();
+        this.companyName = (cn != null && !cn.isBlank()) ? cn : contract.getCompany().getName();
         this.workerName = contract.getWorker().getName();
         this.contractStartDate = contract.getContractStartDate();
         this.contractEndDate = contract.getContractEndDate();

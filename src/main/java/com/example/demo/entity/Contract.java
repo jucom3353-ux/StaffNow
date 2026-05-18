@@ -30,6 +30,15 @@ public class Contract {
     private String contractStartDate;
     private String contractEndDate;
 
+    // 계약서 작성 시 입력한 근무 조건 (공고 기본값 override)
+    private String workType;
+    private String wageType;
+    private Integer wageAmount;
+    private String workLocation;
+    private String startTime;
+    private String endTime;
+    private String breakTime;
+
     // 계약 상태
     @Enumerated(EnumType.STRING)
     private ContractStatus status = ContractStatus.PENDING;
@@ -67,4 +76,20 @@ public class Contract {
     public void setStatus(ContractStatus status) { this.status = status; }
     public void setCompanySignedAt(LocalDateTime companySignedAt) { this.companySignedAt = companySignedAt; }
     public void setWorkerSignedAt(LocalDateTime workerSignedAt) { this.workerSignedAt = workerSignedAt; }
+
+    public String getWorkType() { return workType; }
+    public String getWageType() { return wageType; }
+    public Integer getWageAmount() { return wageAmount; }
+    public String getWorkLocation() { return workLocation; }
+    public String getStartTime() { return startTime; }
+    public String getEndTime() { return endTime; }
+    public String getBreakTime() { return breakTime; }
+
+    public void setWorkType(String workType) { this.workType = workType; }
+    public void setWageType(String wageType) { this.wageType = wageType; }
+    public void setWageAmount(Integer wageAmount) { this.wageAmount = wageAmount; }
+    public void setWorkLocation(String workLocation) { this.workLocation = workLocation; }
+    public void setStartTime(String startTime) { this.startTime = startTime; }
+    public void setEndTime(String endTime) { this.endTime = endTime; }
+    public void setBreakTime(String breakTime) { this.breakTime = breakTime; }
 }
