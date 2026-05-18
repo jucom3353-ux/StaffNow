@@ -1,0 +1,15 @@
+export const STATUS_CONFIG = {
+  draft:       { label: '초안',      bg: 'bg-gray-100',        text: 'text-gray-600'   },
+  active:      { label: '모집 중',   bg: 'bg-green-100',       text: 'text-green-700'  },
+  closed:      { label: '마감',      bg: 'bg-navy-50',         text: 'text-navy-700'   },
+  cancelled:   { label: '취소',      bg: 'bg-red-100',         text: 'text-red-700'    },
+  pending:     { label: '대기 중',   bg: 'bg-yellow-100',      text: 'text-yellow-700' },
+  accepted:    { label: '수락',      bg: 'bg-green-100',       text: 'text-green-700'  },
+  rejected:    { label: '거절',      bg: 'bg-red-100',         text: 'text-red-700'    },
+  confirmed:   { label: '확정',      bg: 'bg-orange-50',       text: 'text-orange-700' },
+  scheduled:   { label: '예정',      bg: 'bg-blue-100',        text: 'text-blue-700'   },
+  in_progress: { label: '진행 중',   bg: 'bg-orange-50',       text: 'text-orange-700' },
+  completed:   { label: '완료',      bg: 'bg-green-100',       text: 'text-green-700'  },
+  unpaid:      { label: '미정산',    bg: 'bg-red-100',         text: 'text-red-700'    },
+  paid:        { label: '정산 완료', bg: 'bg-green-100',       text: 'text-green-700'  },
+}
