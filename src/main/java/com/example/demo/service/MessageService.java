@@ -24,6 +24,7 @@ public class MessageService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
+    // 메시지 전송
     @Transactional
     public MessageResponseDto sendMessage(MessageRequestDto requestDto, User loginUser) {
 
@@ -56,8 +57,10 @@ public class MessageService {
         return saved;
     }
 
+    // 대화 조회 + 읽음 처리
     @Transactional
     public List<MessageResponseDto> getConversation(Long partnerId, User loginUser) {
+
         User partner = userRepository.findById(partnerId)
                 .orElseThrow(() -> new RuntimeException("상대방 없음"));
 
@@ -71,16 +74,41 @@ public class MessageService {
                 .collect(Collectors.toList());
     }
 
+    // 대화 상대 목록 (마지막 메시지 + 안읽은 수 포함)
     @Transactional(readOnly = true)
     public List<ConversationResponseDto> getConversationPartners(User loginUser) {
         return messageRepository.findConversationPartners(loginUser)
                 .stream()
-                .map(ConversationResponseDto::new)
+                .map(partner -> {
+                    List<Message> lastMessages = messageRepository
+                            .findLastMessage(loginUser, partner);
+
+                    String lastMessage = lastMessages.isEmpty()
+                            ? null : lastMessages.get(0).getContent();
+                    LocalDateTime lastMessageTime = lastMessages.isEmpty()
+                            ? null : lastMessages.get(0).getCreatedAt();
+
+                    int unreadCount = (int) messageRepository
+                            .findUnreadMessages(loginUser, partner).size();
+
+                    return new ConversationResponseDto(
+                            partner, lastMessage, lastMessageTime, unreadCount);
+                })
                 .collect(Collectors.toList());
     }
 
+    // 안 읽은 메시지 수
     @Transactional(readOnly = true)
     public int getUnreadCount(User loginUser) {
         return messageRepository.countUnread(loginUser);
+    }
+
+    // 메시지 삭제 (본인이 보낸 것만)
+    @Transactional
+    public void deleteMessage(Long messageId, User loginUser) {
+        Message message = messageRepository.findByIdAndSender(messageId, loginUser)
+                .orElseThrow(() -> new RuntimeException("메시지 없음 또는 권한 없음"));
+
+        messageRepository.delete(message);
     }
 }

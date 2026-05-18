@@ -1,8 +1,6 @@
 package com.example.demo.controller;
 
-import com.example.demo.dto.ConversationResponseDto;
 import com.example.demo.dto.MessageRequestDto;
-import com.example.demo.dto.MessageResponseDto;
 import com.example.demo.entity.User;
 import com.example.demo.service.MessageService;
 
@@ -17,7 +15,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 @Tag(name = "메시지 API", description = "1:1 채팅 기능")
@@ -40,7 +37,7 @@ public class MessageController {
         }
     }
 
-    // 대화 조회 (폴링용 — 3~5초마다 호출)
+    // 대화 조회 (폴링용)
     @Operation(summary = "대화 조회 + 읽음 처리")
     @GetMapping("/{partnerId}")
     public ResponseEntity<?> getConversation(@PathVariable Long partnerId) {
@@ -52,7 +49,7 @@ public class MessageController {
         }
     }
 
-    // 대화 상대 목록
+    // 대화 상대 목록 (마지막 메시지 + 안읽은 수)
     @Operation(summary = "대화 상대 목록 조회")
     @GetMapping("/conversations")
     public ResponseEntity<?> getConversationPartners() {
@@ -73,6 +70,18 @@ public class MessageController {
                     Map.of("unreadCount", messageService.getUnreadCount(getLoginUser())));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(e.getMessage());
+        }
+    }
+
+    // 메시지 삭제 (본인이 보낸 것만)
+    @Operation(summary = "메시지 삭제")
+    @DeleteMapping("/{messageId}")
+    public ResponseEntity<?> deleteMessage(@PathVariable Long messageId) {
+        try {
+            messageService.deleteMessage(messageId, getLoginUser());
+            return ResponseEntity.ok("메시지 삭제 완료");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
