@@ -1,0 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-navy: #1B2B48;
+  --color-navy-50: #E8EDF4;
+  --color-navy-100: #C5D0E3;
+  --color-navy-200: #9BAFD0;
+  --color-navy-700: #152236;
+  --color-navy-900: #0E1724;
+
+  --color-orange: #FF6B00;
+  --color-orange-50: #FFF3E8;
+  --color-orange-100: #FFD9B3;
+  --color-orange-600: #E06000;
+  --color-orange-700: #C05400;
+
+  --color-offwhite: #F8F9FA;
+  --color-offwhite-100: #ECEEF0;
+  --color-offwhite-200: #DEE2E6;
+
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: #F8F9FA;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  text-align: left;
+  border: none;
+  min-height: 100svh;
+  display: block;
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slide-up 0.18s ease-out;
+}
