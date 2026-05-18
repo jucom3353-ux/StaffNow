@@ -7,6 +7,7 @@ import io.jsonwebtoken.Claims;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -30,14 +31,22 @@ public class JwtFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected boolean shouldNotFilter(
-            HttpServletRequest request
-    ) {
-
+    protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
+        String method = request.getMethod();
 
-        return path.startsWith("/auth")
-                || path.startsWith("/users");
+        if (path.startsWith("/swagger-ui") ||
+            path.startsWith("/v3/api-docs") ||
+            path.startsWith("/swagger-resources") ||
+            path.startsWith("/webjars")) return true;
+
+        if (path.startsWith("/auth")) return true;
+
+        if (path.equals("/users") && method.equals("POST")) return true;
+
+        if (path.startsWith("/uploads")) return true;
+
+        return false;
     }
 
     @Override
@@ -48,56 +57,46 @@ public class JwtFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         try {
+            // 쿠키에서 access_token 읽기
+            String token = null;
 
-            String authHeader =
-                    request.getHeader("Authorization");
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        token = cookie.getValue();
+                        break;
+                    }
+                }
+            }
 
-            // 토큰 없으면 그냥 통과
-            if (authHeader == null ||
-                    !authHeader.startsWith("Bearer ")) {
-
-                filterChain.doFilter(request, response);
+            if (token == null) {
+                response.setStatus(401);
                 return;
             }
 
-            String token =
-                    authHeader.substring(7);
+            Claims claims = JwtUtil.extractClaims(token);
+            Long userId = claims.get("userId", Long.class);
 
-            Claims claims =
-                    JwtUtil.extractClaims(token);
-
-            Long userId =
-                    claims.get("userId", Long.class);
-
-            User user =
-                    userRepository.findById(userId)
-                            .orElse(null);
+            User user = userRepository.findById(userId).orElse(null);
 
             if (user == null) {
-
                 response.setStatus(403);
                 return;
             }
 
             SimpleGrantedAuthority authority =
-                    new SimpleGrantedAuthority(
-                            "ROLE_" + user.getRole().name()
-                    );
+                    new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
 
             UsernamePasswordAuthenticationToken authToken =
                     new UsernamePasswordAuthenticationToken(
-                            user,
-                            null,
-                            List.of(authority)
+                            user, null, List.of(authority)
                     );
 
-            SecurityContextHolder.getContext()
-                    .setAuthentication(authToken);
+            SecurityContextHolder.getContext().setAuthentication(authToken);
+            request.setAttribute("loginUser", user);
 
         } catch (Exception e) {
-
             e.printStackTrace();
-
             response.setStatus(403);
             return;
         }

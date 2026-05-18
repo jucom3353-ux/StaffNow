@@ -5,7 +5,7 @@ public enum ApplicationStatus {
     APPLIED,
     APPROVED,
     REJECTED,
-
     COMPLETED,
-    NO_SHOW
+    NO_SHOW,
+    ABSENT      // 결근
 }

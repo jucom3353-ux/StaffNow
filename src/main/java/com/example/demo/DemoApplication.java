@@ -1,12 +1,22 @@
 package com.example.demo;
 
+import io.github.cdimascio.dotenv.Dotenv;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
+@EnableScheduling
 @SpringBootApplication
-// @EnableJpaRepositories 제거 (메인 클래스 하위 패키지에 있다면 자동으로 스캔됩니다)
 public class DemoApplication {
     public static void main(String[] args) {
+        Dotenv dotenv = Dotenv.configure()
+                .ignoreIfMissing()
+                .load();
+
+        dotenv.entries().forEach(e ->
+                System.setProperty(e.getKey(), e.getValue())
+        );
+
         SpringApplication.run(DemoApplication.class, args);
     }
 }

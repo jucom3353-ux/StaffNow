@@ -1,69 +1,83 @@
 package com.example.demo.service;
 
+import com.example.demo.dto.PasswordChangeRequestDto;
 import com.example.demo.dto.UserCreateRequestDto;
-
+import com.example.demo.dto.UserUpdateRequestDto;
 import com.example.demo.entity.User;
-import com.example.demo.entity.Role;
-
+import com.example.demo.repository.RefreshTokenRepository;
 import com.example.demo.repository.UserRepository;
-
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
-
     private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenRepository refreshTokenRepository;
 
-    public UserService(
-            UserRepository userRepository,
-            PasswordEncoder passwordEncoder
-    ) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-    }
-
-    // 회원가입
-    public void createUser(
-            UserCreateRequestDto dto
-    ) {
+    @Transactional
+    public void createUser(UserCreateRequestDto requestDto) {
+        if (userRepository.existsByEmail(requestDto.getEmail())) {
+            throw new RuntimeException("이미 사용 중인 이메일입니다.");
+        }
 
         User user = new User();
-
-        user.setEmail(dto.getEmail());
-
-        // BCrypt 암호화
-        user.setPassword(
-                passwordEncoder.encode(
-                        dto.getPassword()
-                )
-        );
-
-        user.setName(dto.getName());
-
-        user.setPhone(dto.getPhone());
-
-        // ROLE 저장
-        user.setRole(
-                Role.valueOf(dto.getRole())
-        );
+        user.setEmail(requestDto.getEmail());
+        user.setPassword(passwordEncoder.encode(requestDto.getPassword()));
+        user.setName(requestDto.getName());
+        user.setPhone(requestDto.getPhone());
+        user.setCompanyName(requestDto.getCompanyName());
+        user.setRole(requestDto.getRole());
+        user.setNoShowCount(0);
+        user.setMbti(requestDto.getMbti());
 
         userRepository.save(user);
-
-        System.out.println("회원가입 완료");
     }
 
-    // 이메일로 유저 찾기
-    public User findByEmail(
-            String email
-    ) {
+    // 이메일 중복 확인 (true = 사용 가능, false = 이미 존재)
+    @Transactional(readOnly = true)
+    public boolean checkEmail(String email) {
+        return !userRepository.existsByEmail(email);
+    }
 
-        return userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new RuntimeException("유저 없음")
-                );
+    @Transactional
+    public void updateUser(User loginUser, UserUpdateRequestDto requestDto) {
+        if (requestDto.getPhone() != null) loginUser.setPhone(requestDto.getPhone());
+        if (requestDto.getAddress() != null) loginUser.setAddress(requestDto.getAddress());
+        if (requestDto.getAddressDetail() != null) loginUser.setAddressDetail(requestDto.getAddressDetail());
+        if (requestDto.getBio() != null) loginUser.setBio(requestDto.getBio());
+        if (requestDto.getActivityRegion() != null) loginUser.setActivityRegion(requestDto.getActivityRegion());
+        userRepository.save(loginUser);
+    }
+
+    @Transactional
+    public void changePassword(User loginUser, PasswordChangeRequestDto requestDto) {
+        if (!passwordEncoder.matches(
+                requestDto.getCurrentPassword(),
+                loginUser.getPassword()
+        )) {
+            throw new RuntimeException("현재 비밀번호가 틀렸습니다.");
+        }
+
+        if (requestDto.getNewPassword().length() < 8) {
+            throw new RuntimeException("새 비밀번호는 8자 이상이어야 합니다.");
+        }
+
+        loginUser.setPassword(
+                passwordEncoder.encode(requestDto.getNewPassword())
+        );
+        userRepository.save(loginUser);
+    }
+
+    @Transactional
+    public void deleteUser(User loginUser) {
+        refreshTokenRepository.findByUserId(loginUser.getId())
+                .ifPresent(refreshTokenRepository::delete);
+
+        userRepository.delete(loginUser);
     }
 }

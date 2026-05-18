@@ -1,6 +1,7 @@
 package com.example.demo.entity;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
 public class Application {
@@ -19,34 +20,31 @@ public class Application {
     @JoinColumn(name = "job_post_id")
     private JobPost jobPost;
 
+    // 배정된 Shift
+    @ManyToOne
+    @JoinColumn(name = "work_session_id")
+    private WorkSession workSession;
+
     @Enumerated(EnumType.STRING)
     private ApplicationStatus status = ApplicationStatus.APPLIED;
 
-    public Long getId() {
-        return id;
+    // 지원 시각
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    public void prePersist() {
+        this.createdAt = LocalDateTime.now();
     }
 
-    public User getUser() {
-        return user;
-    }
+    public Long getId() { return id; }
+    public User getUser() { return user; }
+    public JobPost getJobPost() { return jobPost; }
+    public WorkSession getWorkSession() { return workSession; }
+    public ApplicationStatus getStatus() { return status; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
 
-    public JobPost getJobPost() {
-        return jobPost;
-    }
-
-    public ApplicationStatus getStatus() {
-        return status;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public void setJobPost(JobPost jobPost) {
-        this.jobPost = jobPost;
-    }
-
-    public void setStatus(ApplicationStatus status) {
-        this.status = status;
-    }
+    public void setUser(User user) { this.user = user; }
+    public void setJobPost(JobPost jobPost) { this.jobPost = jobPost; }
+    public void setWorkSession(WorkSession workSession) { this.workSession = workSession; }
+    public void setStatus(ApplicationStatus status) { this.status = status; }
 }
