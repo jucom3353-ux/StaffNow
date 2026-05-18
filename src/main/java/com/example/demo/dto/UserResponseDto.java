@@ -16,9 +16,10 @@ public class UserResponseDto {
     private String address;
     private String addressDetail;
     private String bio;
-    private String activityRegion; // 추가
-    private int noShowCount;
-    private double temperature;
+    private String activityRegion;
+    private String profileImageUrl;
+    private Integer noShowCount;
+    private Double temperature;
 
     public UserResponseDto(User user) {
         this.id = user.getId();
@@ -31,7 +32,8 @@ public class UserResponseDto {
         this.address = user.getAddress();
         this.addressDetail = user.getAddressDetail();
         this.bio = user.getBio();
-        this.activityRegion = user.getActivityRegion(); // 추가
+        this.activityRegion = user.getActivityRegion();
+        this.profileImageUrl = user.getProfileImageUrl();
         this.noShowCount = user.getNoShowCount();
         this.temperature = user.getTemperature();
     }

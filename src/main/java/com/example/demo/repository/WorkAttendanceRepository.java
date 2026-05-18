@@ -46,4 +46,17 @@ public interface WorkAttendanceRepository
             @Param("weekStart") LocalDateTime weekStart,
             @Param("weekEnd") LocalDateTime weekEnd
     );
+
+    // 공고별 전체 출퇴근 기록 조회 (기업용)
+    @Query("SELECT w FROM WorkAttendance w WHERE w.application.jobPost = :jobPost")
+    List<WorkAttendance> findByJobPost(@Param("jobPost") JobPost jobPost);
+
+    // 공고별 특정 근로자 출퇴근 기록 조회 (기업용)
+    @Query("SELECT w FROM WorkAttendance w " +
+           "WHERE w.application.jobPost = :jobPost " +
+           "AND w.application.user = :worker")
+    List<WorkAttendance> findByJobPostAndWorker(
+            @Param("jobPost") JobPost jobPost,
+            @Param("worker") User worker
+    );
 }

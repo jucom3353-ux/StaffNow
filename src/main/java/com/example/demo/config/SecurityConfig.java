@@ -36,7 +36,7 @@ public class SecurityConfig {
 
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable()) // JWT 쿠키 방식이므로 CSRF 비활성화 유지
+                .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
@@ -53,6 +53,7 @@ public class SecurityConfig {
                                 org.springframework.http.HttpMethod.POST, "/users"
                         ).permitAll()
                         .requestMatchers("/uploads/**").permitAll()
+                        .requestMatchers("/ws/**").permitAll()  // WebSocket 추가
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
@@ -74,7 +75,7 @@ public class SecurityConfig {
         ));
 
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true); // 쿠키 전송을 위해 필수
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

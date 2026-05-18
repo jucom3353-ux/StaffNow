@@ -24,20 +24,22 @@ public class ApplicationService {
     private final JobPostRepository jobPostRepository;
     private final ContractRepository contractRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     public ApplicationService(
             ApplicationRepository applicationRepository,
             JobPostRepository jobPostRepository,
             ContractRepository contractRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            NotificationService notificationService
     ) {
         this.applicationRepository = applicationRepository;
         this.jobPostRepository = jobPostRepository;
         this.contractRepository = contractRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
-    // 공고 지원
     @Transactional
     public void apply(Long jobPostId, User loginUser) {
         if (loginUser.getRole() != Role.INDIVIDUAL) {
@@ -67,7 +69,6 @@ public class ApplicationService {
         applicationRepository.save(application);
     }
 
-    // 내 지원 목록 조회 (페이지네이션)
     @Transactional
     public Page<ApplicationResponseDto> getMyApplications(User loginUser, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -75,7 +76,6 @@ public class ApplicationService {
                 .map(ApplicationResponseDto::new);
     }
 
-    // 지원 취소
     @Transactional
     public void cancelApplication(Long applicationId, User loginUser) {
         Application application = applicationRepository.findById(applicationId)
@@ -91,7 +91,6 @@ public class ApplicationService {
         applicationRepository.delete(application);
     }
 
-    // 공고별 지원 목록 조회 (상태 필터 선택적 적용)
     @Transactional
     public List<ApplicationResponseDto> getApplications(Long jobPostId, User loginUser, ApplicationStatus status) {
         JobPost jobPost = jobPostRepository.findById(jobPostId)
@@ -115,7 +114,6 @@ public class ApplicationService {
                 .collect(Collectors.toList());
     }
 
-    // 지원자 상세 프로필 조회
     @Transactional
     public WorkerProfileResponseDto getWorkerProfile(Long applicationId, User loginUser) {
         Application application = applicationRepository.findById(applicationId)
@@ -133,7 +131,6 @@ public class ApplicationService {
         );
     }
 
-    // 지원 승인 + 계약서 자동 생성
     @Transactional
     public void approveApplication(Long applicationId, User loginUser) {
         Application application = applicationRepository.findById(applicationId)
@@ -148,6 +145,14 @@ public class ApplicationService {
 
         application.setStatus(ApplicationStatus.APPROVED);
         applicationRepository.save(application);
+
+        // 알림 전송
+        notificationService.send(
+                application.getUser(),
+                NotificationType.APPLICATION_APPROVED,
+                "[" + application.getJobPost().getTitle() + "] 지원이 승인되었습니다.",
+                application.getId()
+        );
 
         boolean contractExists = contractRepository
                 .findByCompanyAndWorker(loginUser, application.getUser())
@@ -166,7 +171,6 @@ public class ApplicationService {
         }
     }
 
-    // 지원 거절
     @Transactional
     public void rejectApplication(Long applicationId, User loginUser) {
         Application application = applicationRepository.findById(applicationId)
@@ -181,9 +185,16 @@ public class ApplicationService {
 
         application.setStatus(ApplicationStatus.REJECTED);
         applicationRepository.save(application);
+
+        // 알림 전송
+        notificationService.send(
+                application.getUser(),
+                NotificationType.APPLICATION_REJECTED,
+                "[" + application.getJobPost().getTitle() + "] 지원이 거절되었습니다.",
+                application.getId()
+        );
     }
 
-    // 근무 완료 처리
     @Transactional
     public void completeApplication(Long applicationId, User loginUser) {
         Application application = applicationRepository.findById(applicationId)
@@ -200,7 +211,6 @@ public class ApplicationService {
         applicationRepository.save(application);
     }
 
-    // 노쇼 처리
     @Transactional
     public void noShowApplication(Long applicationId, User loginUser) {
         Application application = applicationRepository.findById(applicationId)
@@ -223,7 +233,6 @@ public class ApplicationService {
         userRepository.save(worker);
     }
 
-    // 결근 처리
     @Transactional
     public void absentApplication(Long applicationId, User loginUser) {
         Application application = applicationRepository.findById(applicationId)

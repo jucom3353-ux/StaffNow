@@ -19,8 +19,8 @@ public class InvitationService {
     private final InvitationRepository invitationRepository;
     private final JobPostRepository jobPostRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
-    // 초대 보내기
     @Transactional
     public void sendInvitation(Long jobPostId, Long workerId, User loginUser) {
 
@@ -54,9 +54,16 @@ public class InvitationService {
         invitation.setWorker(worker);
         invitation.setJobPost(jobPost);
         invitationRepository.save(invitation);
+
+        // 알림 전송
+        notificationService.send(
+                worker,
+                NotificationType.INVITATION_RECEIVED,
+                "[" + jobPost.getTitle() + "] 기업에서 초대가 왔습니다.",
+                invitation.getId()
+        );
     }
 
-    // 받은 초대 목록 조회
     @Transactional(readOnly = true)
     public List<InvitationResponseDto> getMyInvitations(User loginUser) {
         return invitationRepository.findByWorker(loginUser)
@@ -65,7 +72,6 @@ public class InvitationService {
                 .collect(Collectors.toList());
     }
 
-    // 보낸 초대 목록 조회
     @Transactional(readOnly = true)
     public List<InvitationResponseDto> getSentInvitations(User loginUser) {
         return invitationRepository.findByCompany(loginUser)
@@ -74,7 +80,6 @@ public class InvitationService {
                 .collect(Collectors.toList());
     }
 
-    // 초대 상세 조회
     @Transactional(readOnly = true)
     public InvitationResponseDto getInvitation(Long invitationId, User loginUser) {
         Invitation invitation = invitationRepository.findById(invitationId)
@@ -88,28 +93,23 @@ public class InvitationService {
         return new InvitationResponseDto(invitation);
     }
 
-    // 상태별 받은 초대 조회
     @Transactional(readOnly = true)
     public List<InvitationResponseDto> getMyInvitationsByStatus(
-            User loginUser, InvitationStatus status
-    ) {
+            User loginUser, InvitationStatus status) {
         return invitationRepository.findByWorkerAndStatus(loginUser, status)
                 .stream()
                 .map(InvitationResponseDto::new)
                 .collect(Collectors.toList());
     }
 
-    // 초대 수락
     @Transactional
     public void acceptInvitation(Long invitationId, User loginUser) {
-
         Invitation invitation = invitationRepository.findById(invitationId)
                 .orElseThrow(() -> new RuntimeException("초대 없음"));
 
         if (!invitation.getWorker().getId().equals(loginUser.getId())) {
             throw new RuntimeException("본인에게 온 초대만 수락 가능합니다.");
         }
-
         if (invitation.getStatus() != InvitationStatus.PENDING) {
             throw new RuntimeException("대기 중인 초대만 수락 가능합니다.");
         }
@@ -118,17 +118,14 @@ public class InvitationService {
         invitationRepository.save(invitation);
     }
 
-    // 초대 거절
     @Transactional
     public void rejectInvitation(Long invitationId, User loginUser) {
-
         Invitation invitation = invitationRepository.findById(invitationId)
                 .orElseThrow(() -> new RuntimeException("초대 없음"));
 
         if (!invitation.getWorker().getId().equals(loginUser.getId())) {
             throw new RuntimeException("본인에게 온 초대만 거절 가능합니다.");
         }
-
         if (invitation.getStatus() != InvitationStatus.PENDING) {
             throw new RuntimeException("대기 중인 초대만 거절 가능합니다.");
         }
@@ -137,17 +134,14 @@ public class InvitationService {
         invitationRepository.save(invitation);
     }
 
-    // 초대 취소 (기업만)
     @Transactional
     public void cancelInvitation(Long invitationId, User loginUser) {
-
         Invitation invitation = invitationRepository.findById(invitationId)
                 .orElseThrow(() -> new RuntimeException("초대 없음"));
 
         if (!invitation.getCompany().getId().equals(loginUser.getId())) {
             throw new RuntimeException("본인이 보낸 초대만 취소 가능합니다.");
         }
-
         if (invitation.getStatus() != InvitationStatus.PENDING) {
             throw new RuntimeException("대기 중인 초대만 취소 가능합니다.");
         }
