@@ -4,6 +4,7 @@ import com.example.demo.dto.ConversationResponseDto;
 import com.example.demo.dto.MessageRequestDto;
 import com.example.demo.dto.MessageResponseDto;
 import com.example.demo.entity.Message;
+import com.example.demo.entity.NotificationType;
 import com.example.demo.entity.User;
 import com.example.demo.repository.MessageRepository;
 import com.example.demo.repository.UserRepository;
@@ -21,6 +22,7 @@ public class MessageService {
 
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public MessageResponseDto sendMessage(MessageRequestDto requestDto, User loginUser) {
@@ -41,12 +43,21 @@ public class MessageService {
         message.setReceiver(receiver);
         message.setContent(requestDto.getContent());
 
-        return new MessageResponseDto(messageRepository.save(message));
+        MessageResponseDto saved = new MessageResponseDto(messageRepository.save(message));
+
+        // 알림 전송
+        notificationService.send(
+                receiver,
+                NotificationType.MESSAGE_RECEIVED,
+                loginUser.getName() + "님이 메시지를 보냈습니다.",
+                message.getId()
+        );
+
+        return saved;
     }
 
     @Transactional
     public List<MessageResponseDto> getConversation(Long partnerId, User loginUser) {
-
         User partner = userRepository.findById(partnerId)
                 .orElseThrow(() -> new RuntimeException("상대방 없음"));
 

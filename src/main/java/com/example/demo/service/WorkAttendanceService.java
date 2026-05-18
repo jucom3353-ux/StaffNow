@@ -3,6 +3,8 @@ package com.example.demo.service;
 import com.example.demo.dto.WorkAttendanceResponseDto;
 import com.example.demo.entity.*;
 import com.example.demo.repository.ApplicationRepository;
+import com.example.demo.repository.JobPostRepository;
+import com.example.demo.repository.UserRepository;
 import com.example.demo.repository.WorkAttendanceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,8 @@ public class WorkAttendanceService {
 
     private final WorkAttendanceRepository workAttendanceRepository;
     private final ApplicationRepository applicationRepository;
+    private final JobPostRepository jobPostRepository;
+    private final UserRepository userRepository;
 
     // 출근 처리
     @Transactional
@@ -85,6 +89,53 @@ public class WorkAttendanceService {
         LocalDateTime endOfDay = localDate.plusDays(1).atStartOfDay();
 
         return workAttendanceRepository.findByUserAndDate(loginUser, startOfDay, endOfDay)
+                .stream()
+                .map(WorkAttendanceResponseDto::new)
+                .collect(Collectors.toList());
+    }
+
+    // 공고별 전체 출퇴근 기록 조회 (기업용)
+    @Transactional(readOnly = true)
+    public List<WorkAttendanceResponseDto> getAttendancesByJobPost(
+            Long jobPostId, User loginUser) {
+
+        if (loginUser.getRole() != Role.COMPANY) {
+            throw new RuntimeException("기업 회원만 조회 가능합니다.");
+        }
+
+        JobPost jobPost = jobPostRepository.findById(jobPostId)
+                .orElseThrow(() -> new RuntimeException("공고 없음"));
+
+        if (!jobPost.getUser().getId().equals(loginUser.getId())) {
+            throw new RuntimeException("본인 공고만 조회 가능합니다.");
+        }
+
+        return workAttendanceRepository.findByJobPost(jobPost)
+                .stream()
+                .map(WorkAttendanceResponseDto::new)
+                .collect(Collectors.toList());
+    }
+
+    // 공고별 특정 근로자 출퇴근 기록 조회 (기업용)
+    @Transactional(readOnly = true)
+    public List<WorkAttendanceResponseDto> getAttendancesByJobPostAndWorker(
+            Long jobPostId, Long workerId, User loginUser) {
+
+        if (loginUser.getRole() != Role.COMPANY) {
+            throw new RuntimeException("기업 회원만 조회 가능합니다.");
+        }
+
+        JobPost jobPost = jobPostRepository.findById(jobPostId)
+                .orElseThrow(() -> new RuntimeException("공고 없음"));
+
+        if (!jobPost.getUser().getId().equals(loginUser.getId())) {
+            throw new RuntimeException("본인 공고만 조회 가능합니다.");
+        }
+
+        User worker = userRepository.findById(workerId)
+                .orElseThrow(() -> new RuntimeException("근로자 없음"));
+
+        return workAttendanceRepository.findByJobPostAndWorker(jobPost, worker)
                 .stream()
                 .map(WorkAttendanceResponseDto::new)
                 .collect(Collectors.toList());

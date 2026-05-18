@@ -26,6 +26,7 @@ public class User {
     private String bio;
 
     private String activityRegion;
+    private String profileImageUrl;
 
     @Enumerated(EnumType.STRING)
     private Role role;
@@ -53,6 +54,7 @@ public class User {
     public String getAddressDetail() { return addressDetail; }
     public String getBio() { return bio; }
     public String getActivityRegion() { return activityRegion; }
+    public String getProfileImageUrl() { return profileImageUrl; }
 
     public void setId(Long id) { this.id = id; }
     public void setEmail(String email) { this.email = email; }
@@ -68,4 +70,5 @@ public class User {
     public void setAddressDetail(String addressDetail) { this.addressDetail = addressDetail; }
     public void setBio(String bio) { this.bio = bio; }
     public void setActivityRegion(String activityRegion) { this.activityRegion = activityRegion; }
+    public void setProfileImageUrl(String profileImageUrl) { this.profileImageUrl = profileImageUrl; }
 }
