@@ -47,4 +47,11 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
             @Param("companyName") String companyName,
             Pageable pageable
     );
+    
+    // 마감일 지난 OPEN 공고 조회
+    @Query("SELECT j FROM JobPost j WHERE j.postStatus = :status AND j.deadline < :today")
+        List<JobPost> findByPostStatusAndDeadlineBefore(
+        @Param("status") PostStatus status,
+        @Param("today") String today
+    );
 }
