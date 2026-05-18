@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface MessageRepository extends JpaRepository<Message, Long> {
@@ -22,7 +23,7 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
             @Param("userB") User userB
     );
 
-    // 내 대화 상대 목록 (최신 메시지 기준)
+    // 내 대화 상대 목록
     @Query("SELECT DISTINCT CASE WHEN m.sender = :user THEN m.receiver ELSE m.sender END " +
            "FROM Message m WHERE m.sender = :user OR m.receiver = :user")
     List<User> findConversationPartners(@Param("user") User user);
@@ -37,4 +38,17 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
             @Param("receiver") User receiver,
             @Param("sender") User sender
     );
+
+    // 두 유저 간 마지막 메시지
+    @Query("SELECT m FROM Message m WHERE " +
+           "(m.sender = :userA AND m.receiver = :userB) OR " +
+           "(m.sender = :userB AND m.receiver = :userA) " +
+           "ORDER BY m.createdAt DESC")
+    List<Message> findLastMessage(
+            @Param("userA") User userA,
+            @Param("userB") User userB
+    );
+
+    // 메시지 단건 조회 (본인 메시지만)
+    Optional<Message> findByIdAndSender(Long id, User sender);
 }

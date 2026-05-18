@@ -36,4 +36,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     // 기업 공고 기준 전체 카운트
     @Query("SELECT COUNT(a) FROM Application a WHERE a.jobPost.user = :company")
     int countByCompany(@Param("company") User company);
+
+    // APPROVED 상태 전체 조회 (스케줄러용)
+    List<Application> findByStatus(ApplicationStatus status);
 }

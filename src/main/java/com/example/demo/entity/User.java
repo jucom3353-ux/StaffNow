@@ -27,6 +27,8 @@ public class User {
 
     private String activityRegion;
     private String profileImageUrl;
+    private String businessLicenseUrl;  // 사업자 등록증명서 URL
+    private String businessLicenseStatus; // PENDING / APPROVED / REJECTED
 
     @Enumerated(EnumType.STRING)
     private Role role;
@@ -55,6 +57,8 @@ public class User {
     public String getBio() { return bio; }
     public String getActivityRegion() { return activityRegion; }
     public String getProfileImageUrl() { return profileImageUrl; }
+    public String getBusinessLicenseUrl() { return businessLicenseUrl; }
+    public String getBusinessLicenseStatus() { return businessLicenseStatus; }
 
     public void setId(Long id) { this.id = id; }
     public void setEmail(String email) { this.email = email; }
@@ -71,4 +75,6 @@ public class User {
     public void setBio(String bio) { this.bio = bio; }
     public void setActivityRegion(String activityRegion) { this.activityRegion = activityRegion; }
     public void setProfileImageUrl(String profileImageUrl) { this.profileImageUrl = profileImageUrl; }
+    public void setBusinessLicenseUrl(String businessLicenseUrl) { this.businessLicenseUrl = businessLicenseUrl; }
+    public void setBusinessLicenseStatus(String businessLicenseStatus) { this.businessLicenseStatus = businessLicenseStatus; }
 }
