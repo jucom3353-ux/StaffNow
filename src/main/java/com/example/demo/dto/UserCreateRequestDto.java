@@ -1,34 +1,20 @@
 package com.example.demo.dto;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import com.example.demo.entity.Role;
+
+@Getter
+@Setter
+@NoArgsConstructor
 public class UserCreateRequestDto {
 
     private String email;
-
     private String password;
-
     private String name;
-
     private String phone;
-
-    private String role;
-
-    public String getEmail() {
-        return email;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getPhone() {
-        return phone;
-    }
-
-    public String getRole() {
-        return role;
-    }
+    private String companyName;
+    private Role role;
+    private String mbti;
 }

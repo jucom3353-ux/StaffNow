@@ -3,67 +3,46 @@ package com.example.demo.jwt;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-
 import io.jsonwebtoken.security.Keys;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import jakarta.annotation.PostConstruct;
 
 import java.security.Key;
 import java.util.Date;
 
+@Component
 public class JwtUtil {
 
-    // 비밀키
-    private static final String SECRET_KEY =
-            "mysecretkeymysecretkeymysecretkey123456";
+    @Value("${jwt.secret}")
+    private String secret;
 
-    // Key 생성
-    private static Key getSigningKey() {
+    private static Key signingKey;
 
-        return Keys.hmacShaKeyFor(
-                SECRET_KEY.getBytes()
-        );
+    @PostConstruct
+    public void init() {
+        signingKey = Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    // Access Token 생성
-    public static String createToken(
-            Long userId,
-            String role
-    ) {
-
+    public static String createToken(Long userId, String role) {
         return Jwts.builder()
-
                 .claim("userId", userId)
                 .claim("role", role)
-
                 .setIssuedAt(new Date())
-
                 .setExpiration(
-                        new Date(
-                                System.currentTimeMillis()
-                                        + 1000 * 60 * 60
-                        )
+                        new Date(System.currentTimeMillis() + 1000 * 60 * 60)
                 )
-
-                .signWith(
-                        getSigningKey(),
-                        SignatureAlgorithm.HS256
-                )
-
+                .signWith(signingKey, SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    // JWT Claims 추출
-    public static Claims extractClaims(
-            String token
-    ) {
-
+    public static Claims extractClaims(String token) {
         return Jwts.parserBuilder()
-
-                .setSigningKey(getSigningKey())
-
+                .setSigningKey(signingKey)
                 .build()
-
                 .parseClaimsJws(token)
-
                 .getBody();
     }
 }
