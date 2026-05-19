@@ -26,9 +26,9 @@ public class User {
     private String bio;
 
     private String activityRegion;
-    private String profileImageUrl;
-    private String businessLicenseUrl;  // 사업자 등록증명서 URL
-    private String businessLicenseStatus; // PENDING / APPROVED / REJECTED
+    private String profileImageUrl;      // 대표 사진 (기존 유지 - 빠른 조회용)
+    private String businessLicenseUrl;
+    private String businessLicenseStatus;
 
     @Enumerated(EnumType.STRING)
     private Role role;
@@ -38,6 +38,9 @@ public class User {
 
     @Column(name = "temperature")
     private Double temperature = 36.5;
+
+    @Column(name = "profile_image_count")
+    private Integer profileImageCount = 0;  // 사진 개수 캐싱 (추천 알고리즘용)
 
     @Column(unique = true)
     private String email;
@@ -59,6 +62,7 @@ public class User {
     public String getProfileImageUrl() { return profileImageUrl; }
     public String getBusinessLicenseUrl() { return businessLicenseUrl; }
     public String getBusinessLicenseStatus() { return businessLicenseStatus; }
+    public Integer getProfileImageCount() { return profileImageCount; }
 
     public void setId(Long id) { this.id = id; }
     public void setEmail(String email) { this.email = email; }
@@ -77,4 +81,5 @@ public class User {
     public void setProfileImageUrl(String profileImageUrl) { this.profileImageUrl = profileImageUrl; }
     public void setBusinessLicenseUrl(String businessLicenseUrl) { this.businessLicenseUrl = businessLicenseUrl; }
     public void setBusinessLicenseStatus(String businessLicenseStatus) { this.businessLicenseStatus = businessLicenseStatus; }
+    public void setProfileImageCount(Integer profileImageCount) { this.profileImageCount = profileImageCount; }
 }

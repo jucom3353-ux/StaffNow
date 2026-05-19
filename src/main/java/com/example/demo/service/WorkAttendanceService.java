@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -25,6 +27,11 @@ public class WorkAttendanceService {
     private final ApplicationRepository applicationRepository;
     private final JobPostRepository jobPostRepository;
     private final UserRepository userRepository;
+
+    // 온도 가산 기준 (대표님 확인 후 숫자만 변경)
+    private static final int EARLY_THRESHOLD_MINUTES = 10; // 10분 전 도착 시 가산
+    private static final double EARLY_TEMPERATURE_BONUS = 0.1; // +0.1도
+    private static final double MAX_TEMPERATURE = 100.0;
 
     // 출근 처리
     @Transactional
@@ -50,7 +57,44 @@ public class WorkAttendanceService {
         attendance.setApplication(application);
         attendance.setCheckInTime(LocalDateTime.now());
 
+        // Shift 연결 + 온도 가산 처리
+        WorkSession workSession = application.getWorkSession();
+        if (workSession != null) {
+            attendance.setWorkSession(workSession);
+            applyEarlyBonus(loginUser, workSession);
+        }
+
         return new WorkAttendanceResponseDto(workAttendanceRepository.save(attendance));
+    }
+
+    // 출근 N분 전 도착 → 온도 가산
+    private void applyEarlyBonus(User worker, WorkSession workSession) {
+
+        if (workSession.getStartTime() == null) return;
+
+        try {
+            LocalTime shiftStartTime = LocalTime.parse(
+                    workSession.getStartTime(),
+                    DateTimeFormatter.ofPattern("HH:mm")
+            );
+
+            LocalTime checkInTime = LocalTime.now();
+            LocalTime threshold = shiftStartTime.minusMinutes(EARLY_THRESHOLD_MINUTES);
+
+            // 기준 시간보다 일찍 도착했으면 온도 가산
+            if (!checkInTime.isAfter(shiftStartTime) &&
+                !checkInTime.isBefore(threshold)) {
+                double newTemp = Math.min(
+                        worker.getTemperature() + EARLY_TEMPERATURE_BONUS,
+                        MAX_TEMPERATURE
+                );
+                worker.setTemperature(newTemp);
+                userRepository.save(worker);
+            }
+
+        } catch (Exception e) {
+            // 시간 파싱 실패 시 온도 가산 스킵
+        }
     }
 
     // 퇴근 처리
