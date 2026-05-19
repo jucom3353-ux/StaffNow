@@ -1,6 +1,8 @@
 package com.example.demo.service;
 
 import com.example.demo.entity.Contract;
+import com.example.demo.entity.ContractStatus;
+import com.example.demo.entity.User;
 import com.example.demo.repository.ContractRepository;
 import com.itextpdf.html2pdf.HtmlConverter;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +35,19 @@ public class ContractPdfService {
         if (!contract.getCompany().getId().equals(loginUserId) &&
             !contract.getWorker().getId().equals(loginUserId)) {
             throw new RuntimeException("본인 계약서만 다운로드 가능합니다.");
+        }
+
+        // 다운로드 상태 검증
+        if (contract.getStatus() == ContractStatus.DOWNLOAD_EXPIRED) {
+            throw new RuntimeException(
+                    "다운로드 기간이 만료된 계약서입니다. (완료 후 1년)");
+        }
+        if (contract.getStatus() == ContractStatus.EXPIRED) {
+            throw new RuntimeException(
+                    "만료된 계약서입니다. (1개월 내 미서명)");
+        }
+        if (contract.getStatus() == ContractStatus.CANCELLED) {
+            throw new RuntimeException("취소된 계약서입니다.");
         }
 
         String html = buildHtml(contract);

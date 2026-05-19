@@ -23,6 +23,7 @@ public class ContractService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
+    // 계약서 생성 (기업)
     @Transactional
     public void createContract(ContractCreateRequestDto requestDto, User loginUser) {
 
@@ -53,7 +54,6 @@ public class ContractService {
         contract.setStatus(ContractStatus.PENDING);
         contractRepository.save(contract);
 
-        // 알림 전송
         notificationService.send(
                 worker,
                 NotificationType.CONTRACT_CREATED,
@@ -62,6 +62,7 @@ public class ContractService {
         );
     }
 
+    // 내 계약서 목록 조회
     @Transactional(readOnly = true)
     public List<ContractResponseDto> getMyContracts(User loginUser) {
         if (loginUser.getRole() == Role.COMPANY) {
@@ -74,6 +75,7 @@ public class ContractService {
                 .collect(Collectors.toList());
     }
 
+    // 계약서 단건 조회
     @Transactional(readOnly = true)
     public ContractResponseDto getContract(Long contractId, User loginUser) {
         Contract contract = contractRepository.findById(contractId)
@@ -87,6 +89,7 @@ public class ContractService {
         return new ContractResponseDto(contract);
     }
 
+    // 계약서 서명
     @Transactional
     public void signContract(Long contractId, User loginUser) {
         Contract contract = contractRepository.findById(contractId)
@@ -97,6 +100,12 @@ public class ContractService {
         }
         if (contract.getStatus() == ContractStatus.SIGNED) {
             throw new RuntimeException("이미 서명 완료된 계약서입니다.");
+        }
+        if (contract.getStatus() == ContractStatus.EXPIRED) {
+            throw new RuntimeException("만료된 계약서입니다. (1개월 내 미서명)");
+        }
+        if (contract.getStatus() == ContractStatus.DOWNLOAD_EXPIRED) {
+            throw new RuntimeException("다운로드 기간이 만료된 계약서입니다.");
         }
 
         if (loginUser.getId().equals(contract.getCompany().getId())) {
@@ -121,6 +130,7 @@ public class ContractService {
         contractRepository.save(contract);
     }
 
+    // 계약서 취소 (기업)
     @Transactional
     public void cancelContract(Long contractId, User loginUser) {
         if (loginUser.getRole() != Role.COMPANY) {
@@ -139,5 +149,31 @@ public class ContractService {
 
         contract.setStatus(ContractStatus.CANCELLED);
         contractRepository.save(contract);
+    }
+
+    // PDF 다운로드 전 상태 검증
+    @Transactional(readOnly = true)
+    public void validateDownload(Long contractId, User loginUser) {
+        Contract contract = contractRepository.findById(contractId)
+                .orElseThrow(() -> new RuntimeException("계약서 없음"));
+
+        if (!contract.getCompany().getId().equals(loginUser.getId()) &&
+            !contract.getWorker().getId().equals(loginUser.getId())) {
+            throw new RuntimeException("본인 계약서만 다운로드 가능합니다.");
+        }
+
+        if (contract.getStatus() == ContractStatus.DOWNLOAD_EXPIRED) {
+            throw new RuntimeException(
+                    "다운로드 기간이 만료된 계약서입니다. (완료 후 1년)");
+        }
+
+        if (contract.getStatus() == ContractStatus.EXPIRED) {
+            throw new RuntimeException(
+                    "만료된 계약서입니다. (1개월 내 미서명)");
+        }
+
+        if (contract.getStatus() == ContractStatus.CANCELLED) {
+            throw new RuntimeException("취소된 계약서입니다.");
+        }
     }
 }
