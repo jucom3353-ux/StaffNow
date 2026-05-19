@@ -1,6 +1,7 @@
 package com.example.demo.dto;
 
 import com.example.demo.entity.Payroll;
+import com.example.demo.entity.PayrollStatus;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
@@ -19,6 +20,10 @@ public class PayrollResponseDto {
     private int holidayPay;
     private int totalPay;
     private boolean holidayPayApplied;
+    private PayrollStatus status;
+    private LocalDateTime confirmedAt;
+    private LocalDateTime paidAt;
+    private String rejectReason;
     private LocalDateTime createdAt;
 
     public PayrollResponseDto(Payroll payroll) {
@@ -33,6 +38,10 @@ public class PayrollResponseDto {
         this.holidayPay = payroll.getHolidayPay();
         this.totalPay = payroll.getTotalPay();
         this.holidayPayApplied = payroll.isHolidayPayApplied();
+        this.status = payroll.getStatus();
+        this.confirmedAt = payroll.getConfirmedAt();
+        this.paidAt = payroll.getPaidAt();
+        this.rejectReason = payroll.getRejectReason();
         this.createdAt = payroll.getCreatedAt();
     }
 }

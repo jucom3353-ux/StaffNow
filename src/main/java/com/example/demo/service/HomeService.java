@@ -22,6 +22,7 @@ public class HomeService {
     private final JobPostRepository jobPostRepository;
     private final WorkSessionRepository workSessionRepository;
     private final PayrollRepository payrollRepository;
+    private final PreferredWorkTimeRepository preferredWorkTimeRepository;
 
     @Transactional(readOnly = true)
     public HomeSummaryResponseDto getSummary(User loginUser) {
@@ -60,11 +61,9 @@ public class HomeService {
         int unreadCount = notificationRepository
                 .countByUserAndIsReadFalse(loginUser);
 
-        // 추천 공고 (최신 OPEN 5개)
-        List<JobPostResponseDto> recommendedJobPosts = jobPostRepository
-                .searchJobPosts(null, null, PostStatus.OPEN, null, null)
+        // 추천 공고
+        List<JobPostResponseDto> recommendedJobPosts = getRecommendedJobPosts(loginUser)
                 .stream()
-                .limit(5)
                 .map(post -> new JobPostResponseDto(post, 0))
                 .collect(Collectors.toList());
 
@@ -93,7 +92,8 @@ public class HomeService {
         String today = LocalDate.now().toString();
         int todayShiftWorkerCount = jobPostRepository.findByUser(loginUser)
                 .stream()
-                .flatMap(jp -> workSessionRepository.findByJobPostAndWorkDate(jp, today).stream())
+                .flatMap(jp -> workSessionRepository
+                        .findByJobPostAndWorkDate(jp, today).stream())
                 .mapToInt(WorkSession::getCurrentCount)
                 .sum();
 
@@ -123,5 +123,47 @@ public class HomeService {
                 .pendingApplicantCount(pendingApplicantCount)
                 .thisWeekTotalPay(thisWeekTotalPay)
                 .build();
+    }
+
+    // 추천 공고 알고리즘
+    private List<JobPost> getRecommendedJobPosts(User loginUser) {
+
+        // 1단계: 활동 지역 매칭
+        if (loginUser.getActivityRegion() != null &&
+            !loginUser.getActivityRegion().isBlank()) {
+
+            List<JobPost> byRegion = jobPostRepository
+                    .findOpenByRegion(loginUser.getActivityRegion())
+                    .stream()
+                    .limit(5)
+                    .collect(Collectors.toList());
+
+            if (byRegion.size() >= 3) return byRegion;
+        }
+
+        // 2단계: 선호 근무 시간 매칭
+        List<PreferredWorkTime> preferredTimes =
+                preferredWorkTimeRepository.findByUser(loginUser);
+
+        if (!preferredTimes.isEmpty()) {
+            List<String> timeTypes = preferredTimes.stream()
+                    .map(PreferredWorkTime::getTimeType)
+                    .collect(Collectors.toList());
+
+            List<JobPost> byWorkType = jobPostRepository
+                    .findOpenByWorkTypes(timeTypes)
+                    .stream()
+                    .limit(5)
+                    .collect(Collectors.toList());
+
+            if (byWorkType.size() >= 3) return byWorkType;
+        }
+
+        // 3단계: fallback - 최신 OPEN 5개
+        return jobPostRepository
+                .searchJobPosts(null, null, PostStatus.OPEN, null, null)
+                .stream()
+                .limit(5)
+                .collect(Collectors.toList());
     }
 }

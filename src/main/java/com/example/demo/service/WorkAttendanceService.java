@@ -1,5 +1,6 @@
 package com.example.demo.service;
 
+import com.example.demo.dto.CalendarAttendanceResponseDto;
 import com.example.demo.dto.WorkAttendanceResponseDto;
 import com.example.demo.entity.*;
 import com.example.demo.repository.ApplicationRepository;
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,7 +42,9 @@ public class WorkAttendanceService {
         }
 
         workAttendanceRepository.findByApplication(application)
-                .ifPresent(w -> { throw new RuntimeException("이미 출근 처리된 지원입니다."); });
+                .ifPresent(w -> {
+                    throw new RuntimeException("이미 출근 처리된 지원입니다.");
+                });
 
         WorkAttendance attendance = new WorkAttendance();
         attendance.setApplication(application);
@@ -83,7 +87,9 @@ public class WorkAttendanceService {
 
     // 날짜별 출퇴근 조회 (근로자)
     @Transactional(readOnly = true)
-    public List<WorkAttendanceResponseDto> getMyAttendancesByDate(User loginUser, String date) {
+    public List<WorkAttendanceResponseDto> getMyAttendancesByDate(
+            User loginUser, String date) {
+
         LocalDate localDate = LocalDate.parse(date);
         LocalDateTime startOfDay = localDate.atStartOfDay();
         LocalDateTime endOfDay = localDate.plusDays(1).atStartOfDay();
@@ -92,6 +98,27 @@ public class WorkAttendanceService {
                 .stream()
                 .map(WorkAttendanceResponseDto::new)
                 .collect(Collectors.toList());
+    }
+
+    // 월별 출퇴근 달력 조회 (근로자)
+    @Transactional(readOnly = true)
+    public CalendarAttendanceResponseDto getMyAttendanceCalendar(
+            User loginUser, int year, int month) {
+
+        LocalDateTime startOfMonth = LocalDate.of(year, month, 1).atStartOfDay();
+        LocalDateTime endOfMonth = startOfMonth.plusMonths(1);
+
+        List<WorkAttendance> attendances = workAttendanceRepository
+                .findByUserAndMonth(loginUser, startOfMonth, endOfMonth);
+
+        Map<String, List<WorkAttendanceResponseDto>> dailyRecords = attendances.stream()
+                .collect(Collectors.groupingBy(
+                        a -> a.getCheckInTime().toLocalDate().toString(),
+                        Collectors.mapping(WorkAttendanceResponseDto::new,
+                                Collectors.toList())
+                ));
+
+        return new CalendarAttendanceResponseDto(year, month, dailyRecords);
     }
 
     // 공고별 전체 출퇴근 기록 조회 (기업용)
@@ -139,5 +166,37 @@ public class WorkAttendanceService {
                 .stream()
                 .map(WorkAttendanceResponseDto::new)
                 .collect(Collectors.toList());
+    }
+
+    // 월별 출퇴근 달력 조회 (기업용)
+    @Transactional(readOnly = true)
+    public CalendarAttendanceResponseDto getJobPostAttendanceCalendar(
+            Long jobPostId, User loginUser, int year, int month) {
+
+        if (loginUser.getRole() != Role.COMPANY) {
+            throw new RuntimeException("기업 회원만 조회 가능합니다.");
+        }
+
+        JobPost jobPost = jobPostRepository.findById(jobPostId)
+                .orElseThrow(() -> new RuntimeException("공고 없음"));
+
+        if (!jobPost.getUser().getId().equals(loginUser.getId())) {
+            throw new RuntimeException("본인 공고만 조회 가능합니다.");
+        }
+
+        LocalDateTime startOfMonth = LocalDate.of(year, month, 1).atStartOfDay();
+        LocalDateTime endOfMonth = startOfMonth.plusMonths(1);
+
+        List<WorkAttendance> attendances = workAttendanceRepository
+                .findByJobPostAndMonth(jobPost, startOfMonth, endOfMonth);
+
+        Map<String, List<WorkAttendanceResponseDto>> dailyRecords = attendances.stream()
+                .collect(Collectors.groupingBy(
+                        a -> a.getCheckInTime().toLocalDate().toString(),
+                        Collectors.mapping(WorkAttendanceResponseDto::new,
+                                Collectors.toList())
+                ));
+
+        return new CalendarAttendanceResponseDto(year, month, dailyRecords);
     }
 }

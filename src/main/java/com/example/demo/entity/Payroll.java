@@ -19,16 +19,23 @@ public class Payroll {
     @JoinColumn(name = "job_post_id")
     private JobPost jobPost;
 
-    private String workWeekStart;   // 정산 주 시작일 (예: 2026-05-12)
-    private String workWeekEnd;     // 정산 주 종료일 (예: 2026-05-18)
+    private String workWeekStart;
+    private String workWeekEnd;
 
-    private double totalWorkHours;  // 총 근무시간
-    private int hourlyWage;         // 시급
-    private int basicPay;           // 기본급
-    private int holidayPay;         // 주휴수당
-    private int totalPay;           // 최종 급여
+    private double totalWorkHours;
+    private int hourlyWage;
+    private int basicPay;
+    private int holidayPay;
+    private int totalPay;
 
-    private boolean holidayPayApplied; // 주휴수당 지급 여부
+    private boolean holidayPayApplied;
+
+    @Enumerated(EnumType.STRING)
+    private PayrollStatus status = PayrollStatus.PENDING;
+
+    private LocalDateTime confirmedAt;
+    private LocalDateTime paidAt;
+    private String rejectReason;
 
     @Column(updatable = false)
     private LocalDateTime createdAt;
@@ -49,6 +56,10 @@ public class Payroll {
     public int getHolidayPay() { return holidayPay; }
     public int getTotalPay() { return totalPay; }
     public boolean isHolidayPayApplied() { return holidayPayApplied; }
+    public PayrollStatus getStatus() { return status; }
+    public LocalDateTime getConfirmedAt() { return confirmedAt; }
+    public LocalDateTime getPaidAt() { return paidAt; }
+    public String getRejectReason() { return rejectReason; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 
     public void setWorker(User worker) { this.worker = worker; }
@@ -61,4 +72,8 @@ public class Payroll {
     public void setHolidayPay(int holidayPay) { this.holidayPay = holidayPay; }
     public void setTotalPay(int totalPay) { this.totalPay = totalPay; }
     public void setHolidayPayApplied(boolean holidayPayApplied) { this.holidayPayApplied = holidayPayApplied; }
+    public void setStatus(PayrollStatus status) { this.status = status; }
+    public void setConfirmedAt(LocalDateTime confirmedAt) { this.confirmedAt = confirmedAt; }
+    public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }
+    public void setRejectReason(String rejectReason) { this.rejectReason = rejectReason; }
 }

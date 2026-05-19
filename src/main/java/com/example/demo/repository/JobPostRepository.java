@@ -54,4 +54,16 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
         @Param("status") PostStatus status,
         @Param("today") String today
     );
+
+    // 추천 공고 - 지역 매칭
+    @Query("SELECT j FROM JobPost j WHERE j.postStatus = 'OPEN' AND j.workLocation LIKE %:region% ORDER BY j.createdAt DESC")
+        List<JobPost> findOpenByRegion(@Param("region") String region);
+
+    // 추천 - 선호 근무 시간 매칭
+    @Query("SELECT j FROM JobPost j WHERE j.postStatus = 'OPEN' AND j.workType IN :workTypes ORDER BY j.createdAt DESC")
+        List<JobPost> findOpenByWorkTypes(@Param("workTypes") List<String> workTypes);
+
+        // 추천 공고 - 카테고리 매칭
+    @Query("SELECT j FROM JobPost j WHERE j.postStatus = 'OPEN' AND j.category = :category ORDER BY j.createdAt DESC")
+        List<JobPost> findOpenByCategory(@Param("category") JobCategory category);
 }

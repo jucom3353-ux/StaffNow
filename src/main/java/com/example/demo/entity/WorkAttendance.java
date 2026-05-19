@@ -1,7 +1,6 @@
 package com.example.demo.entity;
 
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
 
 @Entity
@@ -11,31 +10,31 @@ public class WorkAttendance {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 어떤 지원의 근무인지
     @OneToOne
     @JoinColumn(name = "application_id")
     private Application application;
 
-    // Shift 직접 연결
     @ManyToOne
     @JoinColumn(name = "work_session_id")
     private WorkSession workSession;
 
-    // 출근 시간
     private LocalDateTime checkInTime;
-
-    // 퇴근 시간
     private LocalDateTime checkOutTime;
+
+    @Enumerated(EnumType.STRING)
+    private AttendanceStatus status = AttendanceStatus.NORMAL;
 
     public Long getId() { return id; }
     public Application getApplication() { return application; }
     public WorkSession getWorkSession() { return workSession; }
     public LocalDateTime getCheckInTime() { return checkInTime; }
     public LocalDateTime getCheckOutTime() { return checkOutTime; }
+    public AttendanceStatus getStatus() { return status; }
 
     public void setId(Long id) { this.id = id; }
     public void setApplication(Application application) { this.application = application; }
     public void setWorkSession(WorkSession workSession) { this.workSession = workSession; }
     public void setCheckInTime(LocalDateTime checkInTime) { this.checkInTime = checkInTime; }
     public void setCheckOutTime(LocalDateTime checkOutTime) { this.checkOutTime = checkOutTime; }
+    public void setStatus(AttendanceStatus status) { this.status = status; }
 }

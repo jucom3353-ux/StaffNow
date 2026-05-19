@@ -26,17 +26,26 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
 
     List<Application> findByJobPostAndStatus(JobPost jobPost, ApplicationStatus status);
 
-    // 근로자 기준 상태별 카운트
     int countByUserAndStatus(User user, ApplicationStatus status);
 
-    // 기업 공고 기준 상태별 카운트
     @Query("SELECT COUNT(a) FROM Application a WHERE a.jobPost.user = :company AND a.status = :status")
-    int countByCompanyAndStatus(@Param("company") User company, @Param("status") ApplicationStatus status);
+    int countByCompanyAndStatus(
+            @Param("company") User company,
+            @Param("status") ApplicationStatus status);
 
-    // 기업 공고 기준 전체 카운트
     @Query("SELECT COUNT(a) FROM Application a WHERE a.jobPost.user = :company")
     int countByCompany(@Param("company") User company);
 
-    // APPROVED 상태 전체 조회 (스케줄러용)
     List<Application> findByStatus(ApplicationStatus status);
+
+    // 결근 대상 조회 (스케줄러용)
+    // Shift 날짜 지났는데 출퇴근 기록 없는 APPROVED 지원
+    @Query("SELECT a FROM Application a " +
+           "WHERE a.status = 'APPROVED' " +
+           "AND a.workSession IS NOT NULL " +
+           "AND a.workSession.workDate < :today " +
+           "AND NOT EXISTS (" +
+           "    SELECT w FROM WorkAttendance w WHERE w.application = a" +
+           ")")
+    List<Application> findAbsentApplications(@Param("today") String today);
 }

@@ -1,6 +1,5 @@
 package com.example.demo.controller;
 
-import com.example.demo.dto.WorkAttendanceResponseDto;
 import com.example.demo.entity.User;
 import com.example.demo.service.WorkAttendanceService;
 
@@ -15,7 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "출퇴근 API", description = "출퇴근 체크인/체크아웃 및 기록 조회")
+@Tag(name = "출퇴근 API", description = "출퇴근 기록 관리")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/attendances")
@@ -47,8 +46,8 @@ public class WorkAttendanceController {
         }
     }
 
-    // 내 전체 출퇴근 기록 (근로자)
-    @Operation(summary = "내 출퇴근 기록 조회")
+    // 내 출퇴근 전체 조회
+    @Operation(summary = "내 출퇴근 기록 전체 조회")
     @GetMapping("/my")
     public ResponseEntity<?> getMyAttendances() {
         try {
@@ -59,35 +58,50 @@ public class WorkAttendanceController {
         }
     }
 
-    // 날짜별 출퇴근 기록 (근로자)
-    @Operation(summary = "날짜별 출퇴근 기록 조회")
+    // 날짜별 출퇴근 조회
+    @Operation(summary = "날짜별 출퇴근 조회")
     @GetMapping("/my/date")
-    public ResponseEntity<?> getMyAttendancesByDate(
-            @RequestParam String date
-    ) {
+    public ResponseEntity<?> getMyAttendancesByDate(@RequestParam String date) {
         try {
             return ResponseEntity.ok(
-                    workAttendanceService.getMyAttendancesByDate(getLoginUser(), date));
+                    workAttendanceService.getMyAttendancesByDate(
+                            getLoginUser(), date));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-    // 공고별 전체 출퇴근 기록 (기업용)
+    // 월별 달력 조회 (근로자)
+    @Operation(summary = "월별 출퇴근 달력 조회")
+    @GetMapping("/my/calendar")
+    public ResponseEntity<?> getMyAttendanceCalendar(
+            @RequestParam int year,
+            @RequestParam int month) {
+        try {
+            return ResponseEntity.ok(
+                    workAttendanceService.getMyAttendanceCalendar(
+                            getLoginUser(), year, month));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // 공고별 전체 조회 (기업용)
     @Operation(summary = "공고별 출퇴근 기록 조회 (기업용)")
     @GetMapping("/job-posts/{jobPostId}")
     public ResponseEntity<?> getAttendancesByJobPost(
             @PathVariable Long jobPostId) {
         try {
             return ResponseEntity.ok(
-                    workAttendanceService.getAttendancesByJobPost(jobPostId, getLoginUser()));
+                    workAttendanceService.getAttendancesByJobPost(
+                            jobPostId, getLoginUser()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-    // 공고별 특정 근로자 출퇴근 기록 (기업용)
-    @Operation(summary = "공고별 특정 근로자 출퇴근 기록 조회 (기업용)")
+    // 공고별 특정 근로자 조회 (기업용)
+    @Operation(summary = "공고별 특정 근로자 출퇴근 조회 (기업용)")
     @GetMapping("/job-posts/{jobPostId}/workers/{workerId}")
     public ResponseEntity<?> getAttendancesByJobPostAndWorker(
             @PathVariable Long jobPostId,
@@ -96,6 +110,22 @@ public class WorkAttendanceController {
             return ResponseEntity.ok(
                     workAttendanceService.getAttendancesByJobPostAndWorker(
                             jobPostId, workerId, getLoginUser()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // 공고별 월별 달력 조회 (기업용)
+    @Operation(summary = "공고별 월별 출퇴근 달력 조회 (기업용)")
+    @GetMapping("/job-posts/{jobPostId}/calendar")
+    public ResponseEntity<?> getJobPostAttendanceCalendar(
+            @PathVariable Long jobPostId,
+            @RequestParam int year,
+            @RequestParam int month) {
+        try {
+            return ResponseEntity.ok(
+                    workAttendanceService.getJobPostAttendanceCalendar(
+                            jobPostId, getLoginUser(), year, month));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
