@@ -59,16 +59,18 @@ public class UserProfileImageService {
             throw new RuntimeException("jpg, jpeg, png 파일만 업로드 가능합니다.");
         }
 
-        String dirPath = System.getProperty("user.dir") + "/" + uploadDir + "/profile";
+        // 절대경로로 저장
+        String dirPath = System.getProperty("user.dir") + File.separator
+                + uploadDir + File.separator + "profile";
         File dir = new File(dirPath);
         if (!dir.exists()) dir.mkdirs();
 
         String savedFilename = "profile_" + loginUser.getId() + "_"
                 + UUID.randomUUID() + ext;
-        File savedFile = new File(dirPath + "/" + savedFilename);
+        File savedFile = new File(dir.getAbsolutePath() + File.separator + savedFilename);
 
         try {
-            file.transferTo(savedFile);
+            file.transferTo(savedFile.toPath());
         } catch (IOException e) {
             throw new RuntimeException("파일 업로드 실패: " + e.getMessage());
         }
@@ -128,8 +130,8 @@ public class UserProfileImageService {
         // 파일 삭제
         String filename = image.getImageUrl()
                 .substring(image.getImageUrl().lastIndexOf("/") + 1);
-        File file = new File(System.getProperty("user.dir") + "/" +
-                uploadDir + "/profile/" + filename);
+        File file = new File(System.getProperty("user.dir") + File.separator
+                + uploadDir + File.separator + "profile" + File.separator + filename);
         if (file.exists()) file.delete();
 
         userProfileImageRepository.delete(image);
