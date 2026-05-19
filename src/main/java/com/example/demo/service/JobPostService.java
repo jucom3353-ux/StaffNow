@@ -134,7 +134,8 @@ public class JobPostService {
         JobPost post = jobPostRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("공고 없음"));
 
-        post.setViewCount((post.getViewCount() != null ? post.getViewCount() : 0) + 1);
+        post.setViewCount(
+                (post.getViewCount() != null ? post.getViewCount() : 0) + 1);
         jobPostRepository.save(post);
 
         return new JobPostResponseDto(
@@ -154,7 +155,8 @@ public class JobPostService {
         List<JobPost> posts = jobPostRepository.findByUser(loginUser);
 
         return posts.stream()
-                .filter(post -> postStatus == null || post.getPostStatus() == postStatus)
+                .filter(post -> postStatus == null ||
+                        post.getPostStatus() == postStatus)
                 .map(post -> new JobPostResponseDto(
                         post,
                         applicationRepository.countByJobPost(post)
@@ -241,5 +243,22 @@ public class JobPostService {
         }
 
         jobPostRepository.deleteById(id);
+    }
+
+    // 인기 공고 조회 (조회수 높은 순)
+    @Transactional(readOnly = true)
+    public List<JobPostResponseDto> getPopularJobPosts(int limit, String region) {
+        Pageable pageable = PageRequest.of(0, limit);
+
+        List<JobPost> posts = (region != null && !region.isBlank())
+                ? jobPostRepository.findPopularJobPostsByRegion(region, pageable)
+                : jobPostRepository.findPopularJobPosts(pageable);
+
+        return posts.stream()
+                .map(post -> new JobPostResponseDto(
+                        post,
+                        applicationRepository.countByJobPost(post)
+                ))
+                .collect(Collectors.toList());
     }
 }

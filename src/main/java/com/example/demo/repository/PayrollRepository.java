@@ -42,7 +42,6 @@ public interface PayrollRepository extends JpaRepository<Payroll, Long> {
             @Param("status") PayrollStatus status
     );
 
-    // 월별 정산 조회 (근로자)
     @Query("SELECT p FROM Payroll p WHERE p.worker = :worker " +
            "AND p.workWeekStart LIKE :yearMonth% " +
            "ORDER BY p.workWeekStart ASC")
@@ -51,7 +50,6 @@ public interface PayrollRepository extends JpaRepository<Payroll, Long> {
             @Param("yearMonth") String yearMonth
     );
 
-    // 월별 정산 조회 (기업 - 공고 기준)
     @Query("SELECT p FROM Payroll p WHERE p.jobPost = :jobPost " +
            "AND p.workWeekStart LIKE :yearMonth% " +
            "ORDER BY p.workWeekStart ASC")
@@ -60,10 +58,13 @@ public interface PayrollRepository extends JpaRepository<Payroll, Long> {
             @Param("yearMonth") String yearMonth
     );
 
-    // 근로자별 정산 합계 (기업용)
     @Query("SELECT p.worker, SUM(p.totalPay) FROM Payroll p " +
            "WHERE p.jobPost.user = :company " +
            "AND p.status = 'PAID' " +
            "GROUP BY p.worker")
     List<Object[]> sumTotalPayByWorker(@Param("company") User company);
+
+    @Query("SELECT COALESCE(SUM(p.totalPay), 0) FROM Payroll p " +
+           "WHERE p.worker = :worker AND p.status = 'PAID'")
+    int sumPaidEverByWorker(@Param("worker") User worker);
 }

@@ -3,10 +3,7 @@ package com.example.demo.service;
 import com.example.demo.dto.ApplicationResponseDto;
 import com.example.demo.dto.WorkerProfileResponseDto;
 import com.example.demo.entity.*;
-import com.example.demo.repository.ApplicationRepository;
-import com.example.demo.repository.ContractRepository;
-import com.example.demo.repository.JobPostRepository;
-import com.example.demo.repository.UserRepository;
+import com.example.demo.repository.*;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -20,24 +17,47 @@ import java.util.stream.Collectors;
 @Service
 public class ApplicationService {
 
+    // 온도 변동 기준 (대표님 확인 후 숫자만 변경)
+    private static final double NO_SHOW_TEMPERATURE_PENALTY = 1.0;
+    private static final double ABSENT_TEMPERATURE_PENALTY = 0.5;
+    private static final double MIN_TEMPERATURE = 0.0;
+
     private final ApplicationRepository applicationRepository;
     private final JobPostRepository jobPostRepository;
     private final ContractRepository contractRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final SkillRepository skillRepository;
+    private final ResumeRepository resumeRepository;
+    private final EducationRepository educationRepository;
+    private final CareerRepository careerRepository;
+    private final CertificateRepository certificateRepository;
+    private final ReviewRepository reviewRepository;
 
     public ApplicationService(
             ApplicationRepository applicationRepository,
             JobPostRepository jobPostRepository,
             ContractRepository contractRepository,
             UserRepository userRepository,
-            NotificationService notificationService
+            NotificationService notificationService,
+            SkillRepository skillRepository,
+            ResumeRepository resumeRepository,
+            EducationRepository educationRepository,
+            CareerRepository careerRepository,
+            CertificateRepository certificateRepository,
+            ReviewRepository reviewRepository
     ) {
         this.applicationRepository = applicationRepository;
         this.jobPostRepository = jobPostRepository;
         this.contractRepository = contractRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.skillRepository = skillRepository;
+        this.resumeRepository = resumeRepository;
+        this.educationRepository = educationRepository;
+        this.careerRepository = careerRepository;
+        this.certificateRepository = certificateRepository;
+        this.reviewRepository = reviewRepository;
     }
 
     @Transactional
@@ -70,8 +90,10 @@ public class ApplicationService {
     }
 
     @Transactional
-    public Page<ApplicationResponseDto> getMyApplications(User loginUser, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+    public Page<ApplicationResponseDto> getMyApplications(
+            User loginUser, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size,
+                Sort.by(Sort.Direction.DESC, "createdAt"));
         return applicationRepository.findByUser(loginUser, pageable)
                 .map(ApplicationResponseDto::new);
     }
@@ -92,7 +114,9 @@ public class ApplicationService {
     }
 
     @Transactional
-    public List<ApplicationResponseDto> getApplications(Long jobPostId, User loginUser, ApplicationStatus status) {
+    public List<ApplicationResponseDto> getApplications(
+            Long jobPostId, User loginUser, ApplicationStatus status) {
+
         JobPost jobPost = jobPostRepository.findById(jobPostId)
                 .orElseThrow(() -> new RuntimeException("공고 없음"));
 
@@ -114,8 +138,11 @@ public class ApplicationService {
                 .collect(Collectors.toList());
     }
 
+    // 지원자 상세 프로필 조회 (고도화)
     @Transactional
-    public WorkerProfileResponseDto getWorkerProfile(Long applicationId, User loginUser) {
+    public WorkerProfileResponseDto getWorkerProfile(
+            Long applicationId, User loginUser) {
+
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new RuntimeException("지원 없음"));
 
@@ -124,10 +151,23 @@ public class ApplicationService {
         }
 
         User worker = application.getUser();
+
+        List<Skill> skills = skillRepository.findByUser(worker);
+
+        Resume resume = resumeRepository.findByUser(worker).orElse(null);
+
+        List<Education> educations = resume != null
+                ? educationRepository.findByResume(resume) : List.of();
+        List<Career> careers = resume != null
+                ? careerRepository.findByResume(resume) : List.of();
+        List<Certificate> certificates = resume != null
+                ? certificateRepository.findByResume(resume) : List.of();
+
+        List<Review> reviews = reviewRepository.findByWorker(worker);
+
         return new WorkerProfileResponseDto(
-                worker.getName(),
-                worker.getTemperature(),
-                worker.getNoShowCount()
+                worker, skills, resume,
+                educations, careers, certificates, reviews
         );
     }
 
@@ -146,7 +186,6 @@ public class ApplicationService {
         application.setStatus(ApplicationStatus.APPROVED);
         applicationRepository.save(application);
 
-        // 알림 전송
         notificationService.send(
                 application.getUser(),
                 NotificationType.APPLICATION_APPROVED,
@@ -157,7 +196,8 @@ public class ApplicationService {
         boolean contractExists = contractRepository
                 .findByCompanyAndWorker(loginUser, application.getUser())
                 .stream()
-                .anyMatch(c -> c.getJobPost().getId().equals(application.getJobPost().getId()));
+                .anyMatch(c -> c.getJobPost().getId()
+                        .equals(application.getJobPost().getId()));
 
         if (!contractExists) {
             Contract contract = new Contract();
@@ -186,7 +226,6 @@ public class ApplicationService {
         application.setStatus(ApplicationStatus.REJECTED);
         applicationRepository.save(application);
 
-        // 알림 전송
         notificationService.send(
                 application.getUser(),
                 NotificationType.APPLICATION_REJECTED,
@@ -227,10 +266,24 @@ public class ApplicationService {
 
         User worker = application.getUser();
         worker.setNoShowCount(worker.getNoShowCount() + 1);
-        worker.setTemperature(worker.getTemperature() - 1.0);
+
+        double newTemp = Math.max(
+                worker.getTemperature() - NO_SHOW_TEMPERATURE_PENALTY,
+                MIN_TEMPERATURE
+        );
+        worker.setTemperature(newTemp);
 
         applicationRepository.save(application);
         userRepository.save(worker);
+
+        notificationService.send(
+                worker,
+                NotificationType.APPLICATION_REJECTED,
+                "[" + application.getJobPost().getTitle() + "] " +
+                "노쇼 처리되었습니다. 온도가 " + NO_SHOW_TEMPERATURE_PENALTY +
+                "도 감소하였습니다.",
+                application.getId()
+        );
     }
 
     @Transactional
@@ -246,6 +299,24 @@ public class ApplicationService {
         }
 
         application.setStatus(ApplicationStatus.ABSENT);
+
+        User worker = application.getUser();
+        double newTemp = Math.max(
+                worker.getTemperature() - ABSENT_TEMPERATURE_PENALTY,
+                MIN_TEMPERATURE
+        );
+        worker.setTemperature(newTemp);
+
         applicationRepository.save(application);
+        userRepository.save(worker);
+
+        notificationService.send(
+                worker,
+                NotificationType.APPLICATION_REJECTED,
+                "[" + application.getJobPost().getTitle() + "] " +
+                "결근 처리되었습니다. 온도가 " + ABSENT_TEMPERATURE_PENALTY +
+                "도 감소하였습니다.",
+                application.getId()
+        );
     }
 }

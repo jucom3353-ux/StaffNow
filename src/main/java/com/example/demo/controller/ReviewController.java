@@ -1,8 +1,6 @@
 package com.example.demo.controller;
 
 import com.example.demo.dto.ReviewRequestDto;
-import com.example.demo.dto.WorkerRatingResponseDto;
-import com.example.demo.entity.Review;
 import com.example.demo.entity.User;
 import com.example.demo.service.ReviewService;
 
@@ -12,8 +10,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Tag(name = "리뷰 API", description = "리뷰 작성 및 조회 기능")
 @RestController
@@ -31,8 +27,7 @@ public class ReviewController {
     public ResponseEntity<?> createReview(
             @PathVariable Long applicationId,
             @RequestBody ReviewRequestDto requestDto,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         try {
             User company = (User) authentication.getPrincipal();
             reviewService.createReview(applicationId, requestDto, company);
@@ -47,8 +42,7 @@ public class ReviewController {
     public ResponseEntity<?> createWorkerReview(
             @PathVariable Long applicationId,
             @RequestBody ReviewRequestDto requestDto,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         try {
             User worker = (User) authentication.getPrincipal();
             reviewService.createWorkerReview(applicationId, requestDto, worker);
@@ -73,6 +67,17 @@ public class ReviewController {
     public ResponseEntity<?> getCompanyReviews(@PathVariable Long companyId) {
         try {
             return ResponseEntity.ok(reviewService.getCompanyReviews(companyId));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @Operation(summary = "내가 받은 리뷰 조회 (로그인 유저 기준)")
+    @GetMapping("/my")
+    public ResponseEntity<?> getMyReviews(Authentication authentication) {
+        try {
+            User loginUser = (User) authentication.getPrincipal();
+            return ResponseEntity.ok(reviewService.getMyReviews(loginUser));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

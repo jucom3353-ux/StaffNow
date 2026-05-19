@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import com.example.demo.dto.ReviewRequestDto;
+import com.example.demo.dto.ReviewResponseDto;
 import com.example.demo.dto.WorkerRatingResponseDto;
 import com.example.demo.entity.*;
 import com.example.demo.repository.ApplicationRepository;
@@ -9,6 +10,7 @@ import com.example.demo.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ReviewService {
@@ -106,12 +108,31 @@ public class ReviewService {
         );
     }
 
-    // 기업 리뷰 조회 (인력이 기업에 작성한 리뷰)
-    public List<Review> getCompanyReviews(Long companyId) {
+    // 기업 리뷰 조회
+    public List<ReviewResponseDto> getCompanyReviews(Long companyId) {
 
         User company = userRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("기업 없음"));
 
-        return reviewRepository.findByTargetCompany(company);
+        return reviewRepository.findByTargetCompany(company)
+                .stream()
+                .map(ReviewResponseDto::new)
+                .collect(Collectors.toList());
+    }
+
+    // 내가 받은 리뷰 조회 (로그인 유저 기준)
+    public List<ReviewResponseDto> getMyReviews(User loginUser) {
+
+        List<Review> reviews;
+
+        if (loginUser.getRole() == Role.INDIVIDUAL) {
+            reviews = reviewRepository.findByWorker(loginUser);
+        } else {
+            reviews = reviewRepository.findByTargetCompany(loginUser);
+        }
+
+        return reviews.stream()
+                .map(ReviewResponseDto::new)
+                .collect(Collectors.toList());
     }
 }

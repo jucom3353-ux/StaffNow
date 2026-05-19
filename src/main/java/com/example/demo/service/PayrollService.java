@@ -96,33 +96,6 @@ public class PayrollService {
         return new PayrollResponseDto(payroll);
     }
 
-    // 내 정산 목록 조회 (근로자)
-    @Transactional(readOnly = true)
-    public List<PayrollResponseDto> getMyPayrolls(User loginUser) {
-        return payrollRepository.findByWorker(loginUser)
-                .stream()
-                .map(PayrollResponseDto::new)
-                .collect(Collectors.toList());
-    }
-
-    // 공고별 정산 목록 조회 (기업)
-    @Transactional(readOnly = true)
-    public List<PayrollResponseDto> getPayrollsByJobPost(
-            Long jobPostId, User loginUser) {
-
-        JobPost jobPost = jobPostRepository.findById(jobPostId)
-                .orElseThrow(() -> new RuntimeException("공고 없음"));
-
-        if (!jobPost.getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고의 정산만 조회 가능합니다.");
-        }
-
-        return payrollRepository.findByJobPost(jobPost)
-                .stream()
-                .map(PayrollResponseDto::new)
-                .collect(Collectors.toList());
-    }
-
     // 정산 확정 (기업)
     @Transactional
     public PayrollResponseDto confirmPayroll(Long payrollId, User loginUser) {
@@ -225,29 +198,63 @@ public class PayrollService {
         return new PayrollResponseDto(payrollRepository.save(payroll));
     }
 
-    // 상태별 정산 조회 (근로자)
+    // 근로자 급여 통합 조회
     @Transactional(readOnly = true)
-    public List<PayrollResponseDto> getMyPayrollsByStatus(
-            User loginUser, PayrollStatus status) {
-        return payrollRepository.findByWorkerAndStatus(loginUser, status)
-                .stream()
+    public Map<String, Object> getMyPayrollSummary(
+            User loginUser,
+            PayrollStatus status,
+            String startDate,
+            String endDate,
+            String yearMonth) {
+
+        List<Payroll> filtered;
+        if (status != null) {
+            filtered = payrollRepository.findByWorkerAndStatus(loginUser, status);
+        } else if (yearMonth != null) {
+            filtered = payrollRepository.findByWorkerAndMonth(loginUser, yearMonth);
+        } else if (startDate != null && endDate != null) {
+            filtered = payrollRepository.findByWorkerAndPeriod(loginUser, startDate, endDate);
+        } else {
+            filtered = payrollRepository.findByWorker(loginUser);
+        }
+
+        String thisMonth = LocalDate.now().toString().substring(0, 7);
+        List<Payroll> monthlyPayrolls = payrollRepository
+                .findByWorkerAndMonth(loginUser, thisMonth);
+
+        int thisMonthIncome = monthlyPayrolls.stream()
+                .filter(p -> p.getStatus() == PayrollStatus.PAID)
+                .mapToInt(Payroll::getTotalPay).sum();
+
+        int pendingIncome = monthlyPayrolls.stream()
+                .filter(p -> p.getStatus() == PayrollStatus.PENDING
+                          || p.getStatus() == PayrollStatus.CONFIRMED)
+                .mapToInt(Payroll::getTotalPay).sum();
+
+        int totalPaidEver = payrollRepository.sumPaidEverByWorker(loginUser);
+
+        List<PayrollResponseDto> payrolls = filtered.stream()
+                .sorted((a, b) -> b.getWorkWeekStart().compareTo(a.getWorkWeekStart()))
                 .map(PayrollResponseDto::new)
                 .collect(Collectors.toList());
+
+        return Map.of(
+                "summary", Map.of(
+                        "yearMonth", thisMonth,
+                        "thisMonthIncome", thisMonthIncome,
+                        "pendingIncome", pendingIncome,
+                        "totalPaidEver", totalPaidEver
+                ),
+                "payrolls", payrolls
+        );
     }
 
-    // 기간별 정산 조회 (근로자)
+    // 기업 정산 통합 조회
     @Transactional(readOnly = true)
-    public List<PayrollResponseDto> getMyPayrollsByPeriod(
-            User loginUser, String startDate, String endDate) {
-        return payrollRepository.findByWorkerAndPeriod(loginUser, startDate, endDate)
-                .stream()
-                .map(PayrollResponseDto::new)
-                .collect(Collectors.toList());
-    }
-
-    // 기업 정산 통계
-    @Transactional(readOnly = true)
-    public Map<String, Integer> getCompanyPayrollStats(User loginUser) {
+    public Map<String, Object> getCompanyPayrollSummary(
+            User loginUser,
+            Long jobPostId,
+            String yearMonth) {
 
         if (loginUser.getRole() != Role.COMPANY) {
             throw new RuntimeException("기업 회원만 조회 가능합니다.");
@@ -270,99 +277,62 @@ public class PayrollService {
                         .sumTotalPayByJobPostAndStatus(jp, PayrollStatus.PAID))
                 .sum();
 
-        return Map.of(
-                "totalPending", totalPending,
-                "totalConfirmed", totalConfirmed,
-                "totalPaid", totalPaid
-        );
-    }
-
-    // 월별 정산 조회 (근로자)
-    @Transactional(readOnly = true)
-    public List<PayrollResponseDto> getMyPayrollsByMonth(
-            User loginUser, String yearMonth) {
-        return payrollRepository.findByWorkerAndMonth(loginUser, yearMonth)
+        List<Map<String, Object>> workerStats = payrollRepository
+                .sumTotalPayByWorker(loginUser)
                 .stream()
-                .map(PayrollResponseDto::new)
-                .collect(Collectors.toList());
-    }
-
-    // 월별 정산 조회 (기업 - 공고 기준)
-    @Transactional(readOnly = true)
-    public List<PayrollResponseDto> getJobPostPayrollsByMonth(
-            Long jobPostId, String yearMonth, User loginUser) {
-
-        if (loginUser.getRole() != Role.COMPANY) {
-            throw new RuntimeException("기업 회원만 조회 가능합니다.");
-        }
-
-        JobPost jobPost = jobPostRepository.findById(jobPostId)
-                .orElseThrow(() -> new RuntimeException("공고 없음"));
-
-        if (!jobPost.getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고만 조회 가능합니다.");
-        }
-
-        return payrollRepository.findByJobPostAndMonth(jobPost, yearMonth)
-                .stream()
-                .map(PayrollResponseDto::new)
-                .collect(Collectors.toList());
-    }
-
-    // 근로자별 정산 합계 (기업용)
-    @Transactional(readOnly = true)
-    public List<Map<String, Object>> getPayrollStatsByWorker(User loginUser) {
-
-        if (loginUser.getRole() != Role.COMPANY) {
-            throw new RuntimeException("기업 회원만 조회 가능합니다.");
-        }
-
-        List<Object[]> results = payrollRepository.sumTotalPayByWorker(loginUser);
-
-        return results.stream()
                 .map(row -> {
                     User worker = (User) row[0];
-                    Long totalPay = ((Number) row[1]).longValue();
+                    Long total = ((Number) row[1]).longValue();
                     return Map.<String, Object>of(
                             "workerId", worker.getId(),
                             "workerName", worker.getName(),
-                            "totalPaid", totalPay
+                            "totalPaid", total
                     );
                 })
                 .collect(Collectors.toList());
-    }
 
-    // 이번달 수입 요약 (근로자 홈용)
-    @Transactional(readOnly = true)
-    public Map<String, Object> getMyMonthlySummary(User loginUser) {
+        List<Payroll> filtered;
+        if (jobPostId != null && yearMonth != null) {
+            JobPost jobPost = jobPostRepository.findById(jobPostId)
+                    .orElseThrow(() -> new RuntimeException("공고 없음"));
+            if (!jobPost.getUser().getId().equals(loginUser.getId())) {
+                throw new RuntimeException("본인 공고만 조회 가능합니다.");
+            }
+            filtered = payrollRepository.findByJobPostAndMonth(jobPost, yearMonth);
 
-        String yearMonth = LocalDate.now().toString().substring(0, 7);
+        } else if (jobPostId != null) {
+            JobPost jobPost = jobPostRepository.findById(jobPostId)
+                    .orElseThrow(() -> new RuntimeException("공고 없음"));
+            if (!jobPost.getUser().getId().equals(loginUser.getId())) {
+                throw new RuntimeException("본인 공고만 조회 가능합니다.");
+            }
+            filtered = payrollRepository.findByJobPost(jobPost);
 
-        List<Payroll> monthlyPayrolls = payrollRepository
-                .findByWorkerAndMonth(loginUser, yearMonth);
+        } else if (yearMonth != null) {
+            filtered = jobPosts.stream()
+                    .flatMap(jp -> payrollRepository
+                            .findByJobPostAndMonth(jp, yearMonth).stream())
+                    .collect(Collectors.toList());
 
-        int thisMonthIncome = monthlyPayrolls.stream()
-                .filter(p -> p.getStatus() == PayrollStatus.PAID)
-                .mapToInt(Payroll::getTotalPay)
-                .sum();
+        } else {
+            filtered = jobPosts.stream()
+                    .flatMap(jp -> payrollRepository.findByJobPost(jp).stream())
+                    .collect(Collectors.toList());
+        }
 
-        int pendingIncome = monthlyPayrolls.stream()
-                .filter(p -> p.getStatus() == PayrollStatus.PENDING ||
-                             p.getStatus() == PayrollStatus.CONFIRMED)
-                .mapToInt(Payroll::getTotalPay)
-                .sum();
-
-        int totalPaidEver = payrollRepository.findByWorker(loginUser)
-                .stream()
-                .filter(p -> p.getStatus() == PayrollStatus.PAID)
-                .mapToInt(Payroll::getTotalPay)
-                .sum();
+        List<PayrollResponseDto> payrolls = filtered.stream()
+                .sorted((a, b) -> b.getWorkWeekStart().compareTo(a.getWorkWeekStart()))
+                .map(PayrollResponseDto::new)
+                .collect(Collectors.toList());
 
         return Map.of(
-                "thisMonthIncome", thisMonthIncome,
-                "pendingIncome", pendingIncome,
-                "totalPaidEver", totalPaidEver,
-                "yearMonth", yearMonth
+                "stats", Map.of(
+                        "totalPending", totalPending,
+                        "totalConfirmed", totalConfirmed,
+                        "totalPaid", totalPaid
+                ),
+                "workerStats", workerStats,
+                "payrolls", payrolls
         );
     }
 }

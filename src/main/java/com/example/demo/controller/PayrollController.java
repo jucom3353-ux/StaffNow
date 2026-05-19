@@ -37,29 +37,6 @@ public class PayrollController {
         }
     }
 
-    // 내 정산 목록 조회 (근로자)
-    @Operation(summary = "내 정산 목록 조회")
-    @GetMapping("/my")
-    public ResponseEntity<?> getMyPayrolls() {
-        try {
-            return ResponseEntity.ok(payrollService.getMyPayrolls(getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(e.getMessage());
-        }
-    }
-
-    // 공고별 정산 목록 조회 (기업)
-    @Operation(summary = "공고별 정산 목록 조회")
-    @GetMapping("/job-posts/{jobPostId}")
-    public ResponseEntity<?> getPayrollsByJobPost(@PathVariable Long jobPostId) {
-        try {
-            return ResponseEntity.ok(
-                    payrollService.getPayrollsByJobPost(jobPostId, getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
     // 정산 확정 (기업)
     @Operation(summary = "정산 확정 (기업)")
     @PatchMapping("/{payrollId}/confirm")
@@ -98,93 +75,35 @@ public class PayrollController {
         }
     }
 
-    // 상태별 정산 조회 (근로자)
-    @Operation(summary = "상태별 정산 조회")
-    @GetMapping("/my/status")
-    public ResponseEntity<?> getMyPayrollsByStatus(@RequestParam PayrollStatus status) {
+    // 근로자 급여 통합 조회
+    @Operation(summary = "근로자 급여 통합 조회 (목록 + 요약)")
+    @GetMapping("/my/summary")
+    public ResponseEntity<?> getMyPayrollSummary(
+            @RequestParam(required = false) PayrollStatus status,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) String yearMonth) {
         try {
             return ResponseEntity.ok(
-                    payrollService.getMyPayrollsByStatus(getLoginUser(), status));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    // 기간별 정산 조회 (근로자)
-    @Operation(summary = "기간별 정산 조회")
-    @GetMapping("/my/period")
-    public ResponseEntity<?> getMyPayrollsByPeriod(
-            @RequestParam String startDate,
-            @RequestParam String endDate) {
-        try {
-            return ResponseEntity.ok(
-                    payrollService.getMyPayrollsByPeriod(
-                            getLoginUser(), startDate, endDate));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    // 기업 정산 통계
-    @Operation(summary = "기업 정산 통계")
-    @GetMapping("/company/stats")
-    public ResponseEntity<?> getCompanyPayrollStats() {
-        try {
-            return ResponseEntity.ok(
-                    payrollService.getCompanyPayrollStats(getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    // 월별 정산 조회 (근로자)
-    @Operation(summary = "월별 정산 조회 (근로자)")
-    @GetMapping("/my/month")
-    public ResponseEntity<?> getMyPayrollsByMonth(@RequestParam String yearMonth) {
-        try {
-            return ResponseEntity.ok(
-                    payrollService.getMyPayrollsByMonth(getLoginUser(), yearMonth));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    // 공고별 월별 정산 조회 (기업)
-    @Operation(summary = "공고별 월별 정산 조회 (기업)")
-    @GetMapping("/job-posts/{jobPostId}/month")
-    public ResponseEntity<?> getJobPostPayrollsByMonth(
-            @PathVariable Long jobPostId,
-            @RequestParam String yearMonth) {
-        try {
-            return ResponseEntity.ok(
-                    payrollService.getJobPostPayrollsByMonth(
-                            jobPostId, yearMonth, getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    // 근로자별 정산 합계 (기업)
-    @Operation(summary = "근로자별 정산 합계 (기업)")
-    @GetMapping("/company/workers/stats")
-    public ResponseEntity<?> getPayrollStatsByWorker() {
-        try {
-            return ResponseEntity.ok(
-                    payrollService.getPayrollStatsByWorker(getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    // 이번달 수입 요약 (근로자)
-    @Operation(summary = "이번달 수입 요약 (근로자)")
-    @GetMapping("/my/monthly-summary")
-    public ResponseEntity<?> getMyMonthlySummary() {
-        try {
-            return ResponseEntity.ok(
-                    payrollService.getMyMonthlySummary(getLoginUser()));
+                    payrollService.getMyPayrollSummary(
+                            getLoginUser(), status, startDate, endDate, yearMonth));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(e.getMessage());
+        }
+    }
+
+    // 기업 정산 통합 조회
+    @Operation(summary = "기업 정산 통합 조회 (통계 + 근로자별 합계 + 목록)")
+    @GetMapping("/company/summary")
+    public ResponseEntity<?> getCompanyPayrollSummary(
+            @RequestParam(required = false) Long jobPostId,
+            @RequestParam(required = false) String yearMonth) {
+        try {
+            return ResponseEntity.ok(
+                    payrollService.getCompanyPayrollSummary(
+                            getLoginUser(), jobPostId, yearMonth));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 

@@ -10,7 +10,9 @@ import java.time.LocalDateTime;
 public class PayrollResponseDto {
 
     private Long id;
+    private Long workerId; 
     private String workerName;
+    private Long jobPostId; 
     private String jobPostTitle;
     private String workWeekStart;
     private String workWeekEnd;
@@ -28,7 +30,9 @@ public class PayrollResponseDto {
 
     public PayrollResponseDto(Payroll payroll) {
         this.id = payroll.getId();
+        this.workerId = payroll.getWorker().getId();
         this.workerName = payroll.getWorker().getName();
+        this.jobPostId = payroll.getJobPost().getId();
         this.jobPostTitle = payroll.getJobPost().getTitle();
         this.workWeekStart = payroll.getWorkWeekStart();
         this.workWeekEnd = payroll.getWorkWeekEnd();
