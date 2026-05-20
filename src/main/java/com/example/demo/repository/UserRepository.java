@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -18,7 +19,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByEmail(String email);
 
-    // 기존 검색 쿼리
+    // 추가
+    List<User> findByRole(Role role);
+
     @Query("SELECT u FROM User u WHERE u.role = :role " +
            "AND (:name IS NULL OR u.name LIKE %:name%) " +
            "AND u.temperature >= :minRating " +
@@ -38,7 +41,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
             Pageable pageable
     );
 
-    // 상위 추천 (사진 5장 이상) 우선 정렬
     @Query("SELECT u FROM User u WHERE u.role = :role " +
            "AND (:name IS NULL OR u.name LIKE %:name%) " +
            "AND u.temperature >= :minRating " +

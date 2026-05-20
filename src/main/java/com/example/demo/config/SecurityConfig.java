@@ -54,6 +54,9 @@ public class SecurityConfig {
                                 org.springframework.http.HttpMethod.POST, "/users"
                         ).permitAll()
                         .requestMatchers("/ws/**").permitAll()
+                        // ADMIN 전용
+                        .requestMatchers("/disputes/*/resolve").hasRole("ADMIN")
+                        .requestMatchers("/disputes").hasAnyRole("ADMIN", "COMPANY", "INDIVIDUAL")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

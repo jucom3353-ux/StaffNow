@@ -15,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @Tag(name = "유저 API", description = "유저 관련 기능")
@@ -29,8 +30,7 @@ public class UserController {
     @Operation(summary = "회원가입")
     @PostMapping
     public ResponseEntity<?> createUser(
-            @RequestBody UserCreateRequestDto requestDto
-    ) {
+            @RequestBody UserCreateRequestDto requestDto) {
         try {
             userService.createUser(requestDto);
             return ResponseEntity.ok("회원가입 완료");
@@ -42,9 +42,7 @@ public class UserController {
     // 이메일 중복 확인
     @Operation(summary = "이메일 중복 확인")
     @GetMapping("/check-email")
-    public ResponseEntity<?> checkEmail(
-            @RequestParam String email
-    ) {
+    public ResponseEntity<?> checkEmail(@RequestParam String email) {
         if (email == null || !email.contains("@")) {
             return ResponseEntity.badRequest().body("유효하지 않은 이메일 형식");
         }
@@ -67,12 +65,10 @@ public class UserController {
         }
     }
 
-    // 프로필 수정 (INDIVIDUAL만)
+    // 프로필 수정
     @Operation(summary = "내 프로필 수정")
     @PatchMapping("/me")
-    public ResponseEntity<?> updateMe(
-            @RequestBody UserUpdateRequestDto requestDto
-    ) {
+    public ResponseEntity<?> updateMe(@RequestBody UserUpdateRequestDto requestDto) {
         try {
             User loginUser = getLoginUser();
             if (loginUser.getRole() != Role.INDIVIDUAL) {
@@ -89,8 +85,7 @@ public class UserController {
     @Operation(summary = "비밀번호 변경")
     @PatchMapping("/me/password")
     public ResponseEntity<?> changePassword(
-            @RequestBody PasswordChangeRequestDto requestDto
-    ) {
+            @RequestBody PasswordChangeRequestDto requestDto) {
         try {
             userService.changePassword(getLoginUser(), requestDto);
             return ResponseEntity.ok("비밀번호 변경 완료");
@@ -108,6 +103,58 @@ public class UserController {
             return ResponseEntity.ok("회원 탈퇴 완료");
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(e.getMessage());
+        }
+    }
+
+    // ===== ADMIN 전용 =====
+
+    // 전체 회원 조회
+    @Operation(summary = "전체 회원 조회 (관리자)")
+    @GetMapping("/admin")
+    public ResponseEntity<?> getAllUsers(
+            @RequestParam(required = false) Role role) {
+        try {
+            List<UserResponseDto> users =
+                    userService.getAllUsers(role, getLoginUser());
+            return ResponseEntity.ok(users);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // 회원 정지
+    @Operation(summary = "회원 정지 (관리자)")
+    @PatchMapping("/admin/{userId}/suspend")
+    public ResponseEntity<?> suspendUser(@PathVariable Long userId) {
+        try {
+            userService.suspendUser(userId, getLoginUser());
+            return ResponseEntity.ok("회원 정지 완료");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // 회원 정지 해제
+    @Operation(summary = "회원 정지 해제 (관리자)")
+    @PatchMapping("/admin/{userId}/unsuspend")
+    public ResponseEntity<?> unsuspendUser(@PathVariable Long userId) {
+        try {
+            userService.unsuspendUser(userId, getLoginUser());
+            return ResponseEntity.ok("회원 정지 해제 완료");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // 회원 강제 탈퇴
+    @Operation(summary = "회원 강제 탈퇴 (관리자)")
+    @DeleteMapping("/admin/{userId}")
+    public ResponseEntity<?> forceDeleteUser(@PathVariable Long userId) {
+        try {
+            userService.forceDeleteUser(userId, getLoginUser());
+            return ResponseEntity.ok("강제 탈퇴 완료");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 

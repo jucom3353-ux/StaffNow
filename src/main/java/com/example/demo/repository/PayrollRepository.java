@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,6 +26,9 @@ public interface PayrollRepository extends JpaRepository<Payroll, Long> {
     List<Payroll> findByWorkerAndStatus(User worker, PayrollStatus status);
 
     List<Payroll> findByJobPostAndStatus(JobPost jobPost, PayrollStatus status);
+
+    // 추가: ADMIN 전용 상태별 조회
+    List<Payroll> findByStatus(PayrollStatus status);
 
     @Query("SELECT p FROM Payroll p WHERE p.worker = :worker " +
            "AND p.workWeekStart >= :startDate AND p.workWeekStart <= :endDate " +
@@ -67,4 +71,6 @@ public interface PayrollRepository extends JpaRepository<Payroll, Long> {
     @Query("SELECT COALESCE(SUM(p.totalPay), 0) FROM Payroll p " +
            "WHERE p.worker = :worker AND p.status = 'PAID'")
     int sumPaidEverByWorker(@Param("worker") User worker);
+
+    List<Payroll> findByStatusAndDeadlineAtBefore(PayrollStatus status, LocalDateTime dateTime);
 }

@@ -3,6 +3,7 @@ package com.example.demo.repository;
 import com.example.demo.entity.Application;
 import com.example.demo.entity.ApplicationStatus;
 import com.example.demo.entity.JobPost;
+import com.example.demo.entity.JobPostRole;
 import com.example.demo.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -39,7 +40,6 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     List<Application> findByStatus(ApplicationStatus status);
 
     // 결근 대상 조회 (스케줄러용)
-    // Shift 날짜 지났는데 출퇴근 기록 없는 APPROVED 지원
     @Query("SELECT a FROM Application a " +
            "WHERE a.status = 'APPROVED' " +
            "AND a.workSession IS NOT NULL " +
@@ -48,4 +48,13 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
            "    SELECT w FROM WorkAttendance w WHERE w.application = a" +
            ")")
     List<Application> findAbsentApplications(@Param("today") String today);
+
+    // 추가: 직무별 지원자 수 (REJECTED 제외)
+    @Query("SELECT COUNT(a) FROM Application a " +
+           "WHERE a.jobPostRole = :jobPostRole " +
+           "AND a.status != :status")
+    int countByJobPostRoleAndStatusNot(
+            @Param("jobPostRole") JobPostRole jobPostRole,
+            @Param("status") ApplicationStatus status
+    );
 }

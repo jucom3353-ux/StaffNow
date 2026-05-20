@@ -17,13 +17,13 @@ import java.util.stream.Collectors;
 @Service
 public class ApplicationService {
 
-    // 온도 변동 기준 (대표님 확인 후 숫자만 변경)
     private static final double NO_SHOW_TEMPERATURE_PENALTY = 1.0;
     private static final double ABSENT_TEMPERATURE_PENALTY = 0.5;
     private static final double MIN_TEMPERATURE = 0.0;
 
     private final ApplicationRepository applicationRepository;
     private final JobPostRepository jobPostRepository;
+    private final JobPostRoleRepository jobPostRoleRepository;
     private final ContractRepository contractRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
@@ -37,6 +37,7 @@ public class ApplicationService {
     public ApplicationService(
             ApplicationRepository applicationRepository,
             JobPostRepository jobPostRepository,
+            JobPostRoleRepository jobPostRoleRepository,
             ContractRepository contractRepository,
             UserRepository userRepository,
             NotificationService notificationService,
@@ -49,6 +50,7 @@ public class ApplicationService {
     ) {
         this.applicationRepository = applicationRepository;
         this.jobPostRepository = jobPostRepository;
+        this.jobPostRoleRepository = jobPostRoleRepository;
         this.contractRepository = contractRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
@@ -61,7 +63,7 @@ public class ApplicationService {
     }
 
     @Transactional
-    public void apply(Long jobPostId, User loginUser) {
+    public void apply(Long jobPostId, Long jobPostRoleId, User loginUser) {
         if (loginUser.getRole() != Role.INDIVIDUAL) {
             throw new RuntimeException("구직자만 지원할 수 있습니다.");
         }
@@ -82,9 +84,35 @@ public class ApplicationService {
             throw new RuntimeException("이미 지원한 공고입니다.");
         }
 
+        // 직무 검증
+        JobPostRole jobPostRole = jobPostRoleRepository.findById(jobPostRoleId)
+                .orElseThrow(() -> new RuntimeException("직무 없음"));
+
+        if (!jobPostRole.getJobPost().getId().equals(jobPostId)) {
+            throw new RuntimeException("해당 공고의 직무가 아닙니다.");
+        }
+
+        // 모집인원 마감 체크
+        int currentRoleCount = applicationRepository
+                .countByJobPostRoleAndStatusNot(jobPostRole, ApplicationStatus.REJECTED);
+        if (currentRoleCount >= jobPostRole.getRecruitCount()) {
+            throw new RuntimeException("해당 직무 모집이 마감되었습니다.");
+        }
+
+        // 경력 필요 직무 검증
+        if (jobPostRole.getRequiresExperience()) {
+            List<Career> careers = careerRepository.findByResume(
+                    resumeRepository.findByUser(loginUser).orElse(null)
+            );
+            if (careers == null || careers.isEmpty()) {
+                throw new RuntimeException("해당 직무는 경력자만 지원 가능합니다.");
+            }
+        }
+
         Application application = new Application();
         application.setUser(loginUser);
         application.setJobPost(jobPost);
+        application.setJobPostRole(jobPostRole);
         application.setStatus(ApplicationStatus.APPLIED);
         applicationRepository.save(application);
     }
@@ -133,12 +161,12 @@ public class ApplicationService {
                         a.getId(),
                         a.getUser().getName(),
                         a.getUser().getId(),
-                        a.getStatus().name()
+                        a.getStatus().name(),
+                        a.getJobPostRole() != null ? a.getJobPostRole().getRoleName() : null
                 ))
                 .collect(Collectors.toList());
     }
 
-    // 지원자 상세 프로필 조회 (고도화)
     @Transactional
     public WorkerProfileResponseDto getWorkerProfile(
             Long applicationId, User loginUser) {
@@ -151,23 +179,15 @@ public class ApplicationService {
         }
 
         User worker = application.getUser();
-
         List<Skill> skills = skillRepository.findByUser(worker);
-
         Resume resume = resumeRepository.findByUser(worker).orElse(null);
-
-        List<Education> educations = resume != null
-                ? educationRepository.findByResume(resume) : List.of();
-        List<Career> careers = resume != null
-                ? careerRepository.findByResume(resume) : List.of();
-        List<Certificate> certificates = resume != null
-                ? certificateRepository.findByResume(resume) : List.of();
-
+        List<Education> educations = resume != null ? educationRepository.findByResume(resume) : List.of();
+        List<Career> careers = resume != null ? careerRepository.findByResume(resume) : List.of();
+        List<Certificate> certificates = resume != null ? certificateRepository.findByResume(resume) : List.of();
         List<Review> reviews = reviewRepository.findByWorker(worker);
 
         return new WorkerProfileResponseDto(
-                worker, skills, resume,
-                educations, careers, certificates, reviews
+                worker, skills, resume, educations, careers, certificates, reviews
         );
     }
 
@@ -266,7 +286,6 @@ public class ApplicationService {
 
         User worker = application.getUser();
         worker.setNoShowCount(worker.getNoShowCount() + 1);
-
         double newTemp = Math.max(
                 worker.getTemperature() - NO_SHOW_TEMPERATURE_PENALTY,
                 MIN_TEMPERATURE
@@ -279,9 +298,8 @@ public class ApplicationService {
         notificationService.send(
                 worker,
                 NotificationType.APPLICATION_REJECTED,
-                "[" + application.getJobPost().getTitle() + "] " +
-                "노쇼 처리되었습니다. 온도가 " + NO_SHOW_TEMPERATURE_PENALTY +
-                "도 감소하였습니다.",
+                "[" + application.getJobPost().getTitle() + "] 노쇼 처리되었습니다. 온도가 "
+                        + NO_SHOW_TEMPERATURE_PENALTY + "도 감소하였습니다.",
                 application.getId()
         );
     }
@@ -313,9 +331,8 @@ public class ApplicationService {
         notificationService.send(
                 worker,
                 NotificationType.APPLICATION_REJECTED,
-                "[" + application.getJobPost().getTitle() + "] " +
-                "결근 처리되었습니다. 온도가 " + ABSENT_TEMPERATURE_PENALTY +
-                "도 감소하였습니다.",
+                "[" + application.getJobPost().getTitle() + "] 결근 처리되었습니다. 온도가 "
+                        + ABSENT_TEMPERATURE_PENALTY + "도 감소하였습니다.",
                 application.getId()
         );
     }

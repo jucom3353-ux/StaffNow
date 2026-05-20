@@ -76,7 +76,7 @@ public class PayrollController {
     }
 
     // 근로자 급여 통합 조회
-    @Operation(summary = "근로자 급여 통합 조회 (목록 + 요약)")
+    @Operation(summary = "근로자 급여 통합 조회")
     @GetMapping("/my/summary")
     public ResponseEntity<?> getMyPayrollSummary(
             @RequestParam(required = false) PayrollStatus status,
@@ -93,7 +93,7 @@ public class PayrollController {
     }
 
     // 기업 정산 통합 조회
-    @Operation(summary = "기업 정산 통합 조회 (통계 + 근로자별 합계 + 목록)")
+    @Operation(summary = "기업 정산 통합 조회")
     @GetMapping("/company/summary")
     public ResponseEntity<?> getCompanyPayrollSummary(
             @RequestParam(required = false) Long jobPostId,
@@ -102,6 +102,48 @@ public class PayrollController {
             return ResponseEntity.ok(
                     payrollService.getCompanyPayrollSummary(
                             getLoginUser(), jobPostId, yearMonth));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // ===== ADMIN 전용 =====
+
+    // 전체 정산 조회
+    @Operation(summary = "전체 정산 조회 (관리자)")
+    @GetMapping("/admin")
+    public ResponseEntity<?> adminGetAllPayrolls(
+            @RequestParam(required = false) PayrollStatus status) {
+        try {
+            return ResponseEntity.ok(
+                    payrollService.adminGetAllPayrolls(status, getLoginUser()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // 정산 강제 확정
+    @Operation(summary = "정산 강제 확정 (관리자)")
+    @PatchMapping("/admin/{payrollId}/confirm")
+    public ResponseEntity<?> adminConfirmPayroll(@PathVariable Long payrollId) {
+        try {
+            return ResponseEntity.ok(
+                    payrollService.adminConfirmPayroll(payrollId, getLoginUser()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // 정산 강제 반려
+    @Operation(summary = "정산 강제 반려 (관리자)")
+    @PatchMapping("/admin/{payrollId}/reject")
+    public ResponseEntity<?> adminRejectPayroll(
+            @PathVariable Long payrollId,
+            @RequestParam String rejectReason) {
+        try {
+            return ResponseEntity.ok(
+                    payrollService.adminRejectPayroll(
+                            payrollId, rejectReason, getLoginUser()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

@@ -10,9 +10,9 @@ import java.time.LocalDateTime;
 public class PayrollResponseDto {
 
     private Long id;
-    private Long workerId; 
+    private Long workerId;
     private String workerName;
-    private Long jobPostId; 
+    private Long jobPostId;
     private String jobPostTitle;
     private String workWeekStart;
     private String workWeekEnd;
@@ -21,11 +21,13 @@ public class PayrollResponseDto {
     private int basicPay;
     private int holidayPay;
     private int totalPay;
+    private int netPay;           // 추가
     private boolean holidayPayApplied;
     private PayrollStatus status;
     private LocalDateTime confirmedAt;
     private LocalDateTime paidAt;
     private String rejectReason;
+    private LocalDateTime deadlineAt; // 추가
     private LocalDateTime createdAt;
 
     public PayrollResponseDto(Payroll payroll) {
@@ -41,11 +43,13 @@ public class PayrollResponseDto {
         this.basicPay = payroll.getBasicPay();
         this.holidayPay = payroll.getHolidayPay();
         this.totalPay = payroll.getTotalPay();
+        this.netPay = payroll.getNetPay();           // 추가
         this.holidayPayApplied = payroll.isHolidayPayApplied();
         this.status = payroll.getStatus();
         this.confirmedAt = payroll.getConfirmedAt();
         this.paidAt = payroll.getPaidAt();
         this.rejectReason = payroll.getRejectReason();
+        this.deadlineAt = payroll.getDeadlineAt();   // 추가
         this.createdAt = payroll.getCreatedAt();
     }
 }

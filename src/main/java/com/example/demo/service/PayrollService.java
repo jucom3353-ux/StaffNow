@@ -25,7 +25,6 @@ public class PayrollService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
-    // 정산 생성 (기업)
     @Transactional
     public PayrollResponseDto createPayroll(
             Long applicationId, String weekStart, User loginUser) {
@@ -71,6 +70,7 @@ public class PayrollService {
                 ? (int) ((totalWorkHours / 40.0) * 8 * hourlyWage) : 0;
 
         int totalPay = basicPay + holidayPay;
+        int netPay = (int) Math.floor(totalPay * 0.967);
 
         Payroll payroll = new Payroll();
         payroll.setWorker(worker);
@@ -82,21 +82,22 @@ public class PayrollService {
         payroll.setBasicPay(basicPay);
         payroll.setHolidayPay(holidayPay);
         payroll.setTotalPay(totalPay);
+        payroll.setNetPay(netPay);
         payroll.setHolidayPayApplied(holidayPayApplied);
+        payroll.setDeadlineAt(LocalDateTime.now().plusDays(14));
         payrollRepository.save(payroll);
 
         notificationService.send(
                 worker,
                 NotificationType.PAYROLL_CREATED,
                 "[" + jobPost.getTitle() + "] " + weekStart +
-                " 주차 정산이 생성되었습니다. 총 " + totalPay + "원",
+                " 주차 정산이 생성되었습니다. 총 " + totalPay + "원 (실수령 " + netPay + "원)",
                 payroll.getId()
         );
 
         return new PayrollResponseDto(payroll);
     }
 
-    // 정산 확정 (기업)
     @Transactional
     public PayrollResponseDto confirmPayroll(Long payrollId, User loginUser) {
 
@@ -129,7 +130,6 @@ public class PayrollService {
         return new PayrollResponseDto(payrollRepository.save(payroll));
     }
 
-    // 지급 완료 (기업)
     @Transactional
     public PayrollResponseDto payPayroll(Long payrollId, User loginUser) {
 
@@ -156,14 +156,13 @@ public class PayrollService {
                 NotificationType.PAYROLL_CREATED,
                 "[" + payroll.getJobPost().getTitle() + "] " +
                 payroll.getWorkWeekStart() + " 주차 급여가 지급되었습니다. 총 " +
-                payroll.getTotalPay() + "원",
+                payroll.getTotalPay() + "원 (실수령 " + payroll.getNetPay() + "원)",
                 payroll.getId()
         );
 
         return new PayrollResponseDto(payrollRepository.save(payroll));
     }
 
-    // 정산 반려 (기업)
     @Transactional
     public PayrollResponseDto rejectPayroll(
             Long payrollId, String rejectReason, User loginUser) {
@@ -198,7 +197,26 @@ public class PayrollService {
         return new PayrollResponseDto(payrollRepository.save(payroll));
     }
 
-    // 근로자 급여 통합 조회
+    @Transactional
+    public void autoConfirmOverdue() {
+        List<Payroll> overdueList = payrollRepository
+                .findByStatusAndDeadlineAtBefore(PayrollStatus.PENDING, LocalDateTime.now());
+
+        overdueList.forEach(payroll -> {
+            payroll.setStatus(PayrollStatus.CONFIRMED);
+            payroll.setConfirmedAt(LocalDateTime.now());
+            payrollRepository.save(payroll);
+
+            notificationService.send(
+                    payroll.getWorker(),
+                    NotificationType.PAYROLL_CREATED,
+                    "[" + payroll.getJobPost().getTitle() + "] " +
+                    payroll.getWorkWeekStart() + " 주차 정산이 자동 확정되었습니다.",
+                    payroll.getId()
+            );
+        });
+    }
+
     @Transactional(readOnly = true)
     public Map<String, Object> getMyPayrollSummary(
             User loginUser,
@@ -249,7 +267,6 @@ public class PayrollService {
         );
     }
 
-    // 기업 정산 통합 조회
     @Transactional(readOnly = true)
     public Map<String, Object> getCompanyPayrollSummary(
             User loginUser,
@@ -299,7 +316,6 @@ public class PayrollService {
                 throw new RuntimeException("본인 공고만 조회 가능합니다.");
             }
             filtered = payrollRepository.findByJobPostAndMonth(jobPost, yearMonth);
-
         } else if (jobPostId != null) {
             JobPost jobPost = jobPostRepository.findById(jobPostId)
                     .orElseThrow(() -> new RuntimeException("공고 없음"));
@@ -307,13 +323,11 @@ public class PayrollService {
                 throw new RuntimeException("본인 공고만 조회 가능합니다.");
             }
             filtered = payrollRepository.findByJobPost(jobPost);
-
         } else if (yearMonth != null) {
             filtered = jobPosts.stream()
                     .flatMap(jp -> payrollRepository
                             .findByJobPostAndMonth(jp, yearMonth).stream())
                     .collect(Collectors.toList());
-
         } else {
             filtered = jobPosts.stream()
                     .flatMap(jp -> payrollRepository.findByJobPost(jp).stream())
@@ -334,5 +348,71 @@ public class PayrollService {
                 "workerStats", workerStats,
                 "payrolls", payrolls
         );
+    }
+
+    // ===== ADMIN 전용 =====
+
+    @Transactional(readOnly = true)
+    public List<PayrollResponseDto> adminGetAllPayrolls(
+            PayrollStatus status, User loginUser) {
+
+        if (loginUser.getRole() != Role.ADMIN) {
+            throw new RuntimeException("관리자만 조회 가능합니다.");
+        }
+
+        List<Payroll> payrolls = status != null
+                ? payrollRepository.findByStatus(status)
+                : payrollRepository.findAll();
+
+        return payrolls.stream()
+                .map(PayrollResponseDto::new)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public PayrollResponseDto adminConfirmPayroll(Long payrollId, User loginUser) {
+
+        if (loginUser.getRole() != Role.ADMIN) {
+            throw new RuntimeException("관리자만 강제 확정 가능합니다.");
+        }
+
+        Payroll payroll = payrollRepository.findById(payrollId)
+                .orElseThrow(() -> new RuntimeException("정산 없음"));
+
+        payroll.setStatus(PayrollStatus.CONFIRMED);
+        payroll.setConfirmedAt(LocalDateTime.now());
+
+        notificationService.send(
+                payroll.getWorker(),
+                NotificationType.PAYROLL_CREATED,
+                "[" + payroll.getJobPost().getTitle() + "] 관리자에 의해 정산이 확정되었습니다.",
+                payroll.getId()
+        );
+
+        return new PayrollResponseDto(payrollRepository.save(payroll));
+    }
+
+    @Transactional
+    public PayrollResponseDto adminRejectPayroll(
+            Long payrollId, String rejectReason, User loginUser) {
+
+        if (loginUser.getRole() != Role.ADMIN) {
+            throw new RuntimeException("관리자만 강제 반려 가능합니다.");
+        }
+
+        Payroll payroll = payrollRepository.findById(payrollId)
+                .orElseThrow(() -> new RuntimeException("정산 없음"));
+
+        payroll.setStatus(PayrollStatus.REJECTED);
+        payroll.setRejectReason(rejectReason);
+
+        notificationService.send(
+                payroll.getWorker(),
+                NotificationType.PAYROLL_CREATED,
+                "[" + payroll.getJobPost().getTitle() + "] 관리자에 의해 정산이 반려되었습니다. 사유: " + rejectReason,
+                payroll.getId()
+        );
+
+        return new PayrollResponseDto(payrollRepository.save(payroll));
     }
 }

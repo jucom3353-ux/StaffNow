@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "work_attendance")
 public class WorkAttendance {
 
     @Id
@@ -21,6 +22,20 @@ public class WorkAttendance {
     private LocalDateTime checkInTime;
     private LocalDateTime checkOutTime;
 
+    // 추가: 출근 GPS
+    private Double checkInLatitude;
+    private Double checkInLongitude;
+
+    // 추가: 퇴근 GPS
+    private Double checkOutLatitude;
+    private Double checkOutLongitude;
+
+    // 추가: 출근 사진 URL
+    private String checkInPhotoUrl;
+
+    // 추가: 퇴근 사진 URL
+    private String checkOutPhotoUrl;
+
     @Enumerated(EnumType.STRING)
     private AttendanceStatus status = AttendanceStatus.NORMAL;
 
@@ -29,6 +44,12 @@ public class WorkAttendance {
     public WorkSession getWorkSession() { return workSession; }
     public LocalDateTime getCheckInTime() { return checkInTime; }
     public LocalDateTime getCheckOutTime() { return checkOutTime; }
+    public Double getCheckInLatitude() { return checkInLatitude; }
+    public Double getCheckInLongitude() { return checkInLongitude; }
+    public Double getCheckOutLatitude() { return checkOutLatitude; }
+    public Double getCheckOutLongitude() { return checkOutLongitude; }
+    public String getCheckInPhotoUrl() { return checkInPhotoUrl; }
+    public String getCheckOutPhotoUrl() { return checkOutPhotoUrl; }
     public AttendanceStatus getStatus() { return status; }
 
     public void setId(Long id) { this.id = id; }
@@ -36,5 +57,11 @@ public class WorkAttendance {
     public void setWorkSession(WorkSession workSession) { this.workSession = workSession; }
     public void setCheckInTime(LocalDateTime checkInTime) { this.checkInTime = checkInTime; }
     public void setCheckOutTime(LocalDateTime checkOutTime) { this.checkOutTime = checkOutTime; }
+    public void setCheckInLatitude(Double checkInLatitude) { this.checkInLatitude = checkInLatitude; }
+    public void setCheckInLongitude(Double checkInLongitude) { this.checkInLongitude = checkInLongitude; }
+    public void setCheckOutLatitude(Double checkOutLatitude) { this.checkOutLatitude = checkOutLatitude; }
+    public void setCheckOutLongitude(Double checkOutLongitude) { this.checkOutLongitude = checkOutLongitude; }
+    public void setCheckInPhotoUrl(String checkInPhotoUrl) { this.checkInPhotoUrl = checkInPhotoUrl; }
+    public void setCheckOutPhotoUrl(String checkOutPhotoUrl) { this.checkOutPhotoUrl = checkOutPhotoUrl; }
     public void setStatus(AttendanceStatus status) { this.status = status; }
 }

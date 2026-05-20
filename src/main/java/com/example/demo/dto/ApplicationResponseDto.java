@@ -9,26 +9,31 @@ import java.time.LocalDateTime;
 public class ApplicationResponseDto {
 
     private Long id;
-    private Long workerId;      // 추가
-    private String workerName;  // 추가
+    private Long workerId;
+    private String workerName;
     private String status;
+    private String roleName; // 추가
     private LocalDateTime createdAt;
     private JobPostSummary jobPost;
 
-    // 구직자용 생성자
+    // 구직자용
     public ApplicationResponseDto(Application application) {
         this.id = application.getId();
         this.status = application.getStatus().name();
         this.createdAt = application.getCreatedAt();
+        this.roleName = application.getJobPostRole() != null
+                ? application.getJobPostRole().getRoleName() : null;
         this.jobPost = new JobPostSummary(application);
     }
 
-    // 기업용 생성자 - workerId 추가
-    public ApplicationResponseDto(Long id, String workerName, Long workerId, String status) {
+    // 기업용
+    public ApplicationResponseDto(Long id, String workerName, Long workerId,
+                                   String status, String roleName) {
         this.id = id;
         this.workerName = workerName;
         this.workerId = workerId;
         this.status = status;
+        this.roleName = roleName;
         this.jobPost = null;
     }
 

@@ -57,7 +57,6 @@ public class JwtFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         try {
-            // 쿠키에서 access_token 읽기
             String token = null;
 
             if (request.getCookies() != null) {
@@ -81,6 +80,14 @@ public class JwtFilter extends OncePerRequestFilter {
 
             if (user == null) {
                 response.setStatus(403);
+                return;
+            }
+
+            // 추가: 정지된 유저 차단
+            if (Boolean.TRUE.equals(user.getSuspended())) {
+                response.setStatus(403);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"message\":\"정지된 계정입니다.\"}");
                 return;
             }
 

@@ -5,6 +5,7 @@ import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -31,10 +32,8 @@ public class JobPostCreateRequestDto {
     private Integer wageAmount;
 
     private Boolean includeHolidayPay;
-
     private String workType;
     private String description;
-
     private Gender requiredGender;
 
     @Min(value = 18, message = "최소 나이는 18세 이상이어야 합니다")
@@ -45,7 +44,6 @@ public class JobPostCreateRequestDto {
 
     private String requiredPersonality;
     private String requiredCondition;
-
     private String preferredExperience;
     private String preferredLanguage;
     private String preferredEtc;
@@ -55,6 +53,17 @@ public class JobPostCreateRequestDto {
     private Integer recruitCount;
 
     private PostStatus postStatus;
-    private JobCategory category;
+
+    // 변경: JobCategory → Long
+    private Long categoryId;
+
     private String deadline;
+    private LocalDate workStartDate;
+    private LocalDate workEndDate;
+    private Boolean mealProvided = false;
+    private String uniformInfo;
+    private String managerName;
+    private String managerPhone;
+    private String managerEmail;
+    private String managerFax;
 }

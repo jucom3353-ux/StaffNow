@@ -28,12 +28,14 @@ public class ApplicationController {
 
     private final ApplicationService applicationService;
 
-    // 공고 지원
+    // 공고 지원 - jobPostRoleId 추가
     @Operation(summary = "공고 지원")
     @PostMapping("/{jobPostId}")
-    public ResponseEntity<?> createApplication(@PathVariable Long jobPostId) {
+    public ResponseEntity<?> createApplication(
+            @PathVariable Long jobPostId,
+            @RequestParam Long jobPostRoleId) {
         try {
-            applicationService.apply(jobPostId, getLoginUser());
+            applicationService.apply(jobPostId, jobPostRoleId, getLoginUser());
             return ResponseEntity.ok("지원 완료");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());

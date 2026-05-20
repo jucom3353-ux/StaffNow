@@ -32,11 +32,23 @@ public class JobPostResponseDto {
     private Integer recruitCount;
     private Integer currentCount;
     private PostStatus postStatus;
-    private JobCategory category;
+    // 변경: category 객체로
+    private Long categoryId;
+    private String categoryName;
+    private Long parentCategoryId;
+    private String parentCategoryName;
     private String deadline;
     private Boolean isDeadlined;
     private Integer viewCount;
     private LocalDateTime createdAt;
+    private LocalDate workStartDate;
+    private LocalDate workEndDate;
+    private Boolean mealProvided;
+    private String uniformInfo;
+    private String managerName;
+    private String managerPhone;
+    private String managerEmail;
+    private String managerFax;
 
     public JobPostResponseDto(JobPost jobPost, int currentCount) {
         this.id = jobPost.getId();
@@ -63,12 +75,26 @@ public class JobPostResponseDto {
         this.recruitCount = jobPost.getRecruitCount();
         this.currentCount = currentCount;
         this.postStatus = jobPost.getPostStatus();
-        this.category = jobPost.getCategory();
+        if (jobPost.getCategory() != null) {
+            this.categoryId = jobPost.getCategory().getId();
+            this.categoryName = jobPost.getCategory().getName();
+            if (jobPost.getCategory().getParent() != null) {
+                this.parentCategoryId = jobPost.getCategory().getParent().getId();
+                this.parentCategoryName = jobPost.getCategory().getParent().getName();
+            }
+        }
         this.deadline = jobPost.getDeadline();
         this.viewCount = jobPost.getViewCount();
         this.createdAt = jobPost.getCreatedAt();
+        this.workStartDate = jobPost.getWorkStartDate();
+        this.workEndDate = jobPost.getWorkEndDate();
+        this.mealProvided = jobPost.getMealProvided();
+        this.uniformInfo = jobPost.getUniformInfo();
+        this.managerName = jobPost.getManagerName();
+        this.managerPhone = jobPost.getManagerPhone();
+        this.managerEmail = jobPost.getManagerEmail();
+        this.managerFax = jobPost.getManagerFax();
 
-        // 마감 여부 자동 계산
         if (jobPost.getDeadline() != null) {
             this.isDeadlined = LocalDate.parse(jobPost.getDeadline())
                     .isBefore(LocalDate.now());

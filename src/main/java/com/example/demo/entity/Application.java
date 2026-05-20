@@ -4,31 +4,33 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "application")
 public class Application {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 지원한 작업자
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
 
-    // 지원한 공고
     @ManyToOne
     @JoinColumn(name = "job_post_id")
     private JobPost jobPost;
 
-    // 배정된 Shift
     @ManyToOne
     @JoinColumn(name = "work_session_id")
     private WorkSession workSession;
 
+    // 추가: 지원 직무 (변경 불가)
+    @ManyToOne
+    @JoinColumn(name = "job_post_role_id")
+    private JobPostRole jobPostRole;
+
     @Enumerated(EnumType.STRING)
     private ApplicationStatus status = ApplicationStatus.APPLIED;
 
-    // 지원 시각
     private LocalDateTime createdAt;
 
     @PrePersist
@@ -40,11 +42,13 @@ public class Application {
     public User getUser() { return user; }
     public JobPost getJobPost() { return jobPost; }
     public WorkSession getWorkSession() { return workSession; }
+    public JobPostRole getJobPostRole() { return jobPostRole; }
     public ApplicationStatus getStatus() { return status; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 
     public void setUser(User user) { this.user = user; }
     public void setJobPost(JobPost jobPost) { this.jobPost = jobPost; }
     public void setWorkSession(WorkSession workSession) { this.workSession = workSession; }
+    public void setJobPostRole(JobPostRole jobPostRole) { this.jobPostRole = jobPostRole; }
     public void setStatus(ApplicationStatus status) { this.status = status; }
 }

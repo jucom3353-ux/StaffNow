@@ -1,6 +1,7 @@
 package com.example.demo.entity;
 
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -17,7 +18,6 @@ public class JobPost {
     private String content;
 
     private String workLocation;
-
     private String startTime;
     private String endTime;
     private String breakTime;
@@ -27,7 +27,6 @@ public class JobPost {
 
     private Integer wageAmount;
     private Boolean includeHolidayPay;
-
     private String workType;
 
     @Column(columnDefinition = "TEXT")
@@ -38,28 +37,33 @@ public class JobPost {
 
     private Integer requiredAgeMin;
     private Integer requiredAgeMax;
-
     private String requiredPersonality;
     private String requiredCondition;
-
     private String preferredExperience;
     private String preferredLanguage;
     private String preferredEtc;
-
     private Integer recruitCount;
 
     @Enumerated(EnumType.STRING)
     private PostStatus postStatus = PostStatus.DRAFT;
 
-    // 카테고리
-    @Enumerated(EnumType.STRING)
+    // 변경: enum → ManyToOne
+    @ManyToOne
+    @JoinColumn(name = "category_id")
     private JobCategory category;
 
-    // 마감일
     private String deadline;
-
-    // 조회수
     private Integer viewCount = 0;
+
+    private String managerName;
+    private String managerPhone;
+    private String managerEmail;
+    private String managerFax;
+
+    private LocalDate workStartDate;
+    private LocalDate workEndDate;
+    private Boolean mealProvided = false;
+    private String uniformInfo;
 
     @Column(updatable = false)
     private LocalDateTime createdAt;
@@ -100,6 +104,14 @@ public class JobPost {
     public Integer getViewCount() { return viewCount; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public User getUser() { return user; }
+    public LocalDate getWorkStartDate() { return workStartDate; }
+    public LocalDate getWorkEndDate() { return workEndDate; }
+    public Boolean getMealProvided() { return mealProvided; }
+    public String getUniformInfo() { return uniformInfo; }
+    public String getManagerName() { return managerName; }
+    public String getManagerPhone() { return managerPhone; }
+    public String getManagerEmail() { return managerEmail; }
+    public String getManagerFax() { return managerFax; }
 
     public void setId(Long id) { this.id = id; }
     public void setTitle(String title) { this.title = title; }
@@ -127,4 +139,12 @@ public class JobPost {
     public void setDeadline(String deadline) { this.deadline = deadline; }
     public void setViewCount(Integer viewCount) { this.viewCount = viewCount; }
     public void setUser(User user) { this.user = user; }
+    public void setWorkStartDate(LocalDate workStartDate) { this.workStartDate = workStartDate; }
+    public void setWorkEndDate(LocalDate workEndDate) { this.workEndDate = workEndDate; }
+    public void setMealProvided(Boolean mealProvided) { this.mealProvided = mealProvided; }
+    public void setUniformInfo(String uniformInfo) { this.uniformInfo = uniformInfo; }
+    public void setManagerName(String managerName) { this.managerName = managerName; }
+    public void setManagerPhone(String managerPhone) { this.managerPhone = managerPhone; }
+    public void setManagerEmail(String managerEmail) { this.managerEmail = managerEmail; }
+    public void setManagerFax(String managerFax) { this.managerFax = managerFax; }
 }

@@ -1,6 +1,5 @@
 package com.example.demo.repository;
 
-import com.example.demo.entity.JobCategory;
 import com.example.demo.entity.JobPost;
 import com.example.demo.entity.PostStatus;
 import com.example.demo.entity.User;
@@ -18,17 +17,19 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
 
     List<JobPost> findByUser(User user);
 
+    List<JobPost> findByPostStatus(PostStatus postStatus);
+
     @Query("SELECT j FROM JobPost j WHERE " +
            "(:title IS NULL OR j.title LIKE %:title%) AND " +
            "(:workLocation IS NULL OR j.workLocation LIKE %:workLocation%) AND " +
            "(:postStatus IS NULL OR j.postStatus = :postStatus) AND " +
-           "(:category IS NULL OR j.category = :category) AND " +
+           "(:categoryId IS NULL OR j.category.id = :categoryId) AND " +
            "(:companyName IS NULL OR j.user.companyName LIKE %:companyName%)")
     List<JobPost> searchJobPosts(
             @Param("title") String title,
             @Param("workLocation") String workLocation,
             @Param("postStatus") PostStatus postStatus,
-            @Param("category") JobCategory category,
+            @Param("categoryId") Long categoryId,
             @Param("companyName") String companyName
     );
 
@@ -36,45 +37,39 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
            "(:title IS NULL OR j.title LIKE %:title%) AND " +
            "(:workLocation IS NULL OR j.workLocation LIKE %:workLocation%) AND " +
            "(:postStatus IS NULL OR j.postStatus = :postStatus) AND " +
-           "(:category IS NULL OR j.category = :category) AND " +
+           "(:categoryId IS NULL OR j.category.id = :categoryId) AND " +
            "(:companyName IS NULL OR j.user.companyName LIKE %:companyName%)")
     Page<JobPost> searchJobPostsWithPage(
             @Param("title") String title,
             @Param("workLocation") String workLocation,
             @Param("postStatus") PostStatus postStatus,
-            @Param("category") JobCategory category,
+            @Param("categoryId") Long categoryId,
             @Param("companyName") String companyName,
             Pageable pageable
     );
 
-    // 마감일 지난 OPEN 공고 조회
     @Query("SELECT j FROM JobPost j WHERE j.postStatus = :status AND j.deadline < :today")
     List<JobPost> findByPostStatusAndDeadlineBefore(
             @Param("status") PostStatus status,
             @Param("today") String today
     );
 
-    // 추천 - 지역 매칭
     @Query("SELECT j FROM JobPost j WHERE j.postStatus = 'OPEN' " +
            "AND j.workLocation LIKE %:region% ORDER BY j.createdAt DESC")
     List<JobPost> findOpenByRegion(@Param("region") String region);
 
-    // 추천 - 선호 근무 시간 매칭
     @Query("SELECT j FROM JobPost j WHERE j.postStatus = 'OPEN' " +
            "AND j.workType IN :workTypes ORDER BY j.createdAt DESC")
     List<JobPost> findOpenByWorkTypes(@Param("workTypes") List<String> workTypes);
 
-    // 추천 - 카테고리 매칭
     @Query("SELECT j FROM JobPost j WHERE j.postStatus = 'OPEN' " +
-           "AND j.category = :category ORDER BY j.createdAt DESC")
-    List<JobPost> findOpenByCategory(@Param("category") JobCategory category);
+           "AND j.category.id = :categoryId ORDER BY j.createdAt DESC")
+    List<JobPost> findOpenByCategory(@Param("categoryId") Long categoryId);
 
-    // 인기 공고 (조회수 높은 순)
     @Query("SELECT j FROM JobPost j WHERE j.postStatus = 'OPEN' " +
            "ORDER BY j.viewCount DESC")
     List<JobPost> findPopularJobPosts(Pageable pageable);
 
-    // 인기 공고 - 지역 필터 포함
     @Query("SELECT j FROM JobPost j WHERE j.postStatus = 'OPEN' " +
            "AND (:region IS NULL OR j.workLocation LIKE %:region%) " +
            "ORDER BY j.viewCount DESC")

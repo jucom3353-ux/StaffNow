@@ -26,7 +26,7 @@ public class User {
     private String bio;
 
     private String activityRegion;
-    private String profileImageUrl;      // 대표 사진 (기존 유지 - 빠른 조회용)
+    private String profileImageUrl;
     private String businessLicenseUrl;
     private String businessLicenseStatus;
 
@@ -40,10 +40,14 @@ public class User {
     private Double temperature = 36.5;
 
     @Column(name = "profile_image_count")
-    private Integer profileImageCount = 0;  // 사진 개수 캐싱 (추천 알고리즘용)
+    private Integer profileImageCount = 0;
 
     @Column(unique = true)
     private String email;
+
+    // 추가: 정지 여부
+    @Column(name = "suspended")
+    private Boolean suspended = false;
 
     public Long getId() { return id; }
     public String getEmail() { return email; }
@@ -63,6 +67,7 @@ public class User {
     public String getBusinessLicenseUrl() { return businessLicenseUrl; }
     public String getBusinessLicenseStatus() { return businessLicenseStatus; }
     public Integer getProfileImageCount() { return profileImageCount; }
+    public Boolean getSuspended() { return suspended; }
 
     public void setId(Long id) { this.id = id; }
     public void setEmail(String email) { this.email = email; }
@@ -82,4 +87,5 @@ public class User {
     public void setBusinessLicenseUrl(String businessLicenseUrl) { this.businessLicenseUrl = businessLicenseUrl; }
     public void setBusinessLicenseStatus(String businessLicenseStatus) { this.businessLicenseStatus = businessLicenseStatus; }
     public void setProfileImageCount(Integer profileImageCount) { this.profileImageCount = profileImageCount; }
+    public void setSuspended(Boolean suspended) { this.suspended = suspended; }
 }

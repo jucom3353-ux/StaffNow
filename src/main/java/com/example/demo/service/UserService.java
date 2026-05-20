@@ -2,7 +2,9 @@ package com.example.demo.service;
 
 import com.example.demo.dto.PasswordChangeRequestDto;
 import com.example.demo.dto.UserCreateRequestDto;
+import com.example.demo.dto.UserResponseDto;
 import com.example.demo.dto.UserUpdateRequestDto;
+import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
 import com.example.demo.repository.RefreshTokenRepository;
 import com.example.demo.repository.UserRepository;
@@ -10,6 +12,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,7 +43,6 @@ public class UserService {
         userRepository.save(user);
     }
 
-    // 이메일 중복 확인 (true = 사용 가능, false = 이미 존재)
     @Transactional(readOnly = true)
     public boolean checkEmail(String email) {
         return !userRepository.existsByEmail(email);
@@ -67,9 +71,7 @@ public class UserService {
             throw new RuntimeException("새 비밀번호는 8자 이상이어야 합니다.");
         }
 
-        loginUser.setPassword(
-                passwordEncoder.encode(requestDto.getNewPassword())
-        );
+        loginUser.setPassword(passwordEncoder.encode(requestDto.getNewPassword()));
         userRepository.save(loginUser);
     }
 
@@ -77,7 +79,76 @@ public class UserService {
     public void deleteUser(User loginUser) {
         refreshTokenRepository.findByUserId(loginUser.getId())
                 .ifPresent(refreshTokenRepository::delete);
-
         userRepository.delete(loginUser);
+    }
+
+    // ===== ADMIN 전용 =====
+
+    // 전체 회원 조회
+    @Transactional(readOnly = true)
+    public List<UserResponseDto> getAllUsers(Role role, User loginUser) {
+        if (loginUser.getRole() != Role.ADMIN) {
+            throw new RuntimeException("관리자만 조회 가능합니다.");
+        }
+
+        List<User> users = role != null
+                ? userRepository.findByRole(role)
+                : userRepository.findAll();
+
+        return users.stream()
+                .map(UserResponseDto::new)
+                .collect(Collectors.toList());
+    }
+
+    // 회원 정지
+    @Transactional
+    public void suspendUser(Long targetUserId, User loginUser) {
+        if (loginUser.getRole() != Role.ADMIN) {
+            throw new RuntimeException("관리자만 정지 처리 가능합니다.");
+        }
+
+        User target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new RuntimeException("유저 없음"));
+
+        if (target.getRole() == Role.ADMIN) {
+            throw new RuntimeException("관리자 계정은 정지할 수 없습니다.");
+        }
+
+        target.setSuspended(true);
+        userRepository.save(target);
+    }
+
+    // 회원 정지 해제
+    @Transactional
+    public void unsuspendUser(Long targetUserId, User loginUser) {
+        if (loginUser.getRole() != Role.ADMIN) {
+            throw new RuntimeException("관리자만 정지 해제 가능합니다.");
+        }
+
+        User target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new RuntimeException("유저 없음"));
+
+        target.setSuspended(false);
+        userRepository.save(target);
+    }
+
+    // 회원 강제 탈퇴
+    @Transactional
+    public void forceDeleteUser(Long targetUserId, User loginUser) {
+        if (loginUser.getRole() != Role.ADMIN) {
+            throw new RuntimeException("관리자만 강제 탈퇴 처리 가능합니다.");
+        }
+
+        User target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new RuntimeException("유저 없음"));
+
+        if (target.getRole() == Role.ADMIN) {
+            throw new RuntimeException("관리자 계정은 삭제할 수 없습니다.");
+        }
+
+        refreshTokenRepository.findByUserId(target.getId())
+                .ifPresent(refreshTokenRepository::delete);
+
+        userRepository.delete(target);
     }
 }

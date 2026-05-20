@@ -5,6 +5,7 @@ import com.example.demo.dto.JobPostPageResponseDto;
 import com.example.demo.dto.JobPostResponseDto;
 import com.example.demo.entity.*;
 import com.example.demo.repository.ApplicationRepository;
+import com.example.demo.repository.JobCategoryRepository;
 import com.example.demo.repository.JobPostRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -21,16 +22,18 @@ public class JobPostService {
 
     private final JobPostRepository jobPostRepository;
     private final ApplicationRepository applicationRepository;
+    private final JobCategoryRepository jobCategoryRepository;
 
     public JobPostService(
             JobPostRepository jobPostRepository,
-            ApplicationRepository applicationRepository
+            ApplicationRepository applicationRepository,
+            JobCategoryRepository jobCategoryRepository
     ) {
         this.jobPostRepository = jobPostRepository;
         this.applicationRepository = applicationRepository;
+        this.jobCategoryRepository = jobCategoryRepository;
     }
 
-    // 공고 등록
     @Transactional
     public void createJobPost(JobPostCreateRequestDto requestDto, User loginUser) {
 
@@ -64,20 +67,33 @@ public class JobPostService {
                         ? requestDto.getPostStatus()
                         : PostStatus.DRAFT
         );
-        jobPost.setCategory(requestDto.getCategory());
         jobPost.setDeadline(requestDto.getDeadline());
         jobPost.setViewCount(0);
         jobPost.setUser(loginUser);
+        jobPost.setWorkStartDate(requestDto.getWorkStartDate());
+        jobPost.setWorkEndDate(requestDto.getWorkEndDate());
+        jobPost.setMealProvided(requestDto.getMealProvided() != null ? requestDto.getMealProvided() : false);
+        jobPost.setUniformInfo(requestDto.getUniformInfo());
+        jobPost.setManagerName(requestDto.getManagerName());
+        jobPost.setManagerPhone(requestDto.getManagerPhone());
+        jobPost.setManagerEmail(requestDto.getManagerEmail());
+        jobPost.setManagerFax(requestDto.getManagerFax());
+
+        if (requestDto.getCategoryId() != null) {
+            JobCategory category = jobCategoryRepository.findById(requestDto.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("카테고리 없음"));
+            jobPost.setCategory(category);
+        }
+
         jobPostRepository.save(jobPost);
     }
 
-    // 구직자용 공고 검색/필터/정렬 (페이지네이션)
     @Transactional
     public JobPostPageResponseDto searchJobPosts(
             String title,
             String workLocation,
             String companyName,
-            JobCategory category,
+            Long categoryId,
             String sort,
             int page,
             int size
@@ -92,7 +108,7 @@ public class JobPostService {
         Pageable pageable = PageRequest.of(page, size, sorting);
 
         Page<JobPost> result = jobPostRepository.searchJobPostsWithPage(
-                title, workLocation, PostStatus.OPEN, category, companyName, pageable
+                title, workLocation, PostStatus.OPEN, categoryId, companyName, pageable
         );
 
         List<JobPostResponseDto> posts = result.getContent().stream()
@@ -111,7 +127,6 @@ public class JobPostService {
         );
     }
 
-    // 기업용 전체 공고 조회
     @Transactional(readOnly = true)
     public List<JobPostResponseDto> getJobPosts(
             String title,
@@ -128,7 +143,6 @@ public class JobPostService {
                 .collect(Collectors.toList());
     }
 
-    // 단건 공고 조회 + 조회수 증가
     @Transactional
     public JobPostResponseDto getJobPost(Long id) {
         JobPost post = jobPostRepository.findById(id)
@@ -144,7 +158,6 @@ public class JobPostService {
         );
     }
 
-    // 내 공고 조회 (기업용)
     @Transactional(readOnly = true)
     public List<JobPostResponseDto> getMyJobPosts(User loginUser, PostStatus postStatus) {
 
@@ -164,7 +177,6 @@ public class JobPostService {
                 .collect(Collectors.toList());
     }
 
-    // 공고 상태 변경
     @Transactional
     public void changePostStatus(Long id, PostStatus postStatus, User loginUser) {
 
@@ -183,7 +195,6 @@ public class JobPostService {
         jobPostRepository.save(post);
     }
 
-    // 공고 수정
     @Transactional
     public void updateJobPost(Long id, JobPostCreateRequestDto requestDto, User loginUser) {
 
@@ -218,16 +229,28 @@ public class JobPostService {
         post.setPreferredLanguage(requestDto.getPreferredLanguage());
         post.setPreferredEtc(requestDto.getPreferredEtc());
         post.setRecruitCount(requestDto.getRecruitCount());
-        post.setCategory(requestDto.getCategory());
         post.setDeadline(requestDto.getDeadline());
         if (requestDto.getPostStatus() != null) {
             post.setPostStatus(requestDto.getPostStatus());
+        }
+        post.setWorkStartDate(requestDto.getWorkStartDate());
+        post.setWorkEndDate(requestDto.getWorkEndDate());
+        post.setMealProvided(requestDto.getMealProvided());
+        post.setUniformInfo(requestDto.getUniformInfo());
+        post.setManagerName(requestDto.getManagerName());
+        post.setManagerPhone(requestDto.getManagerPhone());
+        post.setManagerEmail(requestDto.getManagerEmail());
+        post.setManagerFax(requestDto.getManagerFax());
+
+        if (requestDto.getCategoryId() != null) {
+            JobCategory category = jobCategoryRepository.findById(requestDto.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("카테고리 없음"));
+            post.setCategory(category);
         }
 
         jobPostRepository.save(post);
     }
 
-    // 공고 삭제
     @Transactional
     public void deleteJobPost(Long id, User loginUser) {
 
@@ -245,7 +268,6 @@ public class JobPostService {
         jobPostRepository.deleteById(id);
     }
 
-    // 인기 공고 조회 (조회수 높은 순)
     @Transactional(readOnly = true)
     public List<JobPostResponseDto> getPopularJobPosts(int limit, String region) {
         Pageable pageable = PageRequest.of(0, limit);
@@ -260,5 +282,54 @@ public class JobPostService {
                         applicationRepository.countByJobPost(post)
                 ))
                 .collect(Collectors.toList());
+    }
+
+    // ===== ADMIN 전용 =====
+
+    @Transactional(readOnly = true)
+    public List<JobPostResponseDto> adminGetAllJobPosts(
+            PostStatus postStatus, User loginUser) {
+
+        if (loginUser.getRole() != Role.ADMIN) {
+            throw new RuntimeException("관리자만 조회 가능합니다.");
+        }
+
+        List<JobPost> posts = postStatus != null
+                ? jobPostRepository.findByPostStatus(postStatus)
+                : jobPostRepository.findAll();
+
+        return posts.stream()
+                .map(post -> new JobPostResponseDto(
+                        post,
+                        applicationRepository.countByJobPost(post)
+                ))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void adminCloseJobPost(Long id, User loginUser) {
+
+        if (loginUser.getRole() != Role.ADMIN) {
+            throw new RuntimeException("관리자만 강제 마감 가능합니다.");
+        }
+
+        JobPost post = jobPostRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("공고 없음"));
+
+        post.setPostStatus(PostStatus.CLOSED);
+        jobPostRepository.save(post);
+    }
+
+    @Transactional
+    public void adminDeleteJobPost(Long id, User loginUser) {
+
+        if (loginUser.getRole() != Role.ADMIN) {
+            throw new RuntimeException("관리자만 강제 삭제 가능합니다.");
+        }
+
+        jobPostRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("공고 없음"));
+
+        jobPostRepository.deleteById(id);
     }
 }
