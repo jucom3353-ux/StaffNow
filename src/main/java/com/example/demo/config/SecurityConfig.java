@@ -57,12 +57,10 @@ public class SecurityConfig {
                                 org.springframework.http.HttpMethod.POST, "/users"
                         ).permitAll()
                         .requestMatchers("/ws/**").permitAll()
-                        // ADMIN 전용
                         .requestMatchers("/disputes/*/resolve").hasRole("ADMIN")
                         .requestMatchers("/disputes").hasAnyRole("ADMIN", "COMPANY", "INDIVIDUAL")
                         .anyRequest().authenticated()
                 )
-                // RateLimitFilter → JwtFilter 순서
                 .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtFilter, RateLimitFilter.class);
 
@@ -73,10 +71,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOrigins(List.of(
-                "http://localhost:5173",
-                "https://staffnow.vercel.app"
-        ));
+        config.setAllowedOriginPatterns(List.of("*")); // 변경
 
         config.setAllowedMethods(List.of(
                 "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
