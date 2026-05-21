@@ -7,7 +7,7 @@ import com.example.demo.service.MessageService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
@@ -29,7 +29,7 @@ public class MessageController {
     @Operation(summary = "메시지 전송")
     @PostMapping
     public ResponseEntity<ApiResponse<?>> sendMessage(
-            @RequestBody MessageRequestDto requestDto) {
+            @Valid @RequestBody MessageRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
                 messageService.sendMessage(requestDto, getLoginUser())));
     }

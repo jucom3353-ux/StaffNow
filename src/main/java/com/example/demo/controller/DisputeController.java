@@ -7,6 +7,7 @@ import com.example.demo.entity.User;
 import com.example.demo.service.DisputeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -26,7 +27,7 @@ public class DisputeController {
     @Operation(summary = "분쟁 신청 (기업)")
     @PostMapping
     public ResponseEntity<ApiResponse<?>> createDispute(
-            @RequestBody DisputeRequestDto requestDto) {
+            @Valid @RequestBody DisputeRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
                 disputeService.createDispute(requestDto, getLoginUser())));
     }

@@ -7,7 +7,7 @@ import com.example.demo.service.ReviewService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
@@ -27,7 +27,7 @@ public class ReviewController {
     @PostMapping("/{applicationId}")
     public ResponseEntity<ApiResponse<?>> createReview(
             @PathVariable Long applicationId,
-            @RequestBody ReviewRequestDto requestDto) {
+            @Valid @RequestBody ReviewRequestDto requestDto) {
         reviewService.createReview(applicationId, requestDto, getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("리뷰 작성 완료"));
     }
@@ -36,7 +36,7 @@ public class ReviewController {
     @PostMapping("/{applicationId}/company")
     public ResponseEntity<ApiResponse<?>> createWorkerReview(
             @PathVariable Long applicationId,
-            @RequestBody ReviewRequestDto requestDto) {
+            @Valid @RequestBody ReviewRequestDto requestDto) {
         reviewService.createWorkerReview(applicationId, requestDto, getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("기업 리뷰 작성 완료"));
     }

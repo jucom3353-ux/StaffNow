@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -44,7 +45,7 @@ public class AuthController {
     @Operation(summary = "로그인")
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<?>> login(
-            @RequestBody LoginRequestDto requestDto,
+            @Valid @RequestBody LoginRequestDto requestDto,
             HttpServletResponse response
     ) {
         User user = userRepository.findByEmail(requestDto.getEmail())
