@@ -7,6 +7,7 @@ import com.example.demo.entity.*;
 import com.example.demo.repository.ApplicationRepository;
 import com.example.demo.repository.JobCategoryRepository;
 import com.example.demo.repository.JobPostRepository;
+import com.example.demo.repository.JobPostViewHistoryRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,15 +25,18 @@ public class JobPostService {
     private final JobPostRepository jobPostRepository;
     private final ApplicationRepository applicationRepository;
     private final JobCategoryRepository jobCategoryRepository;
+    private final JobPostViewHistoryRepository jobPostViewHistoryRepository;
 
     public JobPostService(
             JobPostRepository jobPostRepository,
             ApplicationRepository applicationRepository,
-            JobCategoryRepository jobCategoryRepository
+            JobCategoryRepository jobCategoryRepository,
+            JobPostViewHistoryRepository jobPostViewHistoryRepository
     ) {
         this.jobPostRepository = jobPostRepository;
         this.applicationRepository = applicationRepository;
         this.jobCategoryRepository = jobCategoryRepository;
+        this.jobPostViewHistoryRepository = jobPostViewHistoryRepository;
     }
 
     @Transactional
@@ -72,7 +77,8 @@ public class JobPostService {
         jobPost.setUser(loginUser);
         jobPost.setWorkStartDate(requestDto.getWorkStartDate());
         jobPost.setWorkEndDate(requestDto.getWorkEndDate());
-        jobPost.setMealProvided(requestDto.getMealProvided() != null ? requestDto.getMealProvided() : false);
+        jobPost.setMealProvided(requestDto.getMealProvided() != null
+                ? requestDto.getMealProvided() : false);
         jobPost.setUniformInfo(requestDto.getUniformInfo());
         jobPost.setManagerName(requestDto.getManagerName());
         jobPost.setManagerPhone(requestDto.getManagerPhone());
@@ -143,8 +149,9 @@ public class JobPostService {
                 .collect(Collectors.toList());
     }
 
+    // 단건 조회 + 조회수 증가 + 최근 본 공고 저장
     @Transactional
-    public JobPostResponseDto getJobPost(Long id) {
+    public JobPostResponseDto getJobPost(Long id, User loginUser) {
         JobPost post = jobPostRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("공고 없음"));
 
@@ -152,10 +159,48 @@ public class JobPostService {
                 (post.getViewCount() != null ? post.getViewCount() : 0) + 1);
         jobPostRepository.save(post);
 
+        // 구직자만 최근 본 공고 저장
+        if (loginUser != null && loginUser.getRole() == Role.INDIVIDUAL) {
+            jobPostViewHistoryRepository
+                    .findByUserAndJobPost(loginUser, post)
+                    .ifPresentOrElse(
+                            history -> {
+                                // 이미 있으면 viewedAt 갱신
+                                history.setViewedAt(LocalDateTime.now());
+                                jobPostViewHistoryRepository.save(history);
+                            },
+                            () -> {
+                                // 없으면 새로 생성
+                                JobPostViewHistory history = new JobPostViewHistory();
+                                history.setUser(loginUser);
+                                history.setJobPost(post);
+                                jobPostViewHistoryRepository.save(history);
+                            }
+                    );
+        }
+
         return new JobPostResponseDto(
                 post,
                 applicationRepository.countByJobPost(post)
         );
+    }
+
+    // 최근 본 공고 목록 (구직자용)
+    @Transactional(readOnly = true)
+    public List<JobPostResponseDto> getRecentViews(User loginUser) {
+        if (loginUser.getRole() != Role.INDIVIDUAL) {
+            throw new RuntimeException("구직자만 조회 가능합니다.");
+        }
+
+        return jobPostViewHistoryRepository
+                .findByUserOrderByViewedAtDesc(loginUser)
+                .stream()
+                .limit(20)
+                .map(h -> new JobPostResponseDto(
+                        h.getJobPost(),
+                        applicationRepository.countByJobPost(h.getJobPost())
+                ))
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)

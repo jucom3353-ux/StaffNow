@@ -16,10 +16,7 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByEmail(String email);
-
     boolean existsByEmail(String email);
-
-    // 추가
     List<User> findByRole(Role role);
 
     @Query("SELECT u FROM User u WHERE u.role = :role " +
@@ -28,6 +25,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
            "AND u.noShowCount <= :maxNoShow " +
            "AND (:activityRegion IS NULL OR u.activityRegion LIKE %:activityRegion%) " +
            "AND (:mbti IS NULL OR u.mbti = :mbti) " +
+           "AND (:availableAlways IS NULL OR u.availableAlways = :availableAlways) " +
+           "AND u.suspended = false " +
            "AND u.id NOT IN " +
            "(SELECT b.blocked.id FROM Block b WHERE b.blocker.id = :blockerId)")
     Page<User> findWorkers(
@@ -37,6 +36,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("maxNoShow") int maxNoShow,
             @Param("activityRegion") String activityRegion,
             @Param("mbti") String mbti,
+            @Param("availableAlways") Boolean availableAlways,
             @Param("blockerId") Long blockerId,
             Pageable pageable
     );
@@ -47,6 +47,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
            "AND u.noShowCount <= :maxNoShow " +
            "AND (:activityRegion IS NULL OR u.activityRegion LIKE %:activityRegion%) " +
            "AND (:mbti IS NULL OR u.mbti = :mbti) " +
+           "AND (:availableAlways IS NULL OR u.availableAlways = :availableAlways) " +
+           "AND u.suspended = false " +
            "AND u.id NOT IN " +
            "(SELECT b.blocked.id FROM Block b WHERE b.blocker.id = :blockerId) " +
            "ORDER BY " +
@@ -59,6 +61,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("maxNoShow") int maxNoShow,
             @Param("activityRegion") String activityRegion,
             @Param("mbti") String mbti,
+            @Param("availableAlways") Boolean availableAlways,
             @Param("blockerId") Long blockerId,
             Pageable pageable
     );

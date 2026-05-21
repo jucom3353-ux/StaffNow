@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.ApiResponse;
 import com.example.demo.entity.User;
 import com.example.demo.service.AttendanceStatService;
 
@@ -22,43 +23,44 @@ public class AttendanceStatController {
 
     private final AttendanceStatService attendanceStatService;
 
-    // 근태 통계 조회 (role 기반 자동 분기)
     @Operation(summary = "근태 통계 조회")
     @GetMapping("/attendance")
-    public ResponseEntity<?> getStat() {
-        try {
-            return ResponseEntity.ok(
-                    attendanceStatService.getStat(getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> getStat() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                attendanceStatService.getStat(getLoginUser())));
     }
 
-    // 공고별 근태 통계 (기업용)
     @Operation(summary = "공고별 근태 통계 (기업용)")
     @GetMapping("/attendance/job-posts")
-    public ResponseEntity<?> getStatByJobPost() {
-        try {
-            return ResponseEntity.ok(
-                    attendanceStatService.getStatByJobPost(getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> getStatByJobPost() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                attendanceStatService.getStatByJobPost(getLoginUser())));
     }
 
-    // 월별 근태 통계 (근로자용)
     @Operation(summary = "월별 근태 통계 (근로자용)")
     @GetMapping("/attendance/monthly")
-    public ResponseEntity<?> getWorkerMonthlyStat(
+    public ResponseEntity<ApiResponse<?>> getWorkerMonthlyStat(
             @RequestParam int year,
             @RequestParam int month) {
-        try {
-            return ResponseEntity.ok(
-                    attendanceStatService.getWorkerMonthlystat(
-                            getLoginUser(), year, month));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        return ResponseEntity.ok(ApiResponse.ok(
+                attendanceStatService.getWorkerMonthlystat(
+                        getLoginUser(), year, month)));
+    }
+
+    @Operation(summary = "내 근무 캘린더 (구직자)")
+    @GetMapping("/calendar/my")
+    public ResponseEntity<ApiResponse<?>> getWorkerCalendar() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                attendanceStatService.getWorkerCalendar(getLoginUser())));
+    }
+
+    @Operation(summary = "공고별 Shift 캘린더 (기업)")
+    @GetMapping("/calendar/job-posts/{jobPostId}")
+    public ResponseEntity<ApiResponse<?>> getCompanyCalendar(
+            @PathVariable Long jobPostId) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                attendanceStatService.getCompanyCalendar(
+                        jobPostId, getLoginUser())));
     }
 
     private User getLoginUser() {

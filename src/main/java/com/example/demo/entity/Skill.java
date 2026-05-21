@@ -15,14 +15,19 @@ public class Skill {
     private User user;
 
     private String name;        // 스킬명 (자유 입력)
-    private String category;    // 카테고리 태그 (IT, 디자인, 운전, 언어 등)
+
+    // 변경: String category → JobCategory FK
+    @ManyToOne
+    @JoinColumn(name = "category_id")
+    private JobCategory category;
 
     public Long getId() { return id; }
     public User getUser() { return user; }
     public String getName() { return name; }
-    public String getCategory() { return category; }
+    public JobCategory getCategory() { return category; }
 
+    public void setId(Long id) { this.id = id; }
     public void setUser(User user) { this.user = user; }
     public void setName(String name) { this.name = name; }
-    public void setCategory(String category) { this.category = category; }
+    public void setCategory(JobCategory category) { this.category = category; }
 }

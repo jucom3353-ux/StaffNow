@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.ApiResponse;
 import com.example.demo.entity.User;
 import com.example.demo.service.HomeService;
 
@@ -24,12 +25,23 @@ public class HomeController {
 
     @Operation(summary = "홈 요약 데이터 조회 (role 기반 자동 분기)")
     @GetMapping("/summary")
-    public ResponseEntity<?> getSummary() {
-        try {
-            return ResponseEntity.ok(homeService.getSummary(getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> getSummary() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                homeService.getSummary(getLoginUser())));
+    }
+
+    @Operation(summary = "추천 공고 목록 (구직자)")
+    @GetMapping("/recommended")
+    public ResponseEntity<ApiResponse<?>> getRecommendedJobPosts() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                homeService.getRecommendedJobPosts(getLoginUser())));
+    }
+
+    @Operation(summary = "최근 본 공고 목록 (구직자)")
+    @GetMapping("/recent-views")
+    public ResponseEntity<ApiResponse<?>> getRecentViewedJobPosts() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                homeService.getRecentViewedJobPosts(getLoginUser())));
     }
 
     private User getLoginUser() {

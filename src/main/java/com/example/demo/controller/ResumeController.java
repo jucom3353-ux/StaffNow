@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.*;
 import com.example.demo.entity.User;
 import com.example.demo.service.ResumeService;
@@ -23,106 +24,74 @@ public class ResumeController {
 
     private final ResumeService resumeService;
 
-    // 내 이력서 조회
     @Operation(summary = "내 이력서 조회")
     @GetMapping("/my")
-    public ResponseEntity<?> getMyResume() {
-        try {
-            return ResponseEntity.ok(resumeService.getMyResume(getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> getMyResume() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                resumeService.getMyResume(getLoginUser())));
     }
 
-    // 이력서 수정
     @Operation(summary = "이력서 수정 (희망 근무 조건 + 취업우대사항)")
     @PatchMapping("/my")
-    public ResponseEntity<?> updateResume(@RequestBody ResumeRequestDto requestDto) {
-        try {
-            return ResponseEntity.ok(resumeService.updateResume(requestDto, getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> updateResume(
+            @RequestBody ResumeRequestDto requestDto) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                resumeService.updateResume(requestDto, getLoginUser())));
     }
 
-    // 학력 추가
     @Operation(summary = "학력 추가")
     @PostMapping("/my/education")
-    public ResponseEntity<?> addEducation(@RequestBody EducationRequestDto requestDto) {
-        try {
-            return ResponseEntity.ok(resumeService.addEducation(requestDto, getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> addEducation(
+            @RequestBody EducationRequestDto requestDto) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                resumeService.addEducation(requestDto, getLoginUser())));
     }
 
-    // 학력 삭제
     @Operation(summary = "학력 삭제")
     @DeleteMapping("/my/education/{educationId}")
-    public ResponseEntity<?> deleteEducation(@PathVariable Long educationId) {
-        try {
-            resumeService.deleteEducation(educationId, getLoginUser());
-            return ResponseEntity.ok("학력 삭제 완료");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> deleteEducation(
+            @PathVariable Long educationId) {
+        resumeService.deleteEducation(educationId, getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("학력 삭제 완료"));
     }
 
-    // 경력 추가
     @Operation(summary = "경력 추가")
     @PostMapping("/my/career")
-    public ResponseEntity<?> addCareer(@RequestBody CareerRequestDto requestDto) {
-        try {
-            return ResponseEntity.ok(resumeService.addCareer(requestDto, getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> addCareer(
+            @RequestBody CareerRequestDto requestDto) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                resumeService.addCareer(requestDto, getLoginUser())));
     }
 
-    // 경력 삭제
     @Operation(summary = "경력 삭제")
     @DeleteMapping("/my/career/{careerId}")
-    public ResponseEntity<?> deleteCareer(@PathVariable Long careerId) {
-        try {
-            resumeService.deleteCareer(careerId, getLoginUser());
-            return ResponseEntity.ok("경력 삭제 완료");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> deleteCareer(
+            @PathVariable Long careerId) {
+        resumeService.deleteCareer(careerId, getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("경력 삭제 완료"));
     }
 
-    // 자격증 추가
     @Operation(summary = "자격증 추가")
     @PostMapping("/my/certificate")
-    public ResponseEntity<?> addCertificate(@RequestBody CertificateRequestDto requestDto) {
-        try {
-            return ResponseEntity.ok(resumeService.addCertificate(requestDto, getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> addCertificate(
+            @RequestBody CertificateRequestDto requestDto) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                resumeService.addCertificate(requestDto, getLoginUser())));
     }
 
-    // 자격증 삭제
     @Operation(summary = "자격증 삭제")
     @DeleteMapping("/my/certificate/{certificateId}")
-    public ResponseEntity<?> deleteCertificate(@PathVariable Long certificateId) {
-        try {
-            resumeService.deleteCertificate(certificateId, getLoginUser());
-            return ResponseEntity.ok("자격증 삭제 완료");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> deleteCertificate(
+            @PathVariable Long certificateId) {
+        resumeService.deleteCertificate(certificateId, getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("자격증 삭제 완료"));
     }
 
-    // 특정 유저 이력서 조회 (기업용)
     @Operation(summary = "특정 유저 이력서 조회 (기업용)")
     @GetMapping("/user/{userId}")
-    public ResponseEntity<?> getUserResume(@PathVariable Long userId) {
-        try {
-            return ResponseEntity.ok(resumeService.getUserResume(userId, getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> getUserResume(@PathVariable Long userId) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                resumeService.getUserResume(userId, getLoginUser())));
     }
 
     private User getLoginUser() {

@@ -8,11 +8,15 @@ public class SkillResponseDto {
 
     private Long id;
     private String name;
-    private String category;
+    private Long categoryId;
+    private String categoryName;
 
     public SkillResponseDto(Skill skill) {
         this.id = skill.getId();
         this.name = skill.getName();
-        this.category = skill.getCategory();
+        if (skill.getCategory() != null) {
+            this.categoryId = skill.getCategory().getId();
+            this.categoryName = skill.getCategory().getName();
+        }
     }
 }

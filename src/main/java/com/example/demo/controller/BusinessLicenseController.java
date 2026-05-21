@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.ApiResponse;
 import com.example.demo.entity.User;
 import com.example.demo.service.BusinessLicenseService;
 
@@ -28,35 +29,27 @@ public class BusinessLicenseController {
 
     private final BusinessLicenseService businessLicenseService;
 
-    // 사업자 등록증명서 업로드
     @Operation(summary = "사업자 등록증명서 업로드")
     @RequestBody(content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE))
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> uploadLicense(
+    public ResponseEntity<ApiResponse<?>> uploadLicense(
             @RequestParam("file") MultipartFile file) {
-        try {
-            String url = businessLicenseService.uploadLicense(file, getLoginUser());
-            return ResponseEntity.ok(Map.of("url", url, "status", "PENDING"));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        String url = businessLicenseService.uploadLicense(file, getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("업로드 완료",
+                Map.of("url", url, "status", "PENDING")));
     }
 
-    // 내 사업자 등록증명서 상태 조회
     @Operation(summary = "사업자 등록증명서 상태 조회")
     @GetMapping
-    public ResponseEntity<?> getLicenseStatus() {
-        try {
-            User loginUser = getLoginUser();
-            return ResponseEntity.ok(Map.of(
-                    "url", loginUser.getBusinessLicenseUrl() != null
-                            ? loginUser.getBusinessLicenseUrl() : "",
-                    "status", loginUser.getBusinessLicenseStatus() != null
-                            ? loginUser.getBusinessLicenseStatus() : "NONE"
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> getLicenseStatus() {
+        User loginUser = getLoginUser();
+        return ResponseEntity.ok(ApiResponse.ok(
+                Map.of(
+                        "url", loginUser.getBusinessLicenseUrl() != null
+                                ? loginUser.getBusinessLicenseUrl() : "",
+                        "status", loginUser.getBusinessLicenseStatus() != null
+                                ? loginUser.getBusinessLicenseStatus() : "NONE"
+                )));
     }
 
     private User getLoginUser() {

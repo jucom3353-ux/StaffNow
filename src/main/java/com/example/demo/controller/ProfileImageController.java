@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.ApiResponse;
 import com.example.demo.entity.User;
 import com.example.demo.service.ProfileImageService;
 
@@ -28,30 +29,21 @@ public class ProfileImageController {
 
     private final ProfileImageService profileImageService;
 
-    // 프로필 사진 업로드/수정
     @Operation(summary = "프로필 사진 업로드")
     @RequestBody(content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE))
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> uploadProfileImage(
+    public ResponseEntity<ApiResponse<?>> uploadProfileImage(
             @RequestParam("file") MultipartFile file) {
-        try {
-            String url = profileImageService.uploadProfileImage(file, getLoginUser());
-            return ResponseEntity.ok(Map.of("url", url));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        String url = profileImageService.uploadProfileImage(file, getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("업로드 완료",
+                Map.of("url", url)));
     }
 
-    // 프로필 사진 삭제
     @Operation(summary = "프로필 사진 삭제")
     @DeleteMapping
-    public ResponseEntity<?> deleteProfileImage() {
-        try {
-            profileImageService.deleteProfileImage(getLoginUser());
-            return ResponseEntity.ok("프로필 사진 삭제 완료");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> deleteProfileImage() {
+        profileImageService.deleteProfileImage(getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("프로필 사진 삭제 완료"));
     }
 
     private User getLoginUser() {

@@ -25,29 +25,26 @@ public class WorkerSearchService {
             int maxNoShow,
             String activityRegion,
             String mbti,
+            Boolean availableAlways,
             String sort,
             int page,
             int size,
             Long blockerId
     ) {
-        // 상위 추천 정렬 (사진 5장 이상 우선)
-        // JPQL ORDER BY 고정이라 Pageable sort 무시하고 별도 쿼리 사용
         Pageable pageable = PageRequest.of(page, size);
 
         if (sort != null && sort.equals("noShow")) {
-            // 노쇼 적은 순 정렬 시에는 기존 쿼리 사용
             Pageable noShowPageable = PageRequest.of(page, size,
                     Sort.by(Sort.Direction.ASC, "noShowCount"));
             return userRepository.findWorkers(
                     Role.INDIVIDUAL, name, minRating, maxNoShow,
-                    activityRegion, mbti, blockerId, noShowPageable)
+                    activityRegion, mbti, availableAlways, blockerId, noShowPageable)
                     .map(WorkerSearchResponseDto::new);
         }
 
-        // 기본: 상위 추천(사진 5장↑) 우선 → 온도 높은 순
         return userRepository.findWorkersWithTopRecommended(
                 Role.INDIVIDUAL, name, minRating, maxNoShow,
-                activityRegion, mbti, blockerId, pageable)
+                activityRegion, mbti, availableAlways, blockerId, pageable)
                 .map(WorkerSearchResponseDto::new);
     }
 

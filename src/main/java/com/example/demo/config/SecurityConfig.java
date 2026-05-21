@@ -1,6 +1,7 @@
 package com.example.demo.config;
 
 import com.example.demo.jwt.JwtFilter;
+import com.example.demo.jwt.RateLimitFilter;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,9 +27,11 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
+    private final RateLimitFilter rateLimitFilter;
 
-    public SecurityConfig(JwtFilter jwtFilter) {
+    public SecurityConfig(JwtFilter jwtFilter, RateLimitFilter rateLimitFilter) {
         this.jwtFilter = jwtFilter;
+        this.rateLimitFilter = rateLimitFilter;
     }
 
     @Bean
@@ -59,7 +62,9 @@ public class SecurityConfig {
                         .requestMatchers("/disputes").hasAnyRole("ADMIN", "COMPANY", "INDIVIDUAL")
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                // RateLimitFilter → JwtFilter 순서
+                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtFilter, RateLimitFilter.class);
 
         return http.build();
     }

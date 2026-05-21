@@ -33,6 +33,7 @@ public class ApplicationService {
     private final CareerRepository careerRepository;
     private final CertificateRepository certificateRepository;
     private final ReviewRepository reviewRepository;
+    private final CompanySubscriptionRepository companySubscriptionRepository;
 
     public ApplicationService(
             ApplicationRepository applicationRepository,
@@ -46,7 +47,8 @@ public class ApplicationService {
             EducationRepository educationRepository,
             CareerRepository careerRepository,
             CertificateRepository certificateRepository,
-            ReviewRepository reviewRepository
+            ReviewRepository reviewRepository,
+            CompanySubscriptionRepository companySubscriptionRepository
     ) {
         this.applicationRepository = applicationRepository;
         this.jobPostRepository = jobPostRepository;
@@ -60,6 +62,7 @@ public class ApplicationService {
         this.careerRepository = careerRepository;
         this.certificateRepository = certificateRepository;
         this.reviewRepository = reviewRepository;
+        this.companySubscriptionRepository = companySubscriptionRepository;
     }
 
     @Transactional
@@ -176,15 +179,31 @@ public class ApplicationService {
         }
 
         User worker = application.getUser();
-        List<Skill> skills = skillRepository.findByUser(worker);
         Resume resume = resumeRepository.findByUser(worker).orElse(null);
-        List<Education> educations = resume != null ? educationRepository.findByResume(resume) : List.of();
-        List<Career> careers = resume != null ? careerRepository.findByResume(resume) : List.of();
-        List<Certificate> certificates = resume != null ? certificateRepository.findByResume(resume) : List.of();
+        List<Career> careers = resume != null
+                ? careerRepository.findByResume(resume) : List.of();
+
+        // 구독 여부 확인
+        boolean hasSubscription = companySubscriptionRepository
+                .findByCompanyAndStatus(loginUser, SubscriptionStatus.ACTIVE)
+                .isPresent();
+
+        if (!hasSubscription) {
+            // 무료 → 이름/지역/MBTI/경력여부만
+            return new WorkerProfileResponseDto(worker, careers);
+        }
+
+        // 유료 → 전체 정보
+        List<Skill> skills = skillRepository.findByUser(worker);
+        List<Education> educations = resume != null
+                ? educationRepository.findByResume(resume) : List.of();
+        List<Certificate> certificates = resume != null
+                ? certificateRepository.findByResume(resume) : List.of();
         List<Review> reviews = reviewRepository.findByWorker(worker);
 
         return new WorkerProfileResponseDto(
-                worker, skills, resume, educations, careers, certificates, reviews
+                worker, skills, resume, educations,
+                careers, certificates, reviews, true
         );
     }
 
@@ -223,7 +242,6 @@ public class ApplicationService {
             contract.setJobPost(jobPost);
             contract.setCompany(loginUser);
             contract.setWorker(application.getUser());
-            // 공고의 근무 기간으로 자동 세팅
             contract.setContractStartDate(
                     jobPost.getWorkStartDate() != null
                             ? jobPost.getWorkStartDate().toString() : null);
@@ -308,7 +326,7 @@ public class ApplicationService {
 
         notificationService.send(
                 worker,
-                NotificationType.APPLICATION_NO_SHOW, // 노쇼 전용 타입 없어서 임시 사용
+                NotificationType.APPLICATION_NO_SHOW,
                 "[" + application.getJobPost().getTitle() + "] 노쇼 처리되었습니다. 온도가 "
                         + NO_SHOW_TEMPERATURE_PENALTY + "도 감소하였습니다.",
                 application.getId()
@@ -341,7 +359,7 @@ public class ApplicationService {
 
         notificationService.send(
                 worker,
-                NotificationType.APPLICATION_ABSENT, // 결근 전용 타입 없어서 임시 사용
+                NotificationType.APPLICATION_ABSENT,
                 "[" + application.getJobPost().getTitle() + "] 결근 처리되었습니다. 온도가 "
                         + ABSENT_TEMPERATURE_PENALTY + "도 감소하였습니다.",
                 application.getId()

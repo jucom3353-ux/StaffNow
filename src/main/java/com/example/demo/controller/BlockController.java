@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.ApiResponse;
 import com.example.demo.entity.User;
 import com.example.demo.service.BlockService;
 
@@ -24,34 +25,23 @@ public class BlockController {
 
     @Operation(summary = "사용자 차단")
     @PostMapping("/{blockedId}")
-    public ResponseEntity<?> blockUser(@PathVariable Long blockedId) {
-        try {
-            blockService.blockUser(blockedId, getLoginUser());
-            return ResponseEntity.ok("차단 완료");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> blockUser(@PathVariable Long blockedId) {
+        blockService.blockUser(blockedId, getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("차단 완료"));
     }
 
     @Operation(summary = "사용자 차단 해제")
     @DeleteMapping("/{blockedId}")
-    public ResponseEntity<?> unblockUser(@PathVariable Long blockedId) {
-        try {
-            blockService.unblockUser(blockedId, getLoginUser());
-            return ResponseEntity.ok("차단 해제 완료");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> unblockUser(@PathVariable Long blockedId) {
+        blockService.unblockUser(blockedId, getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("차단 해제 완료"));
     }
 
     @Operation(summary = "차단 목록 조회")
     @GetMapping
-    public ResponseEntity<?> getBlockedUsers() {
-        try {
-            return ResponseEntity.ok(blockService.getBlockedUserIds(getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> getBlockedUsers() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                blockService.getBlockedUserIds(getLoginUser())));
     }
 
     private User getLoginUser() {

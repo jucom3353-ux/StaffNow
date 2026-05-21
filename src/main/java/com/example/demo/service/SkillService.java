@@ -2,9 +2,8 @@ package com.example.demo.service;
 
 import com.example.demo.dto.SkillRequestDto;
 import com.example.demo.dto.SkillResponseDto;
-import com.example.demo.entity.Role;
-import com.example.demo.entity.Skill;
-import com.example.demo.entity.User;
+import com.example.demo.entity.*;
+import com.example.demo.repository.JobCategoryRepository;
 import com.example.demo.repository.SkillRepository;
 import com.example.demo.repository.UserRepository;
 
@@ -21,6 +20,7 @@ public class SkillService {
 
     private final SkillRepository skillRepository;
     private final UserRepository userRepository;
+    private final JobCategoryRepository jobCategoryRepository;
 
     // 스킬 추가
     @Transactional
@@ -38,10 +38,16 @@ public class SkillService {
             throw new RuntimeException("이미 등록된 스킬입니다.");
         }
 
+        JobCategory category = null;
+        if (requestDto.getCategoryId() != null) {
+            category = jobCategoryRepository.findById(requestDto.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("카테고리 없음"));
+        }
+
         Skill skill = new Skill();
         skill.setUser(loginUser);
         skill.setName(requestDto.getName());
-        skill.setCategory(requestDto.getCategory());
+        skill.setCategory(category);
 
         return new SkillResponseDto(skillRepository.save(skill));
     }
@@ -57,7 +63,12 @@ public class SkillService {
 
     // 카테고리별 스킬 조회
     @Transactional(readOnly = true)
-    public List<SkillResponseDto> getMySkillsByCategory(User loginUser, String category) {
+    public List<SkillResponseDto> getMySkillsByCategory(
+            User loginUser, Long categoryId) {
+
+        JobCategory category = jobCategoryRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException("카테고리 없음"));
+
         return skillRepository.findByUserAndCategory(loginUser, category)
                 .stream()
                 .map(SkillResponseDto::new)
@@ -69,16 +80,16 @@ public class SkillService {
     public List<SkillResponseDto> getUserSkills(Long userId, User loginUser) {
         if (loginUser.getRole() != Role.COMPANY) {
             throw new RuntimeException("기업 회원만 조회 가능합니다.");
+        }
+
+        User targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("유저 없음"));
+
+        return skillRepository.findByUser(targetUser)
+                .stream()
+                .map(SkillResponseDto::new)
+                .collect(Collectors.toList());
     }
-
-    User targetUser = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("유저 없음"));
-
-    return skillRepository.findByUser(targetUser)
-            .stream()
-            .map(SkillResponseDto::new)
-            .collect(Collectors.toList());
-}
 
     // 스킬 삭제
     @Transactional

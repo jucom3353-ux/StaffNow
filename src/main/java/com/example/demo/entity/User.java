@@ -45,6 +45,9 @@ public class User {
     @Column(unique = true)
     private String email;
 
+    @Column(name = "available_always")
+    private Boolean availableAlways = false;
+
     // 추가: 정지 여부
     @Column(name = "suspended")
     private Boolean suspended = false;
@@ -68,6 +71,7 @@ public class User {
     public String getBusinessLicenseStatus() { return businessLicenseStatus; }
     public Integer getProfileImageCount() { return profileImageCount; }
     public Boolean getSuspended() { return suspended; }
+    public Boolean getAvailableAlways() { return availableAlways; }
 
     public void setId(Long id) { this.id = id; }
     public void setEmail(String email) { this.email = email; }
@@ -88,4 +92,5 @@ public class User {
     public void setBusinessLicenseStatus(String businessLicenseStatus) { this.businessLicenseStatus = businessLicenseStatus; }
     public void setProfileImageCount(Integer profileImageCount) { this.profileImageCount = profileImageCount; }
     public void setSuspended(Boolean suspended) { this.suspended = suspended; }
+    public void setAvailableAlways(Boolean availableAlways) { this.availableAlways = availableAlways; }
 }

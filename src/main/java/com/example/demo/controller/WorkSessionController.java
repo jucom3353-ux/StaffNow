@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.WorkSessionCreateRequestDto;
 import com.example.demo.entity.User;
 import com.example.demo.entity.WorkStatus;
@@ -24,129 +25,87 @@ public class WorkSessionController {
 
     private final WorkSessionService workSessionService;
 
-    // 근무회차 생성
     @Operation(summary = "근무회차 생성")
     @PostMapping("/{jobPostId}/work-sessions")
-    public ResponseEntity<?> createWorkSession(
+    public ResponseEntity<ApiResponse<?>> createWorkSession(
             @PathVariable Long jobPostId,
             @RequestBody WorkSessionCreateRequestDto requestDto
     ) {
-        try {
-            return ResponseEntity.ok(
-                    workSessionService.createWorkSession(jobPostId, requestDto, getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        return ResponseEntity.ok(ApiResponse.ok(
+                workSessionService.createWorkSession(jobPostId, requestDto, getLoginUser())));
     }
 
-    // 근무회차 자동 생성 (공고 기간 내 날짜별)
     @Operation(summary = "근무회차 자동 생성 (공고 기간 내 날짜별)")
     @PostMapping("/{jobPostId}/work-sessions/generate")
-    public ResponseEntity<?> generateWorkSessions(@PathVariable Long jobPostId) {
-        try {
-            return ResponseEntity.ok(
-                    workSessionService.generateWorkSessions(jobPostId, getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> generateWorkSessions(
+            @PathVariable Long jobPostId) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                workSessionService.generateWorkSessions(jobPostId, getLoginUser())));
     }
 
-    // 공고별 근무회차 조회
     @Operation(summary = "공고별 근무회차 조회")
     @GetMapping("/{jobPostId}/work-sessions")
-    public ResponseEntity<?> getWorkSessions(@PathVariable Long jobPostId) {
-        try {
-            return ResponseEntity.ok(
-                    workSessionService.getWorkSessions(jobPostId));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> getWorkSessions(
+            @PathVariable Long jobPostId) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                workSessionService.getWorkSessions(jobPostId)));
     }
 
-    // 날짜별 근무회차 조회
     @Operation(summary = "날짜별 근무회차 조회")
     @GetMapping("/work-sessions")
-    public ResponseEntity<?> getWorkSessionsByDate(@RequestParam String workDate) {
-        try {
-            return ResponseEntity.ok(
-                    workSessionService.getWorkSessionsByDate(workDate));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> getWorkSessionsByDate(
+            @RequestParam String workDate) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                workSessionService.getWorkSessionsByDate(workDate)));
     }
 
-    // 공고 + 날짜별 근무회차 조회
     @Operation(summary = "공고 + 날짜별 근무회차 조회")
     @GetMapping("/{jobPostId}/work-sessions/date")
-    public ResponseEntity<?> getWorkSessionsByJobPostAndDate(
+    public ResponseEntity<ApiResponse<?>> getWorkSessionsByJobPostAndDate(
             @PathVariable Long jobPostId,
             @RequestParam String workDate
     ) {
-        try {
-            return ResponseEntity.ok(
-                    workSessionService.getWorkSessionsByJobPostAndDate(jobPostId, workDate));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        return ResponseEntity.ok(ApiResponse.ok(
+                workSessionService.getWorkSessionsByJobPostAndDate(jobPostId, workDate)));
     }
 
-    // 전체 근무회차 조회 (내 공고 기준)
     @Operation(summary = "전체 근무회차 조회 (내 공고 기준)")
     @GetMapping("/work-sessions/my")
-    public ResponseEntity<?> getAllMyWorkSessions() {
-        try {
-            return ResponseEntity.ok(
-                    workSessionService.getAllMyWorkSessions(getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> getAllMyWorkSessions() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                workSessionService.getAllMyWorkSessions(getLoginUser())));
     }
 
-    // 근무회차 상태 변경
     @Operation(summary = "근무회차 상태 변경 (SCHEDULED/IN_PROGRESS/FINISHED/CLOSED)")
     @PatchMapping("/{jobPostId}/work-sessions/{workSessionId}/status")
-    public ResponseEntity<?> changeWorkSessionStatus(
+    public ResponseEntity<ApiResponse<?>> changeWorkSessionStatus(
             @PathVariable Long jobPostId,
             @PathVariable Long workSessionId,
             @RequestParam WorkStatus workStatus
     ) {
-        try {
-            workSessionService.changeWorkSessionStatus(
-                    jobPostId, workSessionId, workStatus, getLoginUser());
-            return ResponseEntity.ok("근무회차 상태 변경 완료");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        workSessionService.changeWorkSessionStatus(
+                jobPostId, workSessionId, workStatus, getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("근무회차 상태 변경 완료"));
     }
 
-    // 메모 수정
     @Operation(summary = "근무회차 메모 수정")
     @PatchMapping("/work-sessions/{workSessionId}/memo")
-    public ResponseEntity<?> updateMemo(
+    public ResponseEntity<ApiResponse<?>> updateMemo(
             @PathVariable Long workSessionId,
             @RequestParam String memo
     ) {
-        try {
-            workSessionService.updateMemo(workSessionId, memo, getLoginUser());
-            return ResponseEntity.ok("메모 수정 완료");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        workSessionService.updateMemo(workSessionId, memo, getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("메모 수정 완료"));
     }
 
-    // Shift 배정
     @Operation(summary = "Shift 배정")
     @PostMapping("/work-sessions/{workSessionId}/assign/{applicationId}")
-    public ResponseEntity<?> assignWorkSession(
+    public ResponseEntity<ApiResponse<?>> assignWorkSession(
             @PathVariable Long workSessionId,
             @PathVariable Long applicationId
     ) {
-        try {
-            workSessionService.assignWorkSession(applicationId, workSessionId, getLoginUser());
-            return ResponseEntity.ok("Shift 배정 완료");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        workSessionService.assignWorkSession(applicationId, workSessionId, getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("Shift 배정 완료"));
     }
 
     private User getLoginUser() {

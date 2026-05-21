@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.ApiResponse;
 import com.example.demo.entity.PayrollStatus;
 import com.example.demo.entity.User;
 import com.example.demo.service.PayrollService;
@@ -23,130 +24,88 @@ public class PayrollController {
 
     private final PayrollService payrollService;
 
-    // 정산 생성 (기업)
     @Operation(summary = "주간 정산 생성")
     @PostMapping("/{applicationId}")
-    public ResponseEntity<?> createPayroll(
+    public ResponseEntity<ApiResponse<?>> createPayroll(
             @PathVariable Long applicationId,
             @RequestParam String weekStart) {
-        try {
-            return ResponseEntity.ok(
-                    payrollService.createPayroll(applicationId, weekStart, getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        return ResponseEntity.ok(ApiResponse.ok(
+                payrollService.createPayroll(applicationId, weekStart, getLoginUser())));
     }
 
-    // 정산 확정 (기업)
     @Operation(summary = "정산 확정 (기업)")
     @PatchMapping("/{payrollId}/confirm")
-    public ResponseEntity<?> confirmPayroll(@PathVariable Long payrollId) {
-        try {
-            return ResponseEntity.ok(
-                    payrollService.confirmPayroll(payrollId, getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> confirmPayroll(
+            @PathVariable Long payrollId) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                payrollService.confirmPayroll(payrollId, getLoginUser())));
     }
 
-    // 지급 완료 (기업)
     @Operation(summary = "지급 완료 처리 (기업)")
     @PatchMapping("/{payrollId}/pay")
-    public ResponseEntity<?> payPayroll(@PathVariable Long payrollId) {
-        try {
-            return ResponseEntity.ok(
-                    payrollService.payPayroll(payrollId, getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> payPayroll(
+            @PathVariable Long payrollId) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                payrollService.payPayroll(payrollId, getLoginUser())));
     }
 
-    // 정산 반려 (기업)
     @Operation(summary = "정산 반려 (기업)")
     @PatchMapping("/{payrollId}/reject")
-    public ResponseEntity<?> rejectPayroll(
+    public ResponseEntity<ApiResponse<?>> rejectPayroll(
             @PathVariable Long payrollId,
             @RequestParam String rejectReason) {
-        try {
-            return ResponseEntity.ok(
-                    payrollService.rejectPayroll(payrollId, rejectReason, getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        return ResponseEntity.ok(ApiResponse.ok(
+                payrollService.rejectPayroll(payrollId, rejectReason, getLoginUser())));
     }
 
-    // 근로자 급여 통합 조회
     @Operation(summary = "근로자 급여 통합 조회")
     @GetMapping("/my/summary")
-    public ResponseEntity<?> getMyPayrollSummary(
+    public ResponseEntity<ApiResponse<?>> getMyPayrollSummary(
             @RequestParam(required = false) PayrollStatus status,
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate,
             @RequestParam(required = false) String yearMonth) {
-        try {
-            return ResponseEntity.ok(
-                    payrollService.getMyPayrollSummary(
-                            getLoginUser(), status, startDate, endDate, yearMonth));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(e.getMessage());
-        }
+        return ResponseEntity.ok(ApiResponse.ok(
+                payrollService.getMyPayrollSummary(
+                        getLoginUser(), status, startDate, endDate, yearMonth)));
     }
 
-    // 기업 정산 통합 조회
     @Operation(summary = "기업 정산 통합 조회")
     @GetMapping("/company/summary")
-    public ResponseEntity<?> getCompanyPayrollSummary(
+    public ResponseEntity<ApiResponse<?>> getCompanyPayrollSummary(
             @RequestParam(required = false) Long jobPostId,
             @RequestParam(required = false) String yearMonth) {
-        try {
-            return ResponseEntity.ok(
-                    payrollService.getCompanyPayrollSummary(
-                            getLoginUser(), jobPostId, yearMonth));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        return ResponseEntity.ok(ApiResponse.ok(
+                payrollService.getCompanyPayrollSummary(
+                        getLoginUser(), jobPostId, yearMonth)));
     }
 
     // ===== ADMIN 전용 =====
 
-    // 전체 정산 조회
     @Operation(summary = "전체 정산 조회 (관리자)")
     @GetMapping("/admin")
-    public ResponseEntity<?> adminGetAllPayrolls(
+    public ResponseEntity<ApiResponse<?>> adminGetAllPayrolls(
             @RequestParam(required = false) PayrollStatus status) {
-        try {
-            return ResponseEntity.ok(
-                    payrollService.adminGetAllPayrolls(status, getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        return ResponseEntity.ok(ApiResponse.ok(
+                payrollService.adminGetAllPayrolls(status, getLoginUser())));
     }
 
-    // 정산 강제 확정
     @Operation(summary = "정산 강제 확정 (관리자)")
     @PatchMapping("/admin/{payrollId}/confirm")
-    public ResponseEntity<?> adminConfirmPayroll(@PathVariable Long payrollId) {
-        try {
-            return ResponseEntity.ok(
-                    payrollService.adminConfirmPayroll(payrollId, getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> adminConfirmPayroll(
+            @PathVariable Long payrollId) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                payrollService.adminConfirmPayroll(payrollId, getLoginUser())));
     }
 
-    // 정산 강제 반려
     @Operation(summary = "정산 강제 반려 (관리자)")
     @PatchMapping("/admin/{payrollId}/reject")
-    public ResponseEntity<?> adminRejectPayroll(
+    public ResponseEntity<ApiResponse<?>> adminRejectPayroll(
             @PathVariable Long payrollId,
             @RequestParam String rejectReason) {
-        try {
-            return ResponseEntity.ok(
-                    payrollService.adminRejectPayroll(
-                            payrollId, rejectReason, getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        return ResponseEntity.ok(ApiResponse.ok(
+                payrollService.adminRejectPayroll(
+                        payrollId, rejectReason, getLoginUser())));
     }
 
     private User getLoginUser() {

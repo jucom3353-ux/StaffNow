@@ -1,19 +1,13 @@
 package com.example.demo.service;
 
 import com.example.demo.dto.AttendanceStatResponseDto;
-import com.example.demo.entity.ApplicationStatus;
-import com.example.demo.entity.JobPost;
-import com.example.demo.entity.Role;
-import com.example.demo.entity.User;
-import com.example.demo.repository.ApplicationRepository;
-import com.example.demo.repository.JobPostRepository;
-import com.example.demo.repository.WorkAttendanceRepository;
+import com.example.demo.entity.*;
+import com.example.demo.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,6 +17,7 @@ public class AttendanceStatService {
     private final ApplicationRepository applicationRepository;
     private final WorkAttendanceRepository workAttendanceRepository;
     private final JobPostRepository jobPostRepository;
+    private final WorkSessionRepository workSessionRepository;
 
     // Role 기반 자동 분기
     @Transactional(readOnly = true)
@@ -118,7 +113,8 @@ public class AttendanceStatService {
 
     // 월별 근태 통계 (근로자용)
     @Transactional(readOnly = true)
-    public Map<String, Object> getWorkerMonthlystat(User loginUser, int year, int month) {
+    public Map<String, Object> getWorkerMonthlystat(
+            User loginUser, int year, int month) {
 
         if (loginUser.getRole() != Role.INDIVIDUAL) {
             throw new RuntimeException("개인 회원만 조회 가능합니다.");
@@ -128,7 +124,7 @@ public class AttendanceStatService {
                 java.time.LocalDate.of(year, month, 1).atStartOfDay();
         java.time.LocalDateTime endOfMonth = startOfMonth.plusMonths(1);
 
-        List<com.example.demo.entity.WorkAttendance> attendances =
+        List<WorkAttendance> attendances =
                 workAttendanceRepository.findByUserAndMonth(
                         loginUser, startOfMonth, endOfMonth);
 
@@ -148,5 +144,68 @@ public class AttendanceStatService {
                 "workDays", workDays,
                 "totalWorkHours", totalWorkHours
         );
+    }
+
+    // 구직자 캘린더 (근무 확정 날짜 목록)
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getWorkerCalendar(User loginUser) {
+
+        if (loginUser.getRole() != Role.INDIVIDUAL) {
+            throw new RuntimeException("구직자만 조회 가능합니다.");
+        }
+
+        return applicationRepository.findByUser(loginUser,
+                org.springframework.data.domain.Pageable.unpaged())
+                .stream()
+                .filter(a -> a.getStatus() == ApplicationStatus.APPROVED
+                        || a.getStatus() == ApplicationStatus.COMPLETED)
+                .filter(a -> a.getWorkSession() != null)
+                .map(a -> {
+                    Map<String, Object> map = new LinkedHashMap<>();
+                    map.put("date", a.getWorkSession().getWorkDate());
+                    map.put("jobPostTitle", a.getJobPost().getTitle());
+                    map.put("jobPostId", a.getJobPost().getId());
+                    map.put("startTime", a.getWorkSession().getStartTime());
+                    map.put("endTime", a.getWorkSession().getEndTime());
+                    map.put("status", a.getStatus().name());
+                    map.put("workLocation", a.getJobPost().getWorkLocation());
+                    return map;
+                })
+                .sorted(Comparator.comparing(m -> (String) m.get("date")))
+                .collect(Collectors.toList());
+    }
+
+    // 기업 캘린더 (공고별 Shift 일정)
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getCompanyCalendar(
+            Long jobPostId, User loginUser) {
+
+        if (loginUser.getRole() != Role.COMPANY) {
+            throw new RuntimeException("기업 회원만 조회 가능합니다.");
+        }
+
+        JobPost jobPost = jobPostRepository.findById(jobPostId)
+                .orElseThrow(() -> new RuntimeException("공고 없음"));
+
+        if (!jobPost.getUser().getId().equals(loginUser.getId())) {
+            throw new RuntimeException("본인 공고만 조회 가능합니다.");
+        }
+
+        return workSessionRepository.findByJobPost(jobPost)
+                .stream()
+                .map(ws -> {
+                    Map<String, Object> map = new LinkedHashMap<>();
+                    map.put("date", ws.getWorkDate());
+                    map.put("workSessionId", ws.getId());
+                    map.put("startTime", ws.getStartTime());
+                    map.put("endTime", ws.getEndTime());
+                    map.put("recruitCount", ws.getRecruitCount());
+                    map.put("currentCount", ws.getCurrentCount());
+                    map.put("status", ws.getStatus().name());
+                    map.put("memo", ws.getMemo());
+                    return map;
+                })
+                .sorted(Comparator.comparing(m -> (String) m.get("date")))
+                .collect(Collectors.toList());
     }
 }

@@ -5,5 +5,5 @@ import lombok.Getter;
 @Getter
 public class SkillRequestDto {
     private String name;
-    private String category;
+    private Long categoryId; // 변경: String → Long
 }

@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.ApiResponse;
 import com.example.demo.entity.User;
 import com.example.demo.service.NotificationService;
 
@@ -26,58 +27,39 @@ public class NotificationController {
 
     @Operation(summary = "내 알림 목록 조회")
     @GetMapping
-    public ResponseEntity<?> getMyNotifications() {
-        try {
-            return ResponseEntity.ok(
-                    notificationService.getMyNotifications(getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> getMyNotifications() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                notificationService.getMyNotifications(getLoginUser())));
     }
 
     @Operation(summary = "안 읽은 알림 목록")
     @GetMapping("/unread")
-    public ResponseEntity<?> getUnreadNotifications() {
-        try {
-            return ResponseEntity.ok(
-                    notificationService.getUnreadNotifications(getLoginUser()));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> getUnreadNotifications() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                notificationService.getUnreadNotifications(getLoginUser())));
     }
 
     @Operation(summary = "안 읽은 알림 수")
     @GetMapping("/unread/count")
-    public ResponseEntity<?> getUnreadCount() {
-        try {
-            return ResponseEntity.ok(
-                    Map.of("unreadCount",
-                            notificationService.getUnreadCount(getLoginUser())));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> getUnreadCount() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                Map.of("unreadCount",
+                        notificationService.getUnreadCount(getLoginUser()))));
     }
 
     @Operation(summary = "알림 읽음 처리")
     @PatchMapping("/{notificationId}/read")
-    public ResponseEntity<?> markAsRead(@PathVariable Long notificationId) {
-        try {
-            notificationService.markAsRead(notificationId, getLoginUser());
-            return ResponseEntity.ok("읽음 처리 완료");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> markAsRead(
+            @PathVariable Long notificationId) {
+        notificationService.markAsRead(notificationId, getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("읽음 처리 완료"));
     }
 
     @Operation(summary = "전체 읽음 처리")
     @PatchMapping("/read-all")
-    public ResponseEntity<?> markAllAsRead() {
-        try {
-            notificationService.markAllAsRead(getLoginUser());
-            return ResponseEntity.ok("전체 읽음 처리 완료");
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<?>> markAllAsRead() {
+        notificationService.markAllAsRead(getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("전체 읽음 처리 완료"));
     }
 
     private User getLoginUser() {

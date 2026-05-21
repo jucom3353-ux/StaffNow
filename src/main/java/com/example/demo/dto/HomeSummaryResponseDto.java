@@ -3,6 +3,8 @@ package com.example.demo.dto;
 import lombok.Getter;
 import lombok.Builder;
 
+import java.util.List;
+
 @Getter
 @Builder
 public class HomeSummaryResponseDto {
@@ -16,7 +18,8 @@ public class HomeSummaryResponseDto {
     private Integer rejectedCount;
     private Integer bookmarkCount;
     private Integer todayWorkCount;
-    private java.util.List<JobPostResponseDto> recommendedJobPosts;
+    private List<JobPostResponseDto> recommendedJobPosts;
+    private List<JobPostResponseDto> recentViewedJobPosts;  // 추가
 
     // 기업용
     private Integer openJobPostCount;

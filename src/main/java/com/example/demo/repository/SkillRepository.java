@@ -1,5 +1,6 @@
 package com.example.demo.repository;
 
+import com.example.demo.entity.JobCategory;
 import com.example.demo.entity.Skill;
 import com.example.demo.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,9 +14,13 @@ public interface SkillRepository extends JpaRepository<Skill, Long> {
 
     List<Skill> findByUser(User user);
 
-    List<Skill> findByUserAndCategory(User user, String category);
+    // 변경: String → JobCategory
+    List<Skill> findByUserAndCategory(User user, JobCategory category);
 
     boolean existsByUserAndName(User user, String name);
 
     Optional<Skill> findByIdAndUser(Long id, User user);
+
+    // 추가: 카테고리로 유저 목록 조회 (자동매칭용)
+    List<Skill> findByCategory(JobCategory category);
 }

@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,6 +23,10 @@ public class HomeService {
     private final WorkSessionRepository workSessionRepository;
     private final PayrollRepository payrollRepository;
     private final PreferredWorkTimeRepository preferredWorkTimeRepository;
+    private final SkillRepository skillRepository;
+    private final CareerRepository careerRepository;
+    private final ResumeRepository resumeRepository;
+    private final JobPostViewHistoryRepository jobPostViewHistoryRepository;
 
     @Transactional(readOnly = true)
     public HomeSummaryResponseDto getSummary(User loginUser) {
@@ -33,10 +37,38 @@ public class HomeService {
         }
     }
 
+    // 추천 공고 목록 (별도 API용)
+    @Transactional(readOnly = true)
+    public List<JobPostResponseDto> getRecommendedJobPosts(User loginUser) {
+        if (loginUser.getRole() != Role.INDIVIDUAL) {
+            throw new RuntimeException("구직자만 조회 가능합니다.");
+        }
+        return getRecommendedJobPostsInternal(loginUser)
+                .stream()
+                .map(post -> new JobPostResponseDto(post,
+                        applicationRepository.countByJobPost(post)))
+                .collect(Collectors.toList());
+    }
+
+    // 최근 본 공고 목록 (별도 API용)
+    @Transactional(readOnly = true)
+    public List<JobPostResponseDto> getRecentViewedJobPosts(User loginUser) {
+        if (loginUser.getRole() != Role.INDIVIDUAL) {
+            throw new RuntimeException("구직자만 조회 가능합니다.");
+        }
+        return jobPostViewHistoryRepository
+                .findByUserOrderByViewedAtDesc(loginUser)
+                .stream()
+                .limit(20)
+                .map(h -> new JobPostResponseDto(
+                        h.getJobPost(),
+                        applicationRepository.countByJobPost(h.getJobPost())))
+                .collect(Collectors.toList());
+    }
+
     // 근로자용 홈 요약
     private HomeSummaryResponseDto getWorkerSummary(User loginUser) {
 
-        // 지원 현황
         int appliedCount = applicationRepository
                 .countByUserAndStatus(loginUser, ApplicationStatus.APPLIED);
         int approvedCount = applicationRepository
@@ -44,10 +76,8 @@ public class HomeService {
         int rejectedCount = applicationRepository
                 .countByUserAndStatus(loginUser, ApplicationStatus.REJECTED);
 
-        // 관심 공고 수
         int bookmarkCount = bookmarkRepository.findByUser(loginUser).size();
 
-        // 오늘 근무 수
         String today = LocalDate.now().toString();
         int todayWorkCount = (int) applicationRepository
                 .findByUser(loginUser, org.springframework.data.domain.Pageable.unpaged())
@@ -57,15 +87,23 @@ public class HomeService {
                 .filter(a -> today.equals(a.getWorkSession().getWorkDate()))
                 .count();
 
-        // 미확인 알림 수
         int unreadCount = notificationRepository
                 .countByUserAndIsReadFalse(loginUser);
 
-        // 추천 공고
-        List<JobPostResponseDto> recommendedJobPosts = getRecommendedJobPosts(loginUser)
-                .stream()
-                .map(post -> new JobPostResponseDto(post, 0))
-                .collect(Collectors.toList());
+        List<JobPostResponseDto> recommendedJobPosts =
+                getRecommendedJobPostsInternal(loginUser)
+                        .stream()
+                        .map(post -> new JobPostResponseDto(post, 0))
+                        .collect(Collectors.toList());
+
+        // 최근 본 공고 5개 (홈 요약용)
+        List<JobPostResponseDto> recentViewedJobPosts =
+                jobPostViewHistoryRepository
+                        .findByUserOrderByViewedAtDesc(loginUser)
+                        .stream()
+                        .limit(5)
+                        .map(h -> new JobPostResponseDto(h.getJobPost(), 0))
+                        .collect(Collectors.toList());
 
         return HomeSummaryResponseDto.builder()
                 .unreadNotificationCount(unreadCount)
@@ -75,20 +113,19 @@ public class HomeService {
                 .bookmarkCount(bookmarkCount)
                 .todayWorkCount(todayWorkCount)
                 .recommendedJobPosts(recommendedJobPosts)
+                .recentViewedJobPosts(recentViewedJobPosts)
                 .build();
     }
 
     // 기업용 홈 요약
     private HomeSummaryResponseDto getCompanySummary(User loginUser) {
 
-        // 진행 중인 공고 수
         int openJobPostCount = jobPostRepository.findByUser(loginUser)
                 .stream()
                 .filter(p -> p.getPostStatus() == PostStatus.OPEN)
                 .mapToInt(p -> 1)
                 .sum();
 
-        // 오늘 Shift 예정 인원
         String today = LocalDate.now().toString();
         int todayShiftWorkerCount = jobPostRepository.findByUser(loginUser)
                 .stream()
@@ -97,11 +134,9 @@ public class HomeService {
                 .mapToInt(WorkSession::getCurrentCount)
                 .sum();
 
-        // 미확인 지원자 수 (APPLIED 상태)
         int pendingApplicantCount = applicationRepository.countByCompanyAndStatus(
                 loginUser, ApplicationStatus.APPLIED);
 
-        // 이번 주 정산 총액
         String weekStart = LocalDate.now()
                 .with(java.time.DayOfWeek.MONDAY).toString();
         int thisWeekTotalPay = jobPostRepository.findByUser(loginUser)
@@ -109,10 +144,9 @@ public class HomeService {
                 .flatMap(jp -> payrollRepository.findByJobPost(jp).stream())
                 .filter(p -> p.getWorkWeekStart() != null &&
                              p.getWorkWeekStart().compareTo(weekStart) >= 0)
-                .mapToInt(p -> p.getTotalPay())
+                .mapToInt(Payroll::getTotalPay)
                 .sum();
 
-        // 미확인 알림 수
         int unreadCount = notificationRepository
                 .countByUserAndIsReadFalse(loginUser);
 
@@ -125,45 +159,77 @@ public class HomeService {
                 .build();
     }
 
-    // 추천 공고 알고리즘
-    private List<JobPost> getRecommendedJobPosts(User loginUser) {
+    // 추천 공고 알고리즘 내부용
+    private List<JobPost> getRecommendedJobPostsInternal(User loginUser) {
 
-        // 1단계: 활동 지역 매칭
-        if (loginUser.getActivityRegion() != null &&
-            !loginUser.getActivityRegion().isBlank()) {
+        Set<Long> addedIds = new LinkedHashSet<>();
+        List<JobPost> result = new ArrayList<>();
 
+        // 1단계: 스킬 카테고리 매칭
+        List<Skill> skills = skillRepository.findByUser(loginUser);
+        if (!skills.isEmpty()) {
+            for (Skill skill : skills) {
+                if (skill.getCategory() == null) continue;
+                List<JobPost> byCategory = jobPostRepository
+                        .findOpenByCategory(skill.getCategory().getId());
+                for (JobPost post : byCategory) {
+                    if (!addedIds.contains(post.getId())) {
+                        addedIds.add(post.getId());
+                        result.add(post);
+                    }
+                    if (result.size() >= 5) break;
+                }
+                if (result.size() >= 5) break;
+            }
+        }
+
+        // 2단계: 지역 매칭
+        if (result.size() < 5 && loginUser.getActivityRegion() != null
+                && !loginUser.getActivityRegion().isBlank()) {
             List<JobPost> byRegion = jobPostRepository
-                    .findOpenByRegion(loginUser.getActivityRegion())
-                    .stream()
-                    .limit(5)
-                    .collect(Collectors.toList());
-
-            if (byRegion.size() >= 3) return byRegion;
+                    .findOpenByRegion(loginUser.getActivityRegion());
+            for (JobPost post : byRegion) {
+                if (!addedIds.contains(post.getId())) {
+                    addedIds.add(post.getId());
+                    result.add(post);
+                }
+                if (result.size() >= 5) break;
+            }
         }
 
-        // 2단계: 선호 근무 시간 매칭
-        List<PreferredWorkTime> preferredTimes =
-                preferredWorkTimeRepository.findByUser(loginUser);
-
-        if (!preferredTimes.isEmpty()) {
-            List<String> timeTypes = preferredTimes.stream()
-                    .map(PreferredWorkTime::getTimeType)
-                    .collect(Collectors.toList());
-
-            List<JobPost> byWorkType = jobPostRepository
-                    .findOpenByWorkTypes(timeTypes)
-                    .stream()
-                    .limit(5)
-                    .collect(Collectors.toList());
-
-            if (byWorkType.size() >= 3) return byWorkType;
+        // 3단계: 선호 근무 시간 매칭
+        if (result.size() < 5) {
+            List<PreferredWorkTime> preferredTimes =
+                    preferredWorkTimeRepository.findByUser(loginUser);
+            if (!preferredTimes.isEmpty()) {
+                List<String> timeTypes = preferredTimes.stream()
+                        .map(PreferredWorkTime::getTimeType)
+                        .collect(Collectors.toList());
+                List<JobPost> byWorkType = jobPostRepository
+                        .findOpenByWorkTypes(timeTypes);
+                for (JobPost post : byWorkType) {
+                    if (!addedIds.contains(post.getId())) {
+                        addedIds.add(post.getId());
+                        result.add(post);
+                    }
+                    if (result.size() >= 5) break;
+                }
+            }
         }
 
-        // 3단계: fallback - 최신 OPEN 5개
-        return jobPostRepository
-                .searchJobPosts(null, null, PostStatus.OPEN, null, null)
-                .stream()
-                .limit(5)
-                .collect(Collectors.toList());
+        // 4단계: fallback - 최신 OPEN 5개
+        if (result.size() < 5) {
+            List<JobPost> latest = jobPostRepository
+                    .searchJobPosts(null, null, PostStatus.OPEN, null, null);
+            for (JobPost post : latest) {
+                if (!addedIds.contains(post.getId())) {
+                    addedIds.add(post.getId());
+                    result.add(post);
+                }
+                if (result.size() >= 5) break;
+            }
+        }
+
+        return result;
     }
 }
