@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -189,11 +191,71 @@ public class WorkSessionService {
         workSessionRepository.save(workSession);
     }
 
+    // 공고 기간 내 날짜별 Shift 자동 생성
+    @Transactional
+    public List<WorkSessionResponseDto> generateWorkSessions(
+            Long jobPostId, User loginUser) {
+
+        if (loginUser.getRole() != Role.COMPANY) {
+            throw new RuntimeException("기업 회원만 자동 생성 가능합니다.");
+        }
+
+        JobPost jobPost = jobPostRepository.findById(jobPostId)
+                .orElseThrow(() -> new RuntimeException("공고 없음"));
+
+        if (!jobPost.getUser().getId().equals(loginUser.getId())) {
+            throw new RuntimeException("본인 공고만 자동 생성 가능합니다.");
+        }
+
+        if (jobPost.getWorkStartDate() == null || jobPost.getWorkEndDate() == null) {
+            throw new RuntimeException("공고에 근무 시작일/종료일이 설정되어 있지 않습니다.");
+        }
+
+        if (jobPost.getWorkStartDate().isAfter(jobPost.getWorkEndDate())) {
+            throw new RuntimeException("근무 시작일이 종료일보다 늦습니다.");
+        }
+
+        // 이미 생성된 날짜 목록
+        List<String> existingDates = workSessionRepository.findByJobPost(jobPost)
+                .stream()
+                .map(WorkSession::getWorkDate)
+                .toList();
+
+        List<WorkSession> generated = new ArrayList<>();
+        LocalDate cursor = jobPost.getWorkStartDate();
+
+        while (!cursor.isAfter(jobPost.getWorkEndDate())) {
+            String dateStr = cursor.toString();
+
+            // 중복 날짜 스킵
+            if (!existingDates.contains(dateStr)) {
+                WorkSession ws = new WorkSession();
+                ws.setWorkDate(dateStr);
+                ws.setStartTime(jobPost.getStartTime());
+                ws.setEndTime(jobPost.getEndTime());
+                ws.setRecruitCount(jobPost.getRecruitCount() != null
+                        ? jobPost.getRecruitCount() : 0);
+                ws.setCurrentCount(0);
+                ws.setPay(jobPost.getWageAmount() != null
+                        ? jobPost.getWageAmount() : 0);
+                ws.setStatus(WorkStatus.SCHEDULED);
+                ws.setJobPost(jobPost);
+                generated.add(workSessionRepository.save(ws));
+            }
+
+            cursor = cursor.plusDays(1);
+        }
+
+        return generated.stream()
+                .map(this::toDto)
+                .toList();
+    }
+
     // DTO 변환
     private WorkSessionResponseDto toDto(WorkSession ws) {
         return new WorkSessionResponseDto(
                 ws.getId(),
-                ws.getJobPost().getId(),  // jobId 추가
+                ws.getJobPost().getId(),
                 ws.getWorkDate(),
                 ws.getStartTime(),
                 ws.getEndTime(),

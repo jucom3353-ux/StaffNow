@@ -121,7 +121,7 @@ public class PayrollService {
 
         notificationService.send(
                 payroll.getWorker(),
-                NotificationType.PAYROLL_CREATED,
+                NotificationType.PAYROLL_CONFIRMED,
                 "[" + payroll.getJobPost().getTitle() + "] " +
                 payroll.getWorkWeekStart() + " 주차 정산이 확정되었습니다.",
                 payroll.getId()
@@ -153,7 +153,7 @@ public class PayrollService {
 
         notificationService.send(
                 payroll.getWorker(),
-                NotificationType.PAYROLL_CREATED,
+                NotificationType.PAYROLL_PAID,
                 "[" + payroll.getJobPost().getTitle() + "] " +
                 payroll.getWorkWeekStart() + " 주차 급여가 지급되었습니다. 총 " +
                 payroll.getTotalPay() + "원 (실수령 " + payroll.getNetPay() + "원)",
@@ -187,7 +187,7 @@ public class PayrollService {
 
         notificationService.send(
                 payroll.getWorker(),
-                NotificationType.PAYROLL_CREATED,
+                NotificationType.PAYROLL_REJECTED,
                 "[" + payroll.getJobPost().getTitle() + "] " +
                 payroll.getWorkWeekStart() + " 주차 정산이 반려되었습니다. 사유: " +
                 rejectReason,
@@ -209,7 +209,7 @@ public class PayrollService {
 
             notificationService.send(
                     payroll.getWorker(),
-                    NotificationType.PAYROLL_CREATED,
+                    NotificationType.PAYROLL_AUTO_CONFIRMED,
                     "[" + payroll.getJobPost().getTitle() + "] " +
                     payroll.getWorkWeekStart() + " 주차 정산이 자동 확정되었습니다.",
                     payroll.getId()
@@ -384,7 +384,7 @@ public class PayrollService {
 
         notificationService.send(
                 payroll.getWorker(),
-                NotificationType.PAYROLL_CREATED,
+                NotificationType.PAYROLL_CONFIRMED,
                 "[" + payroll.getJobPost().getTitle() + "] 관리자에 의해 정산이 확정되었습니다.",
                 payroll.getId()
         );
@@ -408,7 +408,7 @@ public class PayrollService {
 
         notificationService.send(
                 payroll.getWorker(),
-                NotificationType.PAYROLL_CREATED,
+                NotificationType.PAYROLL_REJECTED,
                 "[" + payroll.getJobPost().getTitle() + "] 관리자에 의해 정산이 반려되었습니다. 사유: " + rejectReason,
                 payroll.getId()
         );

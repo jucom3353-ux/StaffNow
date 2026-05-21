@@ -1,0 +1,18 @@
+// CompanySubscriptionRepository.java
+package com.example.demo.repository;
+
+import com.example.demo.entity.CompanySubscription;
+import com.example.demo.entity.SubscriptionStatus;
+import com.example.demo.entity.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface CompanySubscriptionRepository extends JpaRepository<CompanySubscription, Long> {
+    Optional<CompanySubscription> findByCompanyAndStatus(User company, SubscriptionStatus status);
+    List<CompanySubscription> findByStatusAndExpiredAtBefore(SubscriptionStatus status, LocalDateTime now);
+}

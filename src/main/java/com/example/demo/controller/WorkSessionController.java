@@ -1,7 +1,6 @@
 package com.example.demo.controller;
 
 import com.example.demo.dto.WorkSessionCreateRequestDto;
-import com.example.demo.dto.WorkSessionResponseDto;
 import com.example.demo.entity.User;
 import com.example.demo.entity.WorkStatus;
 import com.example.demo.service.WorkSessionService;
@@ -16,8 +15,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Tag(name = "근무회차 API", description = "근무 회차 생성 및 조회 기능")
 @RestController
@@ -37,6 +34,18 @@ public class WorkSessionController {
         try {
             return ResponseEntity.ok(
                     workSessionService.createWorkSession(jobPostId, requestDto, getLoginUser()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // 근무회차 자동 생성 (공고 기간 내 날짜별)
+    @Operation(summary = "근무회차 자동 생성 (공고 기간 내 날짜별)")
+    @PostMapping("/{jobPostId}/work-sessions/generate")
+    public ResponseEntity<?> generateWorkSessions(@PathVariable Long jobPostId) {
+        try {
+            return ResponseEntity.ok(
+                    workSessionService.generateWorkSessions(jobPostId, getLoginUser()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

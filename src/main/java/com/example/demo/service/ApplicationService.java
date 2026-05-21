@@ -84,7 +84,6 @@ public class ApplicationService {
             throw new RuntimeException("이미 지원한 공고입니다.");
         }
 
-        // 직무 검증
         JobPostRole jobPostRole = jobPostRoleRepository.findById(jobPostRoleId)
                 .orElseThrow(() -> new RuntimeException("직무 없음"));
 
@@ -92,14 +91,12 @@ public class ApplicationService {
             throw new RuntimeException("해당 공고의 직무가 아닙니다.");
         }
 
-        // 모집인원 마감 체크
         int currentRoleCount = applicationRepository
                 .countByJobPostRoleAndStatusNot(jobPostRole, ApplicationStatus.REJECTED);
         if (currentRoleCount >= jobPostRole.getRecruitCount()) {
             throw new RuntimeException("해당 직무 모집이 마감되었습니다.");
         }
 
-        // 경력 필요 직무 검증
         if (jobPostRole.getRequiresExperience()) {
             List<Career> careers = careerRepository.findByResume(
                     resumeRepository.findByUser(loginUser).orElse(null)
@@ -213,6 +210,7 @@ public class ApplicationService {
                 application.getId()
         );
 
+        // 계약서 자동 생성 (중복 방지)
         boolean contractExists = contractRepository
                 .findByCompanyAndWorker(loginUser, application.getUser())
                 .stream()
@@ -220,14 +218,27 @@ public class ApplicationService {
                         .equals(application.getJobPost().getId()));
 
         if (!contractExists) {
+            JobPost jobPost = application.getJobPost();
             Contract contract = new Contract();
-            contract.setJobPost(application.getJobPost());
+            contract.setJobPost(jobPost);
             contract.setCompany(loginUser);
             contract.setWorker(application.getUser());
-            contract.setContractStartDate(null);
-            contract.setContractEndDate(null);
+            // 공고의 근무 기간으로 자동 세팅
+            contract.setContractStartDate(
+                    jobPost.getWorkStartDate() != null
+                            ? jobPost.getWorkStartDate().toString() : null);
+            contract.setContractEndDate(
+                    jobPost.getWorkEndDate() != null
+                            ? jobPost.getWorkEndDate().toString() : null);
             contract.setStatus(ContractStatus.PENDING);
             contractRepository.save(contract);
+
+            notificationService.send(
+                    application.getUser(),
+                    NotificationType.CONTRACT_CREATED,
+                    "[" + jobPost.getTitle() + "] 근로계약서가 생성되었습니다. 서명해주세요.",
+                    contract.getId()
+            );
         }
     }
 
@@ -297,7 +308,7 @@ public class ApplicationService {
 
         notificationService.send(
                 worker,
-                NotificationType.APPLICATION_REJECTED,
+                NotificationType.APPLICATION_NO_SHOW, // 노쇼 전용 타입 없어서 임시 사용
                 "[" + application.getJobPost().getTitle() + "] 노쇼 처리되었습니다. 온도가 "
                         + NO_SHOW_TEMPERATURE_PENALTY + "도 감소하였습니다.",
                 application.getId()
@@ -330,7 +341,7 @@ public class ApplicationService {
 
         notificationService.send(
                 worker,
-                NotificationType.APPLICATION_REJECTED,
+                NotificationType.APPLICATION_ABSENT, // 결근 전용 타입 없어서 임시 사용
                 "[" + application.getJobPost().getTitle() + "] 결근 처리되었습니다. 온도가 "
                         + ABSENT_TEMPERATURE_PENALTY + "도 감소하였습니다.",
                 application.getId()

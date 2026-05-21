@@ -25,16 +25,18 @@ public class AttendanceService {
 
     private final WorkAttendanceRepository workAttendanceRepository;
     private final ApplicationRepository applicationRepository;
+    private final NotificationService notificationService;
 
     public AttendanceService(
             WorkAttendanceRepository workAttendanceRepository,
-            ApplicationRepository applicationRepository
+            ApplicationRepository applicationRepository,
+            NotificationService notificationService
     ) {
         this.workAttendanceRepository = workAttendanceRepository;
         this.applicationRepository = applicationRepository;
+        this.notificationService = notificationService;
     }
 
-    // 출근 처리 (사진 + GPS + 시간 + 지각 체크)
     @Transactional
     public void checkIn(Long applicationId,
                         MultipartFile photo,
@@ -53,7 +55,6 @@ public class AttendanceService {
             throw new RuntimeException("승인된 지원만 출근 처리 가능합니다.");
         }
 
-        // 중복 출근 체크
         workAttendanceRepository.findByApplication(application).ifPresent(a -> {
             if (a.getCheckInTime() != null) {
                 throw new RuntimeException("이미 출근 처리되었습니다.");
@@ -82,14 +83,26 @@ public class AttendanceService {
                 LocalTime actualCheckIn = now.toLocalTime();
                 if (actualCheckIn.isAfter(scheduledStart)) {
                     attendance.setStatus(AttendanceStatus.LATE);
+                    notificationService.send(
+                            loginUser,
+                            NotificationType.ATTENDANCE_LATE,
+                            "[" + application.getJobPost().getTitle() + "] 지각 처리되었습니다.",
+                            application.getId()
+                    );
                 }
             }
         }
 
         workAttendanceRepository.save(attendance);
+
+        notificationService.send(
+                loginUser,
+                NotificationType.ATTENDANCE_CHECKED_IN,
+                "[" + application.getJobPost().getTitle() + "] 출근 처리되었습니다.",
+                application.getId()
+        );
     }
 
-    // 퇴근 처리 (사진 + GPS + 시간)
     @Transactional
     public void checkOut(Long applicationId,
                          MultipartFile photo,
@@ -124,9 +137,15 @@ public class AttendanceService {
         attendance.setCheckOutPhotoUrl(photoUrl);
 
         workAttendanceRepository.save(attendance);
+
+        notificationService.send(
+                loginUser,
+                NotificationType.ATTENDANCE_CHECKED_OUT,
+                "[" + application.getJobPost().getTitle() + "] 퇴근 처리되었습니다.",
+                application.getId()
+        );
     }
 
-    // 사진 업로드 공통 메서드
     private String uploadPhoto(MultipartFile file) {
 
         if (file == null || file.isEmpty()) {

@@ -21,7 +21,6 @@ public class DisputeService {
     private final PayrollRepository payrollRepository;
     private final NotificationService notificationService;
 
-    // 기업: 분쟁 신청
     @Transactional
     public DisputeResponseDto createDispute(
             DisputeRequestDto requestDto, User loginUser) {
@@ -56,7 +55,7 @@ public class DisputeService {
 
         notificationService.send(
                 payroll.getWorker(),
-                NotificationType.PAYROLL_CREATED,
+                NotificationType.DISPUTE_CREATED,
                 "[" + payroll.getJobPost().getTitle() + "] 정산 분쟁이 신청되었습니다. 확인해주세요.",
                 dispute.getId()
         );
@@ -64,7 +63,6 @@ public class DisputeService {
         return new DisputeResponseDto(dispute);
     }
 
-    // 근로자: 수락
     @Transactional
     public DisputeResponseDto acceptDispute(Long disputeId, User loginUser) {
 
@@ -82,7 +80,6 @@ public class DisputeService {
         dispute.setStatus(DisputeStatus.ACCEPTED);
         dispute.setResolvedAt(LocalDateTime.now());
 
-        // 정산 금액 수정 후 CONFIRMED 처리
         Payroll payroll = dispute.getPayroll();
         payroll.setTotalPay(dispute.getAdjustedPay());
         payroll.setStatus(PayrollStatus.CONFIRMED);
@@ -92,7 +89,7 @@ public class DisputeService {
 
         notificationService.send(
                 dispute.getCompany(),
-                NotificationType.PAYROLL_CREATED,
+                NotificationType.DISPUTE_ACCEPTED,
                 "분쟁이 수락되었습니다. 정산이 확정 처리되었습니다.",
                 dispute.getId()
         );
@@ -100,7 +97,6 @@ public class DisputeService {
         return new DisputeResponseDto(dispute);
     }
 
-    // 근로자: 거절
     @Transactional
     public DisputeResponseDto declineDispute(
             Long disputeId, String workerResponse, User loginUser) {
@@ -122,7 +118,7 @@ public class DisputeService {
 
         notificationService.send(
                 dispute.getCompany(),
-                NotificationType.PAYROLL_CREATED,
+                NotificationType.DISPUTE_DECLINED,
                 "분쟁이 거절되었습니다. 관리자 중재가 시작됩니다.",
                 dispute.getId()
         );
@@ -130,7 +126,6 @@ public class DisputeService {
         return new DisputeResponseDto(dispute);
     }
 
-    // ADMIN: 중재 처리
     @Transactional
     public DisputeResponseDto resolveDispute(
             Long disputeId, String adminMemo,
@@ -161,13 +156,13 @@ public class DisputeService {
 
         notificationService.send(
                 dispute.getWorker(),
-                NotificationType.PAYROLL_CREATED,
+                NotificationType.DISPUTE_RESOLVED,
                 "관리자 중재가 완료되었습니다. 최종 정산금액: " + finalPay + "원",
                 dispute.getId()
         );
         notificationService.send(
                 dispute.getCompany(),
-                NotificationType.PAYROLL_CREATED,
+                NotificationType.DISPUTE_RESOLVED,
                 "관리자 중재가 완료되었습니다. 최종 정산금액: " + finalPay + "원",
                 dispute.getId()
         );
@@ -175,7 +170,6 @@ public class DisputeService {
         return new DisputeResponseDto(dispute);
     }
 
-    // 내 분쟁 목록 조회
     @Transactional
     public List<DisputeResponseDto> getMyDisputes(User loginUser) {
         List<Dispute> disputes = loginUser.getRole() == Role.COMPANY
@@ -187,7 +181,6 @@ public class DisputeService {
                 .collect(Collectors.toList());
     }
 
-    // ADMIN: 전체 분쟁 조회
     @Transactional
     public List<DisputeResponseDto> getAllDisputes(
             DisputeStatus status, User loginUser) {
