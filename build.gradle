@@ -49,11 +49,16 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'
 
+	implementation 'org.springframework.boot:spring-boot-starter-aop'
+
 	// Rate Limiting
     implementation 'com.bucket4j:bucket4j-core:8.7.0'
     
     // Validation
     implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+	// Mail
+	implementation 'org.springframework.boot:spring-boot-starter-mail'
 }
 
 tasks.named('test') {

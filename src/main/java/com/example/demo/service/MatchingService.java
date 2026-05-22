@@ -6,6 +6,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -20,8 +25,8 @@ public class MatchingService {
     private final ResumeRepository resumeRepository;
     private final CompanySubscriptionRepository companySubscriptionRepository;
     private final JobCategoryRepository jobCategoryRepository;
+    private final WorkAttendanceRepository workAttendanceRepository;
 
-    // 자동매칭 실행
     @Transactional(readOnly = true)
     public List<Map<String, Object>> autoMatch(Long jobPostId, User loginUser) {
 
@@ -36,70 +41,146 @@ public class MatchingService {
             throw new RuntimeException("본인 공고만 자동매칭 가능합니다.");
         }
 
-        // 구독 플랜 확인 → 매칭 인원 제한
         int matchingLimit = getMatchingLimit(loginUser);
         if (matchingLimit == 0) {
             throw new RuntimeException("자동매칭은 구독 플랜이 필요합니다.");
         }
 
-        // 공고 카테고리
         JobCategory jobCategory = jobPost.getCategory();
         if (jobCategory == null) {
             throw new RuntimeException("공고에 카테고리가 설정되어 있지 않습니다.");
         }
 
-        // 공고 지역 (workLocation 앞 2글자로 매칭 - 예: "광주")
         String jobRegion = jobPost.getWorkLocation() != null
                 && jobPost.getWorkLocation().length() >= 2
                 ? jobPost.getWorkLocation().substring(0, 2) : null;
 
-        // 전체 구직자 조회
-        List<User> allWorkers = userRepository.findByRole(Role.INDIVIDUAL);
+        // 정지 유저 필터링
+        List<User> allWorkers = userRepository.findByRole(Role.INDIVIDUAL)
+                .stream()
+                .filter(w -> !Boolean.TRUE.equals(w.getSuspended()))
+                .collect(Collectors.toList());
 
-        // 매칭 점수 계산
+        if (allWorkers.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // ✅ 배치 조회 - N+1 제거
+        Map<Long, List<Skill>> skillMap = skillRepository.findByUserIn(allWorkers)
+                .stream()
+                .collect(Collectors.groupingBy(s -> s.getUser().getId()));
+
+        Map<Long, Resume> resumeMap = resumeRepository.findByUserIn(allWorkers)
+                .stream()
+                .collect(Collectors.toMap(
+                        r -> r.getUser().getId(),
+                        r -> r,
+                        (a, b) -> a
+                ));
+
+        List<Resume> allResumes = new ArrayList<>(resumeMap.values());
+
+        Map<Long, Boolean> hasCareerMap = allResumes.isEmpty()
+                ? Collections.emptyMap()
+                : careerRepository.findByResumeIn(allResumes)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                c -> c.getResume().getId(),
+                                c -> true,
+                                (a, b) -> true
+                        ));
+
+        // ✅ 경력 연차 계산용 careerMap (resumeId → List<Career>)
+        Map<Long, List<Career>> careerMap = allResumes.isEmpty()
+                ? Collections.emptyMap()
+                : careerRepository.findByResumeIn(allResumes)
+                        .stream()
+                        .collect(Collectors.groupingBy(c -> c.getResume().getId()));
+
+        // ✅ 최근 90일 내 실제 근무 완료한 워커 ID
+        LocalDateTime ninetyDaysAgo = LocalDateTime.now().minusDays(90);
+        Set<Long> recentlyWorkedIds = new HashSet<>(
+                workAttendanceRepository.findRecentlyWorkedUserIds(allWorkers, ninetyDaysAgo)
+        );
+
+        // 스코어링
         List<Map<String, Object>> scored = new ArrayList<>();
 
         for (User worker : allWorkers) {
 
-            // 정지된 유저 제외
-            if (Boolean.TRUE.equals(worker.getSuspended())) continue;
-
             int score = 0;
 
-            // 1. 카테고리 매칭 (스킬 기준) - 40점
-            List<Skill> skills = skillRepository.findByUser(worker);
+            // 1. 카테고리 매칭 - 40점
+            List<Skill> skills = skillMap.getOrDefault(worker.getId(), Collections.emptyList());
             boolean categoryMatch = skills.stream()
                     .anyMatch(s -> s.getCategory() != null
                             && s.getCategory().getId().equals(jobCategory.getId()));
-            // 부모 카테고리도 체크
             if (!categoryMatch && jobCategory.getParent() != null) {
                 categoryMatch = skills.stream()
                         .anyMatch(s -> s.getCategory() != null
                                 && s.getCategory().getId()
                                 .equals(jobCategory.getParent().getId()));
             }
-            if (!categoryMatch) continue; // 카테고리 미매칭 제외
+            if (!categoryMatch) continue;
             score += 40;
 
-            // 2. 경력 보유 여부 - 30점
-            Resume resume = resumeRepository.findByUser(worker).orElse(null);
-            if (resume != null) {
-                List<Career> careers = careerRepository.findByResume(resume);
-                if (!careers.isEmpty()) score += 30;
+            // 2. 경력 보유 여부 - 20점
+            Resume resume = resumeMap.get(worker.getId());
+            boolean hasCareer = resume != null
+                    && Boolean.TRUE.equals(hasCareerMap.get(resume.getId()));
+            if (hasCareer) score += 20;
+
+            // 3. 경력 연차 - 최대 15점 (1년당 +3)
+            if (hasCareer && resume != null) {
+                List<Career> careers = careerMap.getOrDefault(
+                        resume.getId(), Collections.emptyList());
+                int totalMonths = careers.stream()
+                        .mapToInt(c -> {
+                            if (c.getJoinDate() == null) return 0;
+                            try {
+                                DateTimeFormatter fmt =
+                                        DateTimeFormatter.ofPattern("yyyy-MM");
+                                YearMonth start = YearMonth.parse(c.getJoinDate(), fmt);
+                                YearMonth end = (c.getLeaveDate() != null
+                                        && !c.getLeaveDate().isBlank())
+                                        ? YearMonth.parse(c.getLeaveDate(), fmt)
+                                        : YearMonth.now();
+                                return (int) ChronoUnit.MONTHS.between(start, end);
+                            } catch (Exception e) {
+                                return 0;
+                            }
+                        })
+                        .sum();
+                int careerScore = Math.min((totalMonths / 12) * 3, 15);
+                score += careerScore;
             }
 
-            // 3. 지역 매칭 - 20점
+            // 4. 지역 매칭 - 20점
             if (jobRegion != null && worker.getActivityRegion() != null
                     && worker.getActivityRegion().contains(jobRegion)) {
                 score += 20;
             }
 
-            // 4. 상시근무 가능 - 10점
+            // 5. 상시근무 가능 - 10점
             if (Boolean.TRUE.equals(worker.getAvailableAlways())) {
                 score += 10;
             }
 
-            // temperature 보정 (소수점 점수로 동점자 처리)
+            // 6. 최근 90일 내 실제 근무 이력 - 10점
+            if (recentlyWorkedIds.contains(worker.getId())) {
+                score += 10;
+            }
+
+            // 7. 이력서 완성도 - 5점 (희망직종 + 희망근무지 둘 다 작성)
+            if (resume != null
+                    && resume.getDesiredJob() != null
+                    && !resume.getDesiredJob().isBlank()
+                    && resume.getDesiredLocation() != null
+                    && !resume.getDesiredLocation().isBlank()) {
+                score += 5;
+            }
+
+            // temperature 보정 (동점자 처리)
             double finalScore = score + (worker.getTemperature() != null
                     ? worker.getTemperature() / 1000.0 : 0);
 
@@ -110,9 +191,9 @@ public class MatchingService {
             result.put("temperature", worker.getTemperature());
             result.put("availableAlways", worker.getAvailableAlways());
             result.put("matchScore", score);
-            result.put("categoryMatch", categoryMatch);
-            result.put("hasCareer", resume != null
-                    && !careerRepository.findByResume(resume).isEmpty());
+            result.put("categoryMatch", true);
+            result.put("hasCareer", hasCareer);
+            result.put("recentlyWorked", recentlyWorkedIds.contains(worker.getId()));
             scored.add(Map.of("score", finalScore, "data", result));
         }
 
@@ -125,7 +206,6 @@ public class MatchingService {
                 .collect(Collectors.toList());
     }
 
-    // 구독 플랜별 매칭 인원 반환
     private int getMatchingLimit(User loginUser) {
         return companySubscriptionRepository
                 .findByCompanyAndStatus(loginUser, SubscriptionStatus.ACTIVE)

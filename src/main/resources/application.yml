@@ -23,9 +23,34 @@ spring:
     deserialization:
       fail-on-unknown-properties: false
 
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 jwt:
   secret: my-super-secret-jwt-key-for-demo-project-2026-security
   expiration: 3600000
+
+oauth:
+  kakao:
+    client-id: ${KAKAO_CLIENT_ID:dummy}
+    redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8080/auth/kakao/callback}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:dummy}
+    client-secret: ${GOOGLE_CLIENT_SECRET:dummy}
+    redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8080/auth/google/callback}
+  naver:
+    client-id: ${NAVER_CLIENT_ID:dummy}
+    client-secret: ${NAVER_CLIENT_SECRET:dummy}
+    redirect-uri: ${NAVER_REDIRECT_URI:http://localhost:8080/auth/naver/callback}
 
 server:
   error:
@@ -35,3 +60,10 @@ server:
 file:
   upload-dir: uploads
   base-url: http://localhost:8080
+
+logging:
+  level:
+    com.example.demo: DEBUG
+    org.springframework.web: INFO
+  file:
+    name: logs/staffnow.log

@@ -1,5 +1,7 @@
 package com.example.demo.entity;
 
+import com.example.demo.entity.AuthProvider;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
@@ -52,6 +54,10 @@ public class User {
     @Column(name = "suspended")
     private Boolean suspended = false;
 
+    @Enumerated(EnumType.STRING)
+    private AuthProvider provider = AuthProvider.LOCAL;
+    private String providerId;
+
     public Long getId() { return id; }
     public String getEmail() { return email; }
     public String getPassword() { return password; }
@@ -72,6 +78,8 @@ public class User {
     public Integer getProfileImageCount() { return profileImageCount; }
     public Boolean getSuspended() { return suspended; }
     public Boolean getAvailableAlways() { return availableAlways; }
+    public AuthProvider getProvider() { return provider; }
+    public String getProviderId() { return providerId; }
 
     public void setId(Long id) { this.id = id; }
     public void setEmail(String email) { this.email = email; }
@@ -93,4 +101,6 @@ public class User {
     public void setProfileImageCount(Integer profileImageCount) { this.profileImageCount = profileImageCount; }
     public void setSuspended(Boolean suspended) { this.suspended = suspended; }
     public void setAvailableAlways(Boolean availableAlways) { this.availableAlways = availableAlways; }
+    public void setProvider(AuthProvider provider) { this.provider = provider; }
+    public void setProviderId(String providerId) { this.providerId = providerId; }
 }

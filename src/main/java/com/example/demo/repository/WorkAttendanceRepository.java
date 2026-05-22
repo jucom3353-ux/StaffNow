@@ -25,8 +25,7 @@ public interface WorkAttendanceRepository
     List<WorkAttendance> findByUserAndDate(
             @Param("user") User user,
             @Param("startOfDay") LocalDateTime startOfDay,
-            @Param("endOfDay") LocalDateTime endOfDay
-    );
+            @Param("endOfDay") LocalDateTime endOfDay);
 
     @Query("SELECT w FROM WorkAttendance w WHERE w.application.user = :user")
     List<WorkAttendance> findByUser(@Param("user") User user);
@@ -41,8 +40,7 @@ public interface WorkAttendanceRepository
             @Param("user") User user,
             @Param("jobPost") JobPost jobPost,
             @Param("weekStart") LocalDateTime weekStart,
-            @Param("weekEnd") LocalDateTime weekEnd
-    );
+            @Param("weekEnd") LocalDateTime weekEnd);
 
     @Query("SELECT w FROM WorkAttendance w WHERE w.application.jobPost = :jobPost")
     List<WorkAttendance> findByJobPost(@Param("jobPost") JobPost jobPost);
@@ -52,10 +50,8 @@ public interface WorkAttendanceRepository
            "AND w.application.user = :worker")
     List<WorkAttendance> findByJobPostAndWorker(
             @Param("jobPost") JobPost jobPost,
-            @Param("worker") User worker
-    );
+            @Param("worker") User worker);
 
-    // 월별 출퇴근 조회 (근로자용)
     @Query("SELECT w FROM WorkAttendance w " +
            "WHERE w.application.user = :user " +
            "AND w.checkInTime >= :startOfMonth " +
@@ -64,10 +60,8 @@ public interface WorkAttendanceRepository
     List<WorkAttendance> findByUserAndMonth(
             @Param("user") User user,
             @Param("startOfMonth") LocalDateTime startOfMonth,
-            @Param("endOfMonth") LocalDateTime endOfMonth
-    );
+            @Param("endOfMonth") LocalDateTime endOfMonth);
 
-    // 월별 출퇴근 조회 (기업용 - 공고 기준)
     @Query("SELECT w FROM WorkAttendance w " +
            "WHERE w.application.jobPost = :jobPost " +
            "AND w.checkInTime >= :startOfMonth " +
@@ -76,18 +70,24 @@ public interface WorkAttendanceRepository
     List<WorkAttendance> findByJobPostAndMonth(
             @Param("jobPost") JobPost jobPost,
             @Param("startOfMonth") LocalDateTime startOfMonth,
-            @Param("endOfMonth") LocalDateTime endOfMonth
-    );
+            @Param("endOfMonth") LocalDateTime endOfMonth);
 
-    // 결근 처리 - ABSENT 상태 조회
     @Query("SELECT w FROM WorkAttendance w " +
            "WHERE w.application.user = :user " +
            "AND w.status = 'ABSENT'")
     List<WorkAttendance> findAbsentByUser(@Param("user") User user);
 
-    // 결근 처리 - 공고별 ABSENT 조회 (기업용)
     @Query("SELECT w FROM WorkAttendance w " +
            "WHERE w.application.jobPost = :jobPost " +
            "AND w.status = 'ABSENT'")
     List<WorkAttendance> findAbsentByJobPost(@Param("jobPost") JobPost jobPost);
+
+    // ✅ 추가: 최근 90일 내 완료 근무 워커 ID 목록 (자동매칭용)
+    @Query("SELECT DISTINCT w.application.user.id FROM WorkAttendance w " +
+           "WHERE w.application.user IN :workers " +
+           "AND w.checkOutTime IS NOT NULL " +
+           "AND w.checkInTime >= :since")
+    List<Long> findRecentlyWorkedUserIds(
+            @Param("workers") List<User> workers,
+            @Param("since") LocalDateTime since);
 }

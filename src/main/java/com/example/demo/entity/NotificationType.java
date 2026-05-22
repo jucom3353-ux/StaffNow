@@ -39,4 +39,10 @@ public enum NotificationType {
     // NotificationType.java에 추가
     APPLICATION_NO_SHOW,    // 노쇼 처리
     APPLICATION_ABSENT,     // 결근 처리
+
+    // 구독 관련
+    SUBSCRIPTION_EXPIRING_SOON,     // 만료 7일 전 알림
+    SUBSCRIPTION_EXPIRED,           // 만료 알림
+    SUBSCRIPTION_RENEWED,           // 자동 갱신 완료
+    SUBSCRIPTION_RENEWAL_FAILED,    // 자동 갱신 실패
 }

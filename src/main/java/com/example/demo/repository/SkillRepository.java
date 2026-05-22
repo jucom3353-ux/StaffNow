@@ -23,4 +23,6 @@ public interface SkillRepository extends JpaRepository<Skill, Long> {
 
     // 추가: 카테고리로 유저 목록 조회 (자동매칭용)
     List<Skill> findByCategory(JobCategory category);
+
+    List<Skill> findByUserIn(List<User> users);
 }
