@@ -30,7 +30,9 @@ public class User {
     private String activityRegion;
     private String profileImageUrl;
     private String businessLicenseUrl;
-    private String businessLicenseStatus;
+
+    @Enumerated(EnumType.STRING)
+    private BusinessLicenseStatus businessLicenseStatus = BusinessLicenseStatus.NONE;
 
     @Enumerated(EnumType.STRING)
     private Role role;
@@ -74,7 +76,7 @@ public class User {
     public String getActivityRegion() { return activityRegion; }
     public String getProfileImageUrl() { return profileImageUrl; }
     public String getBusinessLicenseUrl() { return businessLicenseUrl; }
-    public String getBusinessLicenseStatus() { return businessLicenseStatus; }
+    public BusinessLicenseStatus getBusinessLicenseStatus() { return businessLicenseStatus; }
     public Integer getProfileImageCount() { return profileImageCount; }
     public Boolean getSuspended() { return suspended; }
     public Boolean getAvailableAlways() { return availableAlways; }
@@ -97,7 +99,7 @@ public class User {
     public void setActivityRegion(String activityRegion) { this.activityRegion = activityRegion; }
     public void setProfileImageUrl(String profileImageUrl) { this.profileImageUrl = profileImageUrl; }
     public void setBusinessLicenseUrl(String businessLicenseUrl) { this.businessLicenseUrl = businessLicenseUrl; }
-    public void setBusinessLicenseStatus(String businessLicenseStatus) { this.businessLicenseStatus = businessLicenseStatus; }
+    public void setBusinessLicenseStatus(BusinessLicenseStatus businessLicenseStatus) { this.businessLicenseStatus = businessLicenseStatus; }
     public void setProfileImageCount(Integer profileImageCount) { this.profileImageCount = profileImageCount; }
     public void setSuspended(Boolean suspended) { this.suspended = suspended; }
     public void setAvailableAlways(Boolean availableAlways) { this.availableAlways = availableAlways; }

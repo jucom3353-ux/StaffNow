@@ -39,10 +39,6 @@ public class PayrollService {
         JobPost jobPost = application.getJobPost();
         User worker = application.getUser();
 
-        if (jobPost.getWageType() != WageType.HOURLY) {
-            throw new RuntimeException("시급 공고만 주휴수당 계산이 가능합니다.");
-        }
-
         payrollRepository.findByWorkerAndJobPostAndWorkWeekStart(worker, jobPost, weekStart)
                 .ifPresent(p -> {
                     throw new RuntimeException("이미 해당 주차 정산이 존재합니다.");
@@ -57,15 +53,35 @@ public class PayrollService {
         List<WorkAttendance> attendances = workAttendanceRepository
                 .findByUserAndJobPostAndWeek(worker, jobPost, weekStartDt, weekEndDt);
 
+        // NPE 방어: checkOutTime null 제외
         double totalWorkHours = attendances.stream()
+                .filter(a -> a.getCheckInTime() != null && a.getCheckOutTime() != null)
                 .mapToLong(a -> Duration.between(
                         a.getCheckInTime(), a.getCheckOutTime()).toMinutes())
                 .sum() / 60.0;
 
         int hourlyWage = jobPost.getWageAmount();
-        int basicPay = (int) (totalWorkHours * hourlyWage);
+        int basicPay;
 
-        boolean holidayPayApplied = totalWorkHours >= 15;
+        // 임금 타입별 계산
+        switch (jobPost.getWageType()) {
+            case HOURLY -> basicPay = (int) (totalWorkHours * hourlyWage);
+            case DAILY -> {
+                long workDays = attendances.stream()
+                        .filter(a -> a.getStatus() != AttendanceStatus.ABSENT)
+                        .filter(a -> a.getCheckInTime() != null)
+                        .map(a -> a.getCheckInTime().toLocalDate())
+                        .distinct()
+                        .count();
+                basicPay = (int) (workDays * hourlyWage);
+            }
+            case MONTHLY -> basicPay = hourlyWage;
+            default -> throw new RuntimeException("지원하지 않는 임금 타입입니다.");
+        }
+
+        // 주휴수당: HOURLY + 주 15시간 이상만 적용
+        boolean holidayPayApplied = jobPost.getWageType() == WageType.HOURLY
+                && totalWorkHours >= 15;
         int holidayPay = holidayPayApplied
                 ? (int) ((totalWorkHours / 40.0) * 8 * hourlyWage) : 0;
 
@@ -189,8 +205,7 @@ public class PayrollService {
                 payroll.getWorker(),
                 NotificationType.PAYROLL_REJECTED,
                 "[" + payroll.getJobPost().getTitle() + "] " +
-                payroll.getWorkWeekStart() + " 주차 정산이 반려되었습니다. 사유: " +
-                rejectReason,
+                payroll.getWorkWeekStart() + " 주차 정산이 반려되었습니다. 사유: " + rejectReason,
                 payroll.getId()
         );
 

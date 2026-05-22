@@ -8,7 +8,9 @@ import lombok.Getter;
 public class WorkSessionResponseDto {
 
     private Long id;
-    private Long jobId;         // 추가
+    private Long jobPostId;
+    private String jobPostTitle;
+    private String shift;
     private String workDate;
     private String startTime;
     private String endTime;
@@ -16,6 +18,5 @@ public class WorkSessionResponseDto {
     private int currentCount;
     private int pay;
     private String status;
-    private String jobPostTitle;
     private String memo;
 }

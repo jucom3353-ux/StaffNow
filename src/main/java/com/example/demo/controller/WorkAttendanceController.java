@@ -1,6 +1,8 @@
 package com.example.demo.controller;
 
 import com.example.demo.dto.ApiResponse;
+import com.example.demo.dto.CheckInRequestDto;
+import com.example.demo.dto.CheckOutRequestDto;
 import com.example.demo.entity.User;
 import com.example.demo.service.WorkAttendanceService;
 
@@ -23,18 +25,30 @@ public class WorkAttendanceController {
 
     private final WorkAttendanceService workAttendanceService;
 
-    @Operation(summary = "출근 처리")
+    @Operation(summary = "출근 처리 (GPS + 사진 포함)")
     @PostMapping("/{applicationId}/check-in")
-    public ResponseEntity<ApiResponse<?>> checkIn(@PathVariable Long applicationId) {
+    public ResponseEntity<ApiResponse<?>> checkIn(
+            @PathVariable Long applicationId,
+            @RequestBody CheckInRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                workAttendanceService.checkIn(applicationId, getLoginUser())));
+                workAttendanceService.checkIn(applicationId, requestDto, getLoginUser())));
     }
 
-    @Operation(summary = "퇴근 처리")
+    @Operation(summary = "퇴근 처리 (GPS + 사진 포함)")
     @PostMapping("/{applicationId}/check-out")
-    public ResponseEntity<ApiResponse<?>> checkOut(@PathVariable Long applicationId) {
+    public ResponseEntity<ApiResponse<?>> checkOut(
+            @PathVariable Long applicationId,
+            @RequestBody CheckOutRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                workAttendanceService.checkOut(applicationId, getLoginUser())));
+                workAttendanceService.checkOut(applicationId, requestDto, getLoginUser())));
+    }
+
+    @Operation(summary = "결근 처리 (기업용)")
+    @PostMapping("/{applicationId}/absent")
+    public ResponseEntity<ApiResponse<?>> markAbsent(
+            @PathVariable Long applicationId) {
+        workAttendanceService.markAbsent(applicationId, getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("결근 처리 완료"));
     }
 
     @Operation(summary = "내 출퇴근 기록 전체 조회")
@@ -49,8 +63,7 @@ public class WorkAttendanceController {
     public ResponseEntity<ApiResponse<?>> getMyAttendancesByDate(
             @RequestParam String date) {
         return ResponseEntity.ok(ApiResponse.ok(
-                workAttendanceService.getMyAttendancesByDate(
-                        getLoginUser(), date)));
+                workAttendanceService.getMyAttendancesByDate(getLoginUser(), date)));
     }
 
     @Operation(summary = "월별 출퇴근 달력 조회")
@@ -59,8 +72,7 @@ public class WorkAttendanceController {
             @RequestParam int year,
             @RequestParam int month) {
         return ResponseEntity.ok(ApiResponse.ok(
-                workAttendanceService.getMyAttendanceCalendar(
-                        getLoginUser(), year, month)));
+                workAttendanceService.getMyAttendanceCalendar(getLoginUser(), year, month)));
     }
 
     @Operation(summary = "공고별 출퇴근 기록 조회 (기업용)")
@@ -68,8 +80,7 @@ public class WorkAttendanceController {
     public ResponseEntity<ApiResponse<?>> getAttendancesByJobPost(
             @PathVariable Long jobPostId) {
         return ResponseEntity.ok(ApiResponse.ok(
-                workAttendanceService.getAttendancesByJobPost(
-                        jobPostId, getLoginUser())));
+                workAttendanceService.getAttendancesByJobPost(jobPostId, getLoginUser())));
     }
 
     @Operation(summary = "공고별 특정 근로자 출퇴근 조회 (기업용)")

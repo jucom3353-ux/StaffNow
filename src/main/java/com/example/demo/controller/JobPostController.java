@@ -84,6 +84,14 @@ public class JobPostController {
         return ResponseEntity.ok(ApiResponse.ok("공고 생성 완료"));
     }
 
+    // ✅ 공고 복사
+    @Operation(summary = "공고 복사 (DRAFT로 복사)")
+    @PostMapping("/{id}/copy")
+    public ResponseEntity<ApiResponse<?>> copyJobPost(@PathVariable Long id) {
+        jobPostService.copyJobPost(id, getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("공고 복사 완료"));
+    }
+
     @Operation(summary = "공고 상태 변경 (DRAFT/OPEN/CLOSED)")
     @PatchMapping("/{id}/status")
     public ResponseEntity<ApiResponse<?>> changePostStatus(

@@ -7,6 +7,7 @@ import lombok.Setter;
 @Setter
 public class WorkSessionCreateRequestDto {
 
+    private String shift;        // AM / PM / FULL
     private String workDate;
     private String startTime;
     private String endTime;

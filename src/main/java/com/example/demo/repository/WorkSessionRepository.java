@@ -8,14 +8,9 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface WorkSessionRepository
-        extends JpaRepository<WorkSession, Long> {
+public interface WorkSessionRepository extends JpaRepository<WorkSession, Long> {
 
     List<WorkSession> findByJobPost(JobPost jobPost);
-
-    // 날짜별 Shift 조회
     List<WorkSession> findByWorkDate(String workDate);
-
-    // 공고 + 날짜별 Shift 조회
     List<WorkSession> findByJobPostAndWorkDate(JobPost jobPost, String workDate);
 }

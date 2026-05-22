@@ -74,6 +74,15 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.ok("회원 탈퇴 완료"));
     }
 
+    // ✅ 사업자등록증 관련
+    @Operation(summary = "사업자등록증 URL 등록")
+    @PatchMapping("/me/business-license")
+    public ResponseEntity<ApiResponse<?>> uploadBusinessLicense(
+            @RequestParam String licenseUrl) {
+        userService.uploadBusinessLicense(getLoginUser(), licenseUrl);
+        return ResponseEntity.ok(ApiResponse.ok("사업자등록증 등록 완료"));
+    }
+
     // ===== ADMIN 전용 =====
 
     @Operation(summary = "전체 회원 조회 (관리자)")
@@ -82,6 +91,29 @@ public class UserController {
             @RequestParam(required = false) Role role) {
         List<UserResponseDto> users = userService.getAllUsers(role, getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok(users));
+    }
+
+    @Operation(summary = "사업자등록증 검토 목록 (관리자)")
+    @GetMapping("/admin/business-licenses/pending")
+    public ResponseEntity<ApiResponse<?>> getPendingBusinessLicenses() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                userService.getPendingBusinessLicenses(getLoginUser())));
+    }
+
+    @Operation(summary = "사업자등록증 승인 (관리자)")
+    @PatchMapping("/admin/{userId}/business-license/approve")
+    public ResponseEntity<ApiResponse<?>> approveBusinessLicense(
+            @PathVariable Long userId) {
+        userService.approveBusinessLicense(userId, getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("사업자등록증 승인 완료"));
+    }
+
+    @Operation(summary = "사업자등록증 반려 (관리자)")
+    @PatchMapping("/admin/{userId}/business-license/reject")
+    public ResponseEntity<ApiResponse<?>> rejectBusinessLicense(
+            @PathVariable Long userId) {
+        userService.rejectBusinessLicense(userId, getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("사업자등록증 반려 완료"));
     }
 
     @Operation(summary = "회원 정지 (관리자)")

@@ -113,18 +113,50 @@ public class ContractService {
                 throw new RuntimeException("이미 서명하셨습니다.");
             }
             contract.setCompanySignedAt(LocalDateTime.now());
+
+            // ✅ 워커에게 기업 서명 알림
+            notificationService.send(
+                    contract.getWorker(),
+                    NotificationType.CONTRACT_SIGNED,
+                    "[" + contract.getJobPost().getTitle() + "] 기업이 계약서에 서명했습니다. 서명해주세요.",
+                    contract.getId()
+            );
+
         } else if (loginUser.getId().equals(contract.getWorker().getId())) {
             if (contract.getWorkerSignedAt() != null) {
                 throw new RuntimeException("이미 서명하셨습니다.");
             }
             contract.setWorkerSignedAt(LocalDateTime.now());
+
+            // ✅ 기업에게 워커 서명 알림
+            notificationService.send(
+                    contract.getCompany(),
+                    NotificationType.CONTRACT_SIGNED,
+                    "[" + contract.getJobPost().getTitle() + "] 근로자가 계약서에 서명했습니다.",
+                    contract.getId()
+            );
+
         } else {
             throw new RuntimeException("본인 계약서만 서명 가능합니다.");
         }
 
+        // ✅ 양쪽 모두 서명 완료 시 계약 체결 알림
         if (contract.getCompanySignedAt() != null &&
             contract.getWorkerSignedAt() != null) {
             contract.setStatus(ContractStatus.SIGNED);
+
+            notificationService.send(
+                    contract.getCompany(),
+                    NotificationType.CONTRACT_COMPLETED,
+                    "[" + contract.getJobPost().getTitle() + "] 계약이 체결되었습니다.",
+                    contract.getId()
+            );
+            notificationService.send(
+                    contract.getWorker(),
+                    NotificationType.CONTRACT_COMPLETED,
+                    "[" + contract.getJobPost().getTitle() + "] 계약이 체결되었습니다.",
+                    contract.getId()
+            );
         }
 
         contractRepository.save(contract);
@@ -149,6 +181,14 @@ public class ContractService {
 
         contract.setStatus(ContractStatus.CANCELLED);
         contractRepository.save(contract);
+
+        // ✅ 워커에게 계약 취소 알림
+        notificationService.send(
+                contract.getWorker(),
+                NotificationType.CONTRACT_CANCELLED,
+                "[" + contract.getJobPost().getTitle() + "] 계약서가 취소되었습니다.",
+                contract.getId()
+        );
     }
 
     // PDF 다운로드 전 상태 검증
@@ -163,15 +203,11 @@ public class ContractService {
         }
 
         if (contract.getStatus() == ContractStatus.DOWNLOAD_EXPIRED) {
-            throw new RuntimeException(
-                    "다운로드 기간이 만료된 계약서입니다. (완료 후 1년)");
+            throw new RuntimeException("다운로드 기간이 만료된 계약서입니다. (완료 후 1년)");
         }
-
         if (contract.getStatus() == ContractStatus.EXPIRED) {
-            throw new RuntimeException(
-                    "만료된 계약서입니다. (1개월 내 미서명)");
+            throw new RuntimeException("만료된 계약서입니다. (1개월 내 미서명)");
         }
-
         if (contract.getStatus() == ContractStatus.CANCELLED) {
             throw new RuntimeException("취소된 계약서입니다.");
         }

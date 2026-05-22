@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import com.example.demo.entity.BusinessLicenseStatus;
 
 import java.io.File;
 import java.io.IOException;
@@ -74,7 +75,7 @@ public class BusinessLicenseService {
 
         String url = fileBaseUrl + "/uploads/license/" + savedFilename;
         loginUser.setBusinessLicenseUrl(url);
-        loginUser.setBusinessLicenseStatus("PENDING");
+        loginUser.setBusinessLicenseStatus(BusinessLicenseStatus.PENDING);
         userRepository.save(loginUser);
 
         return url;

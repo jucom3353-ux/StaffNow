@@ -1,5 +1,6 @@
 package com.example.demo.repository;
 
+import com.example.demo.entity.BusinessLicenseStatus;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
 import org.springframework.data.domain.Page;
@@ -18,6 +19,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
     boolean existsByEmail(String email);
     List<User> findByRole(Role role);
+
+    // ✅ 추가
+    List<User> findByBusinessLicenseStatus(BusinessLicenseStatus status);
 
     @Query("SELECT u FROM User u WHERE u.role = :role " +
            "AND (:name IS NULL OR u.name LIKE %:name%) " +

@@ -15,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -46,51 +47,18 @@ public class JobPostService {
             throw new RuntimeException("기업 회원만 공고를 등록할 수 있습니다");
         }
 
+        // ✅ 6번: 마감일 유효성 검증
+        validateDeadline(requestDto.getDeadline());
+
         JobPost jobPost = new JobPost();
-        jobPost.setTitle(requestDto.getTitle());
-        jobPost.setContent(requestDto.getContent());
-        jobPost.setWorkLocation(requestDto.getWorkLocation());
-        jobPost.setStartTime(requestDto.getStartTime());
-        jobPost.setEndTime(requestDto.getEndTime());
-        jobPost.setBreakTime(requestDto.getBreakTime());
-        jobPost.setWageType(requestDto.getWageType());
-        jobPost.setWageAmount(requestDto.getWageAmount());
-        jobPost.setIncludeHolidayPay(requestDto.getIncludeHolidayPay());
-        jobPost.setWorkType(requestDto.getWorkType());
-        jobPost.setDescription(requestDto.getDescription());
-        jobPost.setRequiredGender(requestDto.getRequiredGender());
-        jobPost.setRequiredAgeMin(requestDto.getRequiredAgeMin());
-        jobPost.setRequiredAgeMax(requestDto.getRequiredAgeMax());
-        jobPost.setRequiredPersonality(requestDto.getRequiredPersonality());
-        jobPost.setRequiredCondition(requestDto.getRequiredCondition());
-        jobPost.setPreferredExperience(requestDto.getPreferredExperience());
-        jobPost.setPreferredLanguage(requestDto.getPreferredLanguage());
-        jobPost.setPreferredEtc(requestDto.getPreferredEtc());
-        jobPost.setRecruitCount(requestDto.getRecruitCount());
+        applyJobPostFields(jobPost, requestDto);
         jobPost.setPostStatus(
                 requestDto.getPostStatus() != null
                         ? requestDto.getPostStatus()
                         : PostStatus.DRAFT
         );
-        jobPost.setDeadline(requestDto.getDeadline());
         jobPost.setViewCount(0);
         jobPost.setUser(loginUser);
-        jobPost.setWorkStartDate(requestDto.getWorkStartDate());
-        jobPost.setWorkEndDate(requestDto.getWorkEndDate());
-        jobPost.setMealProvided(requestDto.getMealProvided() != null
-                ? requestDto.getMealProvided() : false);
-        jobPost.setUniformInfo(requestDto.getUniformInfo());
-        jobPost.setManagerName(requestDto.getManagerName());
-        jobPost.setManagerPhone(requestDto.getManagerPhone());
-        jobPost.setManagerEmail(requestDto.getManagerEmail());
-        jobPost.setManagerFax(requestDto.getManagerFax());
-
-        if (requestDto.getCategoryId() != null) {
-            JobCategory category = jobCategoryRepository.findById(requestDto.getCategoryId())
-                    .orElseThrow(() -> new RuntimeException("카테고리 없음"));
-            jobPost.setCategory(category);
-        }
-
         jobPostRepository.save(jobPost);
     }
 
@@ -149,28 +117,23 @@ public class JobPostService {
                 .collect(Collectors.toList());
     }
 
-    // 단건 조회 + 조회수 증가 + 최근 본 공고 저장
+    // ✅ 3번: 조회수 동시성 해결
     @Transactional
     public JobPostResponseDto getJobPost(Long id, User loginUser) {
         JobPost post = jobPostRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("공고 없음"));
 
-        post.setViewCount(
-                (post.getViewCount() != null ? post.getViewCount() : 0) + 1);
-        jobPostRepository.save(post);
+        jobPostRepository.incrementViewCount(id);
 
-        // 구직자만 최근 본 공고 저장
         if (loginUser != null && loginUser.getRole() == Role.INDIVIDUAL) {
             jobPostViewHistoryRepository
                     .findByUserAndJobPost(loginUser, post)
                     .ifPresentOrElse(
                             history -> {
-                                // 이미 있으면 viewedAt 갱신
                                 history.setViewedAt(LocalDateTime.now());
                                 jobPostViewHistoryRepository.save(history);
                             },
                             () -> {
-                                // 없으면 새로 생성
                                 JobPostViewHistory history = new JobPostViewHistory();
                                 history.setUser(loginUser);
                                 history.setJobPost(post);
@@ -185,7 +148,6 @@ public class JobPostService {
         );
     }
 
-    // 최근 본 공고 목록 (구직자용)
     @Transactional(readOnly = true)
     public List<JobPostResponseDto> getRecentViews(User loginUser) {
         if (loginUser.getRole() != Role.INDIVIDUAL) {
@@ -203,6 +165,7 @@ public class JobPostService {
                 .collect(Collectors.toList());
     }
 
+    // ✅ 4번: getMyJobPosts DB 필터링
     @Transactional(readOnly = true)
     public List<JobPostResponseDto> getMyJobPosts(User loginUser, PostStatus postStatus) {
 
@@ -210,11 +173,11 @@ public class JobPostService {
             throw new RuntimeException("기업 회원만 조회 가능합니다.");
         }
 
-        List<JobPost> posts = jobPostRepository.findByUser(loginUser);
+        List<JobPost> posts = postStatus != null
+                ? jobPostRepository.findByUserAndPostStatus(loginUser, postStatus)
+                : jobPostRepository.findByUser(loginUser);
 
         return posts.stream()
-                .filter(post -> postStatus == null ||
-                        post.getPostStatus() == postStatus)
                 .map(post -> new JobPostResponseDto(
                         post,
                         applicationRepository.countByJobPost(post)
@@ -254,46 +217,70 @@ public class JobPostService {
             throw new RuntimeException("본인 공고만 수정 가능");
         }
 
-        post.setTitle(requestDto.getTitle());
-        post.setContent(requestDto.getContent());
-        post.setWorkLocation(requestDto.getWorkLocation());
-        post.setStartTime(requestDto.getStartTime());
-        post.setEndTime(requestDto.getEndTime());
-        post.setBreakTime(requestDto.getBreakTime());
-        post.setWageType(requestDto.getWageType());
-        post.setWageAmount(requestDto.getWageAmount());
-        post.setIncludeHolidayPay(requestDto.getIncludeHolidayPay());
-        post.setWorkType(requestDto.getWorkType());
-        post.setDescription(requestDto.getDescription());
-        post.setRequiredGender(requestDto.getRequiredGender());
-        post.setRequiredAgeMin(requestDto.getRequiredAgeMin());
-        post.setRequiredAgeMax(requestDto.getRequiredAgeMax());
-        post.setRequiredPersonality(requestDto.getRequiredPersonality());
-        post.setRequiredCondition(requestDto.getRequiredCondition());
-        post.setPreferredExperience(requestDto.getPreferredExperience());
-        post.setPreferredLanguage(requestDto.getPreferredLanguage());
-        post.setPreferredEtc(requestDto.getPreferredEtc());
-        post.setRecruitCount(requestDto.getRecruitCount());
-        post.setDeadline(requestDto.getDeadline());
+        // ✅ 6번: 마감일 유효성 검증
+        validateDeadline(requestDto.getDeadline());
+
+        // ✅ 5번: 코드 중복 제거
+        applyJobPostFields(post, requestDto);
+
         if (requestDto.getPostStatus() != null) {
             post.setPostStatus(requestDto.getPostStatus());
         }
-        post.setWorkStartDate(requestDto.getWorkStartDate());
-        post.setWorkEndDate(requestDto.getWorkEndDate());
-        post.setMealProvided(requestDto.getMealProvided());
-        post.setUniformInfo(requestDto.getUniformInfo());
-        post.setManagerName(requestDto.getManagerName());
-        post.setManagerPhone(requestDto.getManagerPhone());
-        post.setManagerEmail(requestDto.getManagerEmail());
-        post.setManagerFax(requestDto.getManagerFax());
-
-        if (requestDto.getCategoryId() != null) {
-            JobCategory category = jobCategoryRepository.findById(requestDto.getCategoryId())
-                    .orElseThrow(() -> new RuntimeException("카테고리 없음"));
-            post.setCategory(category);
-        }
 
         jobPostRepository.save(post);
+    }
+
+    // ✅ 2번: 공고 복사
+    @Transactional
+    public void copyJobPost(Long id, User loginUser) {
+
+        if (loginUser.getRole() != Role.COMPANY) {
+            throw new RuntimeException("기업 회원만 공고를 복사할 수 있습니다");
+        }
+
+        JobPost original = jobPostRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("공고 없음"));
+
+        if (!original.getUser().getId().equals(loginUser.getId())) {
+            throw new RuntimeException("본인 공고만 복사 가능");
+        }
+
+        JobPost copy = new JobPost();
+        copy.setTitle("[복사] " + original.getTitle());
+        copy.setContent(original.getContent());
+        copy.setWorkLocation(original.getWorkLocation());
+        copy.setStartTime(original.getStartTime());
+        copy.setEndTime(original.getEndTime());
+        copy.setBreakTime(original.getBreakTime());
+        copy.setWageType(original.getWageType());
+        copy.setWageAmount(original.getWageAmount());
+        copy.setIncludeHolidayPay(original.getIncludeHolidayPay());
+        copy.setWorkType(original.getWorkType());
+        copy.setDescription(original.getDescription());
+        copy.setRequiredGender(original.getRequiredGender());
+        copy.setRequiredAgeMin(original.getRequiredAgeMin());
+        copy.setRequiredAgeMax(original.getRequiredAgeMax());
+        copy.setRequiredPersonality(original.getRequiredPersonality());
+        copy.setRequiredCondition(original.getRequiredCondition());
+        copy.setPreferredExperience(original.getPreferredExperience());
+        copy.setPreferredLanguage(original.getPreferredLanguage());
+        copy.setPreferredEtc(original.getPreferredEtc());
+        copy.setRecruitCount(original.getRecruitCount());
+        copy.setCategory(original.getCategory());
+        copy.setDeadline(null); // 마감일은 새로 설정
+        copy.setWorkStartDate(null); // 근무일도 새로 설정
+        copy.setWorkEndDate(null);
+        copy.setMealProvided(original.getMealProvided());
+        copy.setUniformInfo(original.getUniformInfo());
+        copy.setManagerName(original.getManagerName());
+        copy.setManagerPhone(original.getManagerPhone());
+        copy.setManagerEmail(original.getManagerEmail());
+        copy.setManagerFax(original.getManagerFax());
+        copy.setPostStatus(PostStatus.DRAFT); // 복사본은 항상 DRAFT
+        copy.setViewCount(0);
+        copy.setUser(loginUser);
+
+        jobPostRepository.save(copy);
     }
 
     @Transactional
@@ -376,5 +363,59 @@ public class JobPostService {
                 .orElseThrow(() -> new RuntimeException("공고 없음"));
 
         jobPostRepository.deleteById(id);
+    }
+
+    // ✅ 5번: create/update 공통 필드 추출
+    private void applyJobPostFields(JobPost post, JobPostCreateRequestDto dto) {
+        post.setTitle(dto.getTitle());
+        post.setContent(dto.getContent());
+        post.setWorkLocation(dto.getWorkLocation());
+        post.setStartTime(dto.getStartTime());
+        post.setEndTime(dto.getEndTime());
+        post.setBreakTime(dto.getBreakTime());
+        post.setWageType(dto.getWageType());
+        post.setWageAmount(dto.getWageAmount());
+        post.setIncludeHolidayPay(dto.getIncludeHolidayPay());
+        post.setWorkType(dto.getWorkType());
+        post.setDescription(dto.getDescription());
+        post.setRequiredGender(dto.getRequiredGender());
+        post.setRequiredAgeMin(dto.getRequiredAgeMin());
+        post.setRequiredAgeMax(dto.getRequiredAgeMax());
+        post.setRequiredPersonality(dto.getRequiredPersonality());
+        post.setRequiredCondition(dto.getRequiredCondition());
+        post.setPreferredExperience(dto.getPreferredExperience());
+        post.setPreferredLanguage(dto.getPreferredLanguage());
+        post.setPreferredEtc(dto.getPreferredEtc());
+        post.setRecruitCount(dto.getRecruitCount());
+        post.setDeadline(dto.getDeadline());
+        post.setWorkStartDate(dto.getWorkStartDate());
+        post.setWorkEndDate(dto.getWorkEndDate());
+        post.setMealProvided(dto.getMealProvided() != null ? dto.getMealProvided() : false);
+        post.setUniformInfo(dto.getUniformInfo());
+        post.setManagerName(dto.getManagerName());
+        post.setManagerPhone(dto.getManagerPhone());
+        post.setManagerEmail(dto.getManagerEmail());
+        post.setManagerFax(dto.getManagerFax());
+
+        if (dto.getCategoryId() != null) {
+            JobCategory category = jobCategoryRepository.findById(dto.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("카테고리 없음"));
+            post.setCategory(category);
+        }
+    }
+
+    // ✅ 6번: 마감일 유효성 검증
+    private void validateDeadline(String deadline) {
+        if (deadline == null || deadline.isBlank()) return;
+        try {
+            LocalDate deadlineDate = LocalDate.parse(deadline);
+            if (deadlineDate.isBefore(LocalDate.now())) {
+                throw new RuntimeException("마감일은 오늘 이후 날짜여야 합니다.");
+            }
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("마감일 형식이 올바르지 않습니다. (yyyy-MM-dd)");
+        }
     }
 }

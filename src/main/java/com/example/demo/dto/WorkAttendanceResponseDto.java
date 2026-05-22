@@ -11,15 +11,28 @@ public class WorkAttendanceResponseDto {
 
     private Long id;
     private Long applicationId;
+    private Long workSessionId;
     private Long jobPostId;
     private String jobPostTitle;
     private LocalDateTime checkInTime;
     private LocalDateTime checkOutTime;
-    private Double workHours; // checkOut 없으면 null
+    private Double workHours;
+    private String status;
+
+    // GPS
+    private Double checkInLatitude;
+    private Double checkInLongitude;
+    private Double checkOutLatitude;
+    private Double checkOutLongitude;
+
+    // 사진
+    private String checkInPhotoUrl;
+    private String checkOutPhotoUrl;
 
     public WorkAttendanceResponseDto(WorkAttendance w) {
         this.id = w.getId();
         this.applicationId = w.getApplication().getId();
+        this.workSessionId = w.getWorkSession() != null ? w.getWorkSession().getId() : null;
         this.jobPostId = w.getApplication().getJobPost().getId();
         this.jobPostTitle = w.getApplication().getJobPost().getTitle();
         this.checkInTime = w.getCheckInTime();
@@ -27,5 +40,12 @@ public class WorkAttendanceResponseDto {
         this.workHours = (w.getCheckInTime() != null && w.getCheckOutTime() != null)
                 ? Duration.between(w.getCheckInTime(), w.getCheckOutTime()).toMinutes() / 60.0
                 : null;
+        this.status = w.getStatus() != null ? w.getStatus().name() : null;
+        this.checkInLatitude = w.getCheckInLatitude();
+        this.checkInLongitude = w.getCheckInLongitude();
+        this.checkOutLatitude = w.getCheckOutLatitude();
+        this.checkOutLongitude = w.getCheckOutLongitude();
+        this.checkInPhotoUrl = w.getCheckInPhotoUrl();
+        this.checkOutPhotoUrl = w.getCheckOutPhotoUrl();
     }
 }

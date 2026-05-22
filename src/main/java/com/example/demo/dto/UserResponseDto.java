@@ -1,5 +1,6 @@
 package com.example.demo.dto;
 
+import com.example.demo.entity.BusinessLicenseStatus;
 import com.example.demo.entity.User;
 import lombok.Getter;
 
@@ -21,7 +22,7 @@ public class UserResponseDto {
     private Integer noShowCount;
     private Double temperature;
     private String businessLicenseUrl;
-    private String businessLicenseStatus;
+    private String businessLicenseStatus; // ✅ String 유지 (프론트 전달용)
 
     public UserResponseDto(User user) {
         this.id = user.getId();
@@ -39,6 +40,8 @@ public class UserResponseDto {
         this.noShowCount = user.getNoShowCount();
         this.temperature = user.getTemperature();
         this.businessLicenseUrl = user.getBusinessLicenseUrl();
-        this.businessLicenseStatus = user.getBusinessLicenseStatus();
+        // ✅ enum → String 변환
+        this.businessLicenseStatus = user.getBusinessLicenseStatus() != null
+                ? user.getBusinessLicenseStatus().name() : null;
     }
 }

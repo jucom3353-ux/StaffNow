@@ -4,6 +4,7 @@ import com.example.demo.dto.PasswordChangeRequestDto;
 import com.example.demo.dto.UserCreateRequestDto;
 import com.example.demo.dto.UserResponseDto;
 import com.example.demo.dto.UserUpdateRequestDto;
+import com.example.demo.entity.BusinessLicenseStatus;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
 import com.example.demo.repository.RefreshTokenRepository;
@@ -82,9 +83,61 @@ public class UserService {
         userRepository.delete(loginUser);
     }
 
+    // ✅ 사업자등록증 URL 등록
+    @Transactional
+    public void uploadBusinessLicense(User loginUser, String licenseUrl) {
+        if (loginUser.getRole() != Role.COMPANY) {
+            throw new RuntimeException("기업 회원만 사업자등록증을 등록할 수 있습니다.");
+        }
+        loginUser.setBusinessLicenseUrl(licenseUrl);
+        loginUser.setBusinessLicenseStatus(BusinessLicenseStatus.PENDING);
+        userRepository.save(loginUser);
+    }
+
+    // ✅ 사업자등록증 승인 (ADMIN)
+    @Transactional
+    public void approveBusinessLicense(Long targetUserId, User loginUser) {
+        if (loginUser.getRole() != Role.ADMIN) {
+            throw new RuntimeException("관리자만 승인 가능합니다.");
+        }
+        User target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new RuntimeException("유저 없음"));
+        if (target.getBusinessLicenseStatus() != BusinessLicenseStatus.PENDING) {
+            throw new RuntimeException("검토 중인 사업자등록증만 승인 가능합니다.");
+        }
+        target.setBusinessLicenseStatus(BusinessLicenseStatus.APPROVED);
+        userRepository.save(target);
+    }
+
+    // ✅ 사업자등록증 반려 (ADMIN)
+    @Transactional
+    public void rejectBusinessLicense(Long targetUserId, User loginUser) {
+        if (loginUser.getRole() != Role.ADMIN) {
+            throw new RuntimeException("관리자만 반려 가능합니다.");
+        }
+        User target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new RuntimeException("유저 없음"));
+        if (target.getBusinessLicenseStatus() != BusinessLicenseStatus.PENDING) {
+            throw new RuntimeException("검토 중인 사업자등록증만 반려 가능합니다.");
+        }
+        target.setBusinessLicenseStatus(BusinessLicenseStatus.REJECTED);
+        userRepository.save(target);
+    }
+
+    // ✅ PENDING 목록 조회 (ADMIN)
+    @Transactional(readOnly = true)
+    public List<UserResponseDto> getPendingBusinessLicenses(User loginUser) {
+        if (loginUser.getRole() != Role.ADMIN) {
+            throw new RuntimeException("관리자만 조회 가능합니다.");
+        }
+        return userRepository.findByBusinessLicenseStatus(BusinessLicenseStatus.PENDING)
+                .stream()
+                .map(UserResponseDto::new)
+                .collect(Collectors.toList());
+    }
+
     // ===== ADMIN 전용 =====
 
-    // 전체 회원 조회
     @Transactional(readOnly = true)
     public List<UserResponseDto> getAllUsers(Role role, User loginUser) {
         if (loginUser.getRole() != Role.ADMIN) {
@@ -100,7 +153,6 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
-    // 회원 정지
     @Transactional
     public void suspendUser(Long targetUserId, User loginUser) {
         if (loginUser.getRole() != Role.ADMIN) {
@@ -118,7 +170,6 @@ public class UserService {
         userRepository.save(target);
     }
 
-    // 회원 정지 해제
     @Transactional
     public void unsuspendUser(Long targetUserId, User loginUser) {
         if (loginUser.getRole() != Role.ADMIN) {
@@ -132,7 +183,6 @@ public class UserService {
         userRepository.save(target);
     }
 
-    // 회원 강제 탈퇴
     @Transactional
     public void forceDeleteUser(Long targetUserId, User loginUser) {
         if (loginUser.getRole() != Role.ADMIN) {
