@@ -4,6 +4,8 @@ import com.example.demo.dto.ReviewRequestDto;
 import com.example.demo.dto.ReviewResponseDto;
 import com.example.demo.dto.WorkerRatingResponseDto;
 import com.example.demo.entity.*;
+import com.example.demo.exception.CustomException;
+import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.ApplicationRepository;
 import com.example.demo.repository.ReviewRepository;
 import com.example.demo.repository.UserRepository;
@@ -19,33 +21,28 @@ public class ReviewService {
     private final ApplicationRepository applicationRepository;
     private final UserRepository userRepository;
 
-    public ReviewService(
-            ReviewRepository reviewRepository,
-            ApplicationRepository applicationRepository,
-            UserRepository userRepository
-    ) {
+    public ReviewService(ReviewRepository reviewRepository,
+                         ApplicationRepository applicationRepository,
+                         UserRepository userRepository) {
         this.reviewRepository = reviewRepository;
         this.applicationRepository = applicationRepository;
         this.userRepository = userRepository;
     }
 
-    // 기업 → 인력 리뷰 작성
     public void createReview(Long applicationId, ReviewRequestDto requestDto, User company) {
-
         Application application = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException("지원 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
         if (!application.getJobPost().getUser().getId().equals(company.getId())) {
-            throw new RuntimeException("권한 없음");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
         if (reviewRepository.existsByApplicationIdAndReviewType(
                 applicationId, ReviewType.COMPANY_TO_WORKER)) {
-            throw new RuntimeException("이미 리뷰 작성 완료");
+            throw new CustomException(ErrorCode.ALREADY_REVIEWED);
         }
 
         User worker = application.getUser();
-
         Review review = new Review();
         review.setApplication(application);
         review.setWorker(worker);
@@ -56,27 +53,24 @@ public class ReviewService {
         reviewRepository.save(review);
     }
 
-    // 인력 → 기업 리뷰 작성
     public void createWorkerReview(Long applicationId, ReviewRequestDto requestDto, User worker) {
-
         Application application = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException("지원 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
         if (!application.getUser().getId().equals(worker.getId())) {
-            throw new RuntimeException("본인 지원건만 리뷰 가능합니다.");
+            throw new CustomException(ErrorCode.NOT_MY_APPLICATION);
         }
 
         if (application.getStatus() != ApplicationStatus.COMPLETED) {
-            throw new RuntimeException("근무 완료 후에만 리뷰 작성 가능합니다.");
+            throw new CustomException(ErrorCode.WORK_NOT_COMPLETED);
         }
 
         if (reviewRepository.existsByApplicationIdAndReviewType(
                 applicationId, ReviewType.WORKER_TO_COMPANY)) {
-            throw new RuntimeException("이미 리뷰 작성 완료");
+            throw new CustomException(ErrorCode.ALREADY_REVIEWED);
         }
 
         User targetCompany = application.getJobPost().getUser();
-
         Review review = new Review();
         review.setApplication(application);
         review.setWorker(worker);
@@ -87,52 +81,30 @@ public class ReviewService {
         reviewRepository.save(review);
     }
 
-    // 작업자 별점 및 온도 조회
     public WorkerRatingResponseDto getWorkerRating(Long workerId) {
-
         User worker = userRepository.findById(workerId)
-                .orElseThrow(() -> new RuntimeException("작업자 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.WORKER_NOT_FOUND));
 
         List<Review> reviews = reviewRepository.findByWorker(worker);
+        double average = reviews.stream().mapToInt(Review::getRating).average().orElse(0);
 
-        double average = reviews.stream()
-                .mapToInt(Review::getRating)
-                .average()
-                .orElse(0);
-
-        return new WorkerRatingResponseDto(
-                worker.getId(),
-                average,
-                reviews.size(),
-                worker.getTemperature()
-        );
+        return new WorkerRatingResponseDto(worker.getId(), average,
+                reviews.size(), worker.getTemperature());
     }
 
-    // 기업 리뷰 조회
     public List<ReviewResponseDto> getCompanyReviews(Long companyId) {
-
         User company = userRepository.findById(companyId)
-                .orElseThrow(() -> new RuntimeException("기업 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        return reviewRepository.findByTargetCompany(company)
-                .stream()
-                .map(ReviewResponseDto::new)
-                .collect(Collectors.toList());
+        return reviewRepository.findByTargetCompany(company).stream()
+                .map(ReviewResponseDto::new).collect(Collectors.toList());
     }
 
-    // 내가 받은 리뷰 조회 (로그인 유저 기준)
     public List<ReviewResponseDto> getMyReviews(User loginUser) {
+        List<Review> reviews = loginUser.getRole() == Role.INDIVIDUAL
+                ? reviewRepository.findByWorker(loginUser)
+                : reviewRepository.findByTargetCompany(loginUser);
 
-        List<Review> reviews;
-
-        if (loginUser.getRole() == Role.INDIVIDUAL) {
-            reviews = reviewRepository.findByWorker(loginUser);
-        } else {
-            reviews = reviewRepository.findByTargetCompany(loginUser);
-        }
-
-        return reviews.stream()
-                .map(ReviewResponseDto::new)
-                .collect(Collectors.toList());
+        return reviews.stream().map(ReviewResponseDto::new).collect(Collectors.toList());
     }
 }

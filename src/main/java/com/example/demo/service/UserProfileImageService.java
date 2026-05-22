@@ -3,6 +3,8 @@ package com.example.demo.service;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
 import com.example.demo.entity.UserProfileImage;
+import com.example.demo.exception.CustomException;
+import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.UserProfileImageRepository;
 import com.example.demo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,36 +32,33 @@ public class UserProfileImageService {
     @Value("${file.base-url}")
     private String fileBaseUrl;
 
-    // 프로필 사진 추가 (최대 10장)
     @Transactional
     public String addProfileImage(MultipartFile file, User loginUser) {
-
         if (loginUser.getRole() != Role.INDIVIDUAL) {
-            throw new RuntimeException("개인 회원만 프로필 사진을 등록할 수 있습니다.");
+            throw new CustomException(ErrorCode.WORKER_ONLY);
         }
 
         int currentCount = userProfileImageRepository.countByUser(loginUser);
         if (currentCount >= 10) {
-            throw new RuntimeException("프로필 사진은 최대 10장까지 등록 가능합니다.");
+            throw new CustomException(ErrorCode.PROFILE_IMAGE_LIMIT);
         }
 
         if (file.isEmpty()) {
-            throw new RuntimeException("파일이 없습니다.");
+            throw new CustomException(ErrorCode.FILE_NOT_FOUND);
         }
 
         String originalFilename = file.getOriginalFilename();
         if (originalFilename == null || originalFilename.isBlank()) {
-            throw new RuntimeException("파일명이 올바르지 않습니다.");
+            throw new CustomException(ErrorCode.FILE_NOT_FOUND);
         }
 
         String ext = originalFilename
                 .substring(originalFilename.lastIndexOf(".")).toLowerCase();
 
         if (!ext.equals(".jpg") && !ext.equals(".jpeg") && !ext.equals(".png")) {
-            throw new RuntimeException("jpg, jpeg, png 파일만 업로드 가능합니다.");
+            throw new CustomException(ErrorCode.FILE_TYPE_NOT_ALLOWED);
         }
 
-        // 절대경로로 저장
         String dirPath = System.getProperty("user.dir") + File.separator
                 + uploadDir + File.separator + "profile";
         File dir = new File(dirPath);
@@ -72,7 +71,7 @@ public class UserProfileImageService {
         try {
             file.transferTo(savedFile.toPath());
         } catch (IOException e) {
-            throw new RuntimeException("파일 업로드 실패: " + e.getMessage());
+            throw new CustomException(ErrorCode.FILE_UPLOAD_FAILED);
         }
 
         String url = fileBaseUrl + "/uploads/profile/" + savedFilename;
@@ -83,51 +82,37 @@ public class UserProfileImageService {
         profileImage.setOrderIndex(currentCount);
         userProfileImageRepository.save(profileImage);
 
-        // 첫 번째 사진 → 대표 사진으로 설정
         if (currentCount == 0) {
             loginUser.setProfileImageUrl(url);
         }
 
-        // 사진 개수 업데이트
         loginUser.setProfileImageCount(currentCount + 1);
         userRepository.save(loginUser);
 
         return url;
     }
 
-    // 프로필 사진 목록 조회 (본인)
     @Transactional(readOnly = true)
     public List<String> getProfileImages(User loginUser) {
-        return userProfileImageRepository
-                .findByUserOrderByOrderIndexAsc(loginUser)
-                .stream()
-                .map(UserProfileImage::getImageUrl)
-                .collect(Collectors.toList());
+        return userProfileImageRepository.findByUserOrderByOrderIndexAsc(loginUser).stream()
+                .map(UserProfileImage::getImageUrl).collect(Collectors.toList());
     }
 
-    // 특정 유저 프로필 사진 조회 (기업용)
     @Transactional(readOnly = true)
     public List<String> getUserProfileImages(Long userId) {
         User target = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("유저 없음"));
-        return userProfileImageRepository
-                .findByUserOrderByOrderIndexAsc(target)
-                .stream()
-                .map(UserProfileImage::getImageUrl)
-                .collect(Collectors.toList());
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        return userProfileImageRepository.findByUserOrderByOrderIndexAsc(target).stream()
+                .map(UserProfileImage::getImageUrl).collect(Collectors.toList());
     }
 
-    // 프로필 사진 삭제
     @Transactional
     public void deleteProfileImage(Long imageId, User loginUser) {
-
-        UserProfileImage image = userProfileImageRepository
-                .findByIdAndUser(imageId, loginUser)
-                .orElseThrow(() -> new RuntimeException("사진 없음 또는 권한 없음"));
+        UserProfileImage image = userProfileImageRepository.findByIdAndUser(imageId, loginUser)
+                .orElseThrow(() -> new CustomException(ErrorCode.PROFILE_IMAGE_NOT_FOUND));
 
         int deletedIndex = image.getOrderIndex();
 
-        // 파일 삭제
         String filename = image.getImageUrl()
                 .substring(image.getImageUrl().lastIndexOf("/") + 1);
         File file = new File(System.getProperty("user.dir") + File.separator
@@ -136,7 +121,6 @@ public class UserProfileImageService {
 
         userProfileImageRepository.delete(image);
 
-        // orderIndex 재정렬
         List<UserProfileImage> remaining =
                 userProfileImageRepository.findByUserOrderByOrderIndexAsc(loginUser);
         for (int i = 0; i < remaining.size(); i++) {
@@ -144,21 +128,15 @@ public class UserProfileImageService {
         }
         userProfileImageRepository.saveAll(remaining);
 
-        // 대표 사진 삭제된 경우 다음 사진으로 교체
         if (deletedIndex == 0) {
-            if (!remaining.isEmpty()) {
-                loginUser.setProfileImageUrl(remaining.get(0).getImageUrl());
-            } else {
-                loginUser.setProfileImageUrl(null);
-            }
+            loginUser.setProfileImageUrl(remaining.isEmpty()
+                    ? null : remaining.get(0).getImageUrl());
         }
 
-        // 사진 개수 업데이트
         loginUser.setProfileImageCount(remaining.size());
         userRepository.save(loginUser);
     }
 
-    // 사진 개수 조회
     @Transactional(readOnly = true)
     public int getProfileImageCount(User user) {
         return userProfileImageRepository.countByUser(user);

@@ -4,14 +4,13 @@ import com.example.demo.dto.JobPostCreateRequestDto;
 import com.example.demo.dto.JobPostPageResponseDto;
 import com.example.demo.dto.JobPostResponseDto;
 import com.example.demo.entity.*;
+import com.example.demo.exception.CustomException;
+import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.ApplicationRepository;
 import com.example.demo.repository.JobCategoryRepository;
 import com.example.demo.repository.JobPostRepository;
 import com.example.demo.repository.JobPostViewHistoryRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,8 +31,7 @@ public class JobPostService {
             JobPostRepository jobPostRepository,
             ApplicationRepository applicationRepository,
             JobCategoryRepository jobCategoryRepository,
-            JobPostViewHistoryRepository jobPostViewHistoryRepository
-    ) {
+            JobPostViewHistoryRepository jobPostViewHistoryRepository) {
         this.jobPostRepository = jobPostRepository;
         this.applicationRepository = applicationRepository;
         this.jobCategoryRepository = jobCategoryRepository;
@@ -42,36 +40,25 @@ public class JobPostService {
 
     @Transactional
     public void createJobPost(JobPostCreateRequestDto requestDto, User loginUser) {
-
         if (loginUser.getRole() != Role.COMPANY) {
-            throw new RuntimeException("기업 회원만 공고를 등록할 수 있습니다");
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
 
-        // ✅ 6번: 마감일 유효성 검증
         validateDeadline(requestDto.getDeadline());
 
         JobPost jobPost = new JobPost();
         applyJobPostFields(jobPost, requestDto);
-        jobPost.setPostStatus(
-                requestDto.getPostStatus() != null
-                        ? requestDto.getPostStatus()
-                        : PostStatus.DRAFT
-        );
+        jobPost.setPostStatus(requestDto.getPostStatus() != null
+                ? requestDto.getPostStatus() : PostStatus.DRAFT);
         jobPost.setViewCount(0);
         jobPost.setUser(loginUser);
         jobPostRepository.save(jobPost);
     }
 
     @Transactional
-    public JobPostPageResponseDto searchJobPosts(
-            String title,
-            String workLocation,
-            String companyName,
-            Long categoryId,
-            String sort,
-            int page,
-            int size
-    ) {
+    public JobPostPageResponseDto searchJobPosts(String title, String workLocation,
+            String companyName, Long categoryId, String sort, int page, int size) {
+
         Sort sorting = switch (sort != null ? sort : "latest") {
             case "wage" -> Sort.by(Sort.Direction.DESC, "wageAmount");
             case "deadline" -> Sort.by(Sort.Direction.ASC, "deadline");
@@ -80,54 +67,35 @@ public class JobPostService {
         };
 
         Pageable pageable = PageRequest.of(page, size, sorting);
-
         Page<JobPost> result = jobPostRepository.searchJobPostsWithPage(
-                title, workLocation, PostStatus.OPEN, categoryId, companyName, pageable
-        );
+                title, workLocation, PostStatus.OPEN, categoryId, companyName, pageable);
 
         List<JobPostResponseDto> posts = result.getContent().stream()
-                .map(post -> new JobPostResponseDto(
-                        post,
-                        applicationRepository.countByJobPost(post)
-                ))
+                .map(post -> new JobPostResponseDto(post, applicationRepository.countByJobPost(post)))
                 .collect(Collectors.toList());
 
-        return new JobPostPageResponseDto(
-                posts,
-                result.getNumber(),
-                result.getTotalPages(),
-                result.getTotalElements(),
-                result.getSize()
-        );
+        return new JobPostPageResponseDto(posts, result.getNumber(),
+                result.getTotalPages(), result.getTotalElements(), result.getSize());
     }
 
     @Transactional(readOnly = true)
-    public List<JobPostResponseDto> getJobPosts(
-            String title,
-            String workLocation,
-            PostStatus postStatus
-    ) {
-        return jobPostRepository
-                .searchJobPosts(title, workLocation, postStatus, null, null)
+    public List<JobPostResponseDto> getJobPosts(String title, String workLocation,
+                                                 PostStatus postStatus) {
+        return jobPostRepository.searchJobPosts(title, workLocation, postStatus, null, null)
                 .stream()
-                .map(post -> new JobPostResponseDto(
-                        post,
-                        applicationRepository.countByJobPost(post)
-                ))
+                .map(post -> new JobPostResponseDto(post, applicationRepository.countByJobPost(post)))
                 .collect(Collectors.toList());
     }
 
-    // ✅ 3번: 조회수 동시성 해결
     @Transactional
     public JobPostResponseDto getJobPost(Long id, User loginUser) {
         JobPost post = jobPostRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("공고 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
         jobPostRepository.incrementViewCount(id);
 
         if (loginUser != null && loginUser.getRole() == Role.INDIVIDUAL) {
-            jobPostViewHistoryRepository
-                    .findByUserAndJobPost(loginUser, post)
+            jobPostViewHistoryRepository.findByUserAndJobPost(loginUser, post)
                     .ifPresentOrElse(
                             history -> {
                                 history.setViewedAt(LocalDateTime.now());
@@ -142,35 +110,26 @@ public class JobPostService {
                     );
         }
 
-        return new JobPostResponseDto(
-                post,
-                applicationRepository.countByJobPost(post)
-        );
+        return new JobPostResponseDto(post, applicationRepository.countByJobPost(post));
     }
 
     @Transactional(readOnly = true)
     public List<JobPostResponseDto> getRecentViews(User loginUser) {
         if (loginUser.getRole() != Role.INDIVIDUAL) {
-            throw new RuntimeException("구직자만 조회 가능합니다.");
+            throw new CustomException(ErrorCode.WORKER_ONLY);
         }
 
-        return jobPostViewHistoryRepository
-                .findByUserOrderByViewedAtDesc(loginUser)
-                .stream()
-                .limit(20)
-                .map(h -> new JobPostResponseDto(
-                        h.getJobPost(),
-                        applicationRepository.countByJobPost(h.getJobPost())
-                ))
+        return jobPostViewHistoryRepository.findByUserOrderByViewedAtDesc(loginUser)
+                .stream().limit(20)
+                .map(h -> new JobPostResponseDto(h.getJobPost(),
+                        applicationRepository.countByJobPost(h.getJobPost())))
                 .collect(Collectors.toList());
     }
 
-    // ✅ 4번: getMyJobPosts DB 필터링
     @Transactional(readOnly = true)
     public List<JobPostResponseDto> getMyJobPosts(User loginUser, PostStatus postStatus) {
-
         if (loginUser.getRole() != Role.COMPANY) {
-            throw new RuntimeException("기업 회원만 조회 가능합니다.");
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
 
         List<JobPost> posts = postStatus != null
@@ -178,25 +137,21 @@ public class JobPostService {
                 : jobPostRepository.findByUser(loginUser);
 
         return posts.stream()
-                .map(post -> new JobPostResponseDto(
-                        post,
-                        applicationRepository.countByJobPost(post)
-                ))
+                .map(post -> new JobPostResponseDto(post, applicationRepository.countByJobPost(post)))
                 .collect(Collectors.toList());
     }
 
     @Transactional
     public void changePostStatus(Long id, PostStatus postStatus, User loginUser) {
-
         if (loginUser.getRole() != Role.COMPANY) {
-            throw new RuntimeException("기업 회원만 공고 상태를 변경할 수 있습니다");
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
 
         JobPost post = jobPostRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("공고 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
         if (!post.getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고만 상태 변경 가능");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
         post.setPostStatus(postStatus);
@@ -205,22 +160,18 @@ public class JobPostService {
 
     @Transactional
     public void updateJobPost(Long id, JobPostCreateRequestDto requestDto, User loginUser) {
-
         if (loginUser.getRole() != Role.COMPANY) {
-            throw new RuntimeException("기업 회원만 공고를 수정할 수 있습니다");
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
 
         JobPost post = jobPostRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("공고 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
         if (!post.getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고만 수정 가능");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
-        // ✅ 6번: 마감일 유효성 검증
         validateDeadline(requestDto.getDeadline());
-
-        // ✅ 5번: 코드 중복 제거
         applyJobPostFields(post, requestDto);
 
         if (requestDto.getPostStatus() != null) {
@@ -230,19 +181,17 @@ public class JobPostService {
         jobPostRepository.save(post);
     }
 
-    // ✅ 2번: 공고 복사
     @Transactional
     public void copyJobPost(Long id, User loginUser) {
-
         if (loginUser.getRole() != Role.COMPANY) {
-            throw new RuntimeException("기업 회원만 공고를 복사할 수 있습니다");
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
 
         JobPost original = jobPostRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("공고 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
         if (!original.getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고만 복사 가능");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
         JobPost copy = new JobPost();
@@ -267,8 +216,8 @@ public class JobPostService {
         copy.setPreferredEtc(original.getPreferredEtc());
         copy.setRecruitCount(original.getRecruitCount());
         copy.setCategory(original.getCategory());
-        copy.setDeadline(null); // 마감일은 새로 설정
-        copy.setWorkStartDate(null); // 근무일도 새로 설정
+        copy.setDeadline(null);
+        copy.setWorkStartDate(null);
         copy.setWorkEndDate(null);
         copy.setMealProvided(original.getMealProvided());
         copy.setUniformInfo(original.getUniformInfo());
@@ -276,25 +225,23 @@ public class JobPostService {
         copy.setManagerPhone(original.getManagerPhone());
         copy.setManagerEmail(original.getManagerEmail());
         copy.setManagerFax(original.getManagerFax());
-        copy.setPostStatus(PostStatus.DRAFT); // 복사본은 항상 DRAFT
+        copy.setPostStatus(PostStatus.DRAFT);
         copy.setViewCount(0);
         copy.setUser(loginUser);
-
         jobPostRepository.save(copy);
     }
 
     @Transactional
     public void deleteJobPost(Long id, User loginUser) {
-
         if (loginUser.getRole() != Role.COMPANY) {
-            throw new RuntimeException("기업 회원만 공고를 삭제할 수 있습니다");
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
 
         JobPost post = jobPostRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("공고 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
         if (!post.getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고만 삭제 가능");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
         jobPostRepository.deleteById(id);
@@ -303,27 +250,19 @@ public class JobPostService {
     @Transactional(readOnly = true)
     public List<JobPostResponseDto> getPopularJobPosts(int limit, String region) {
         Pageable pageable = PageRequest.of(0, limit);
-
         List<JobPost> posts = (region != null && !region.isBlank())
                 ? jobPostRepository.findPopularJobPostsByRegion(region, pageable)
                 : jobPostRepository.findPopularJobPosts(pageable);
 
         return posts.stream()
-                .map(post -> new JobPostResponseDto(
-                        post,
-                        applicationRepository.countByJobPost(post)
-                ))
+                .map(post -> new JobPostResponseDto(post, applicationRepository.countByJobPost(post)))
                 .collect(Collectors.toList());
     }
 
-    // ===== ADMIN 전용 =====
-
     @Transactional(readOnly = true)
-    public List<JobPostResponseDto> adminGetAllJobPosts(
-            PostStatus postStatus, User loginUser) {
-
+    public List<JobPostResponseDto> adminGetAllJobPosts(PostStatus postStatus, User loginUser) {
         if (loginUser.getRole() != Role.ADMIN) {
-            throw new RuntimeException("관리자만 조회 가능합니다.");
+            throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
 
         List<JobPost> posts = postStatus != null
@@ -331,22 +270,18 @@ public class JobPostService {
                 : jobPostRepository.findAll();
 
         return posts.stream()
-                .map(post -> new JobPostResponseDto(
-                        post,
-                        applicationRepository.countByJobPost(post)
-                ))
+                .map(post -> new JobPostResponseDto(post, applicationRepository.countByJobPost(post)))
                 .collect(Collectors.toList());
     }
 
     @Transactional
     public void adminCloseJobPost(Long id, User loginUser) {
-
         if (loginUser.getRole() != Role.ADMIN) {
-            throw new RuntimeException("관리자만 강제 마감 가능합니다.");
+            throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
 
         JobPost post = jobPostRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("공고 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
         post.setPostStatus(PostStatus.CLOSED);
         jobPostRepository.save(post);
@@ -354,18 +289,16 @@ public class JobPostService {
 
     @Transactional
     public void adminDeleteJobPost(Long id, User loginUser) {
-
         if (loginUser.getRole() != Role.ADMIN) {
-            throw new RuntimeException("관리자만 강제 삭제 가능합니다.");
+            throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
 
         jobPostRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("공고 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
         jobPostRepository.deleteById(id);
     }
 
-    // ✅ 5번: create/update 공통 필드 추출
     private void applyJobPostFields(JobPost post, JobPostCreateRequestDto dto) {
         post.setTitle(dto.getTitle());
         post.setContent(dto.getContent());
@@ -399,23 +332,22 @@ public class JobPostService {
 
         if (dto.getCategoryId() != null) {
             JobCategory category = jobCategoryRepository.findById(dto.getCategoryId())
-                    .orElseThrow(() -> new RuntimeException("카테고리 없음"));
+                    .orElseThrow(() -> new CustomException(ErrorCode.CATEGORY_NOT_FOUND));
             post.setCategory(category);
         }
     }
 
-    // ✅ 6번: 마감일 유효성 검증
     private void validateDeadline(String deadline) {
         if (deadline == null || deadline.isBlank()) return;
         try {
             LocalDate deadlineDate = LocalDate.parse(deadline);
             if (deadlineDate.isBefore(LocalDate.now())) {
-                throw new RuntimeException("마감일은 오늘 이후 날짜여야 합니다.");
+                throw new CustomException(ErrorCode.DEADLINE_INVALID);
             }
-        } catch (RuntimeException e) {
+        } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            throw new RuntimeException("마감일 형식이 올바르지 않습니다. (yyyy-MM-dd)");
+            throw new CustomException(ErrorCode.DEADLINE_FORMAT_INVALID);
         }
     }
 }

@@ -2,6 +2,8 @@ package com.example.demo.service;
 
 import com.example.demo.dto.PayrollResponseDto;
 import com.example.demo.entity.*;
+import com.example.demo.exception.CustomException;
+import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,10 +32,10 @@ public class PayrollService {
             Long applicationId, String weekStart, User loginUser) {
 
         Application application = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException("지원 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
         if (!application.getJobPost().getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고의 정산만 생성 가능합니다.");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
         JobPost jobPost = application.getJobPost();
@@ -41,7 +43,7 @@ public class PayrollService {
 
         payrollRepository.findByWorkerAndJobPostAndWorkWeekStart(worker, jobPost, weekStart)
                 .ifPresent(p -> {
-                    throw new RuntimeException("이미 해당 주차 정산이 존재합니다.");
+                    throw new CustomException(ErrorCode.PAYROLL_ALREADY_EXISTS);
                 });
 
         LocalDate startDate = LocalDate.parse(weekStart);
@@ -53,7 +55,6 @@ public class PayrollService {
         List<WorkAttendance> attendances = workAttendanceRepository
                 .findByUserAndJobPostAndWeek(worker, jobPost, weekStartDt, weekEndDt);
 
-        // NPE 방어: checkOutTime null 제외
         double totalWorkHours = attendances.stream()
                 .filter(a -> a.getCheckInTime() != null && a.getCheckOutTime() != null)
                 .mapToLong(a -> Duration.between(
@@ -63,7 +64,6 @@ public class PayrollService {
         int hourlyWage = jobPost.getWageAmount();
         int basicPay;
 
-        // 임금 타입별 계산
         switch (jobPost.getWageType()) {
             case HOURLY -> basicPay = (int) (totalWorkHours * hourlyWage);
             case DAILY -> {
@@ -76,10 +76,9 @@ public class PayrollService {
                 basicPay = (int) (workDays * hourlyWage);
             }
             case MONTHLY -> basicPay = hourlyWage;
-            default -> throw new RuntimeException("지원하지 않는 임금 타입입니다.");
+            default -> throw new CustomException(ErrorCode.UNSUPPORTED_WAGE_TYPE);
         }
 
-        // 주휴수당: HOURLY + 주 15시간 이상만 적용
         boolean holidayPayApplied = jobPost.getWageType() == WageType.HOURLY
                 && totalWorkHours >= 15;
         int holidayPay = holidayPayApplied
@@ -118,18 +117,18 @@ public class PayrollService {
     public PayrollResponseDto confirmPayroll(Long payrollId, User loginUser) {
 
         if (loginUser.getRole() != Role.COMPANY) {
-            throw new RuntimeException("기업 회원만 확정 가능합니다.");
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
 
         Payroll payroll = payrollRepository.findById(payrollId)
-                .orElseThrow(() -> new RuntimeException("정산 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.PAYROLL_NOT_FOUND));
 
         if (!payroll.getJobPost().getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고의 정산만 확정 가능합니다.");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
         if (payroll.getStatus() != PayrollStatus.PENDING) {
-            throw new RuntimeException("대기 상태의 정산만 확정 가능합니다.");
+            throw new CustomException(ErrorCode.PAYROLL_PENDING_ONLY);
         }
 
         payroll.setStatus(PayrollStatus.CONFIRMED);
@@ -150,18 +149,18 @@ public class PayrollService {
     public PayrollResponseDto payPayroll(Long payrollId, User loginUser) {
 
         if (loginUser.getRole() != Role.COMPANY) {
-            throw new RuntimeException("기업 회원만 지급 처리 가능합니다.");
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
 
         Payroll payroll = payrollRepository.findById(payrollId)
-                .orElseThrow(() -> new RuntimeException("정산 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.PAYROLL_NOT_FOUND));
 
         if (!payroll.getJobPost().getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고의 정산만 지급 처리 가능합니다.");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
         if (payroll.getStatus() != PayrollStatus.CONFIRMED) {
-            throw new RuntimeException("확정된 정산만 지급 처리 가능합니다.");
+            throw new CustomException(ErrorCode.PAYROLL_CONFIRMED_ONLY);
         }
 
         payroll.setStatus(PayrollStatus.PAID);
@@ -184,18 +183,18 @@ public class PayrollService {
             Long payrollId, String rejectReason, User loginUser) {
 
         if (loginUser.getRole() != Role.COMPANY) {
-            throw new RuntimeException("기업 회원만 반려 가능합니다.");
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
 
         Payroll payroll = payrollRepository.findById(payrollId)
-                .orElseThrow(() -> new RuntimeException("정산 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.PAYROLL_NOT_FOUND));
 
         if (!payroll.getJobPost().getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고의 정산만 반려 가능합니다.");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
         if (payroll.getStatus() != PayrollStatus.PENDING) {
-            throw new RuntimeException("대기 상태의 정산만 반려 가능합니다.");
+            throw new CustomException(ErrorCode.PAYROLL_PENDING_ONLY);
         }
 
         payroll.setStatus(PayrollStatus.REJECTED);
@@ -234,11 +233,8 @@ public class PayrollService {
 
     @Transactional(readOnly = true)
     public Map<String, Object> getMyPayrollSummary(
-            User loginUser,
-            PayrollStatus status,
-            String startDate,
-            String endDate,
-            String yearMonth) {
+            User loginUser, PayrollStatus status,
+            String startDate, String endDate, String yearMonth) {
 
         List<Payroll> filtered;
         if (status != null) {
@@ -284,12 +280,10 @@ public class PayrollService {
 
     @Transactional(readOnly = true)
     public Map<String, Object> getCompanyPayrollSummary(
-            User loginUser,
-            Long jobPostId,
-            String yearMonth) {
+            User loginUser, Long jobPostId, String yearMonth) {
 
         if (loginUser.getRole() != Role.COMPANY) {
-            throw new RuntimeException("기업 회원만 조회 가능합니다.");
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
 
         List<JobPost> jobPosts = jobPostRepository.findByUser(loginUser);
@@ -326,16 +320,16 @@ public class PayrollService {
         List<Payroll> filtered;
         if (jobPostId != null && yearMonth != null) {
             JobPost jobPost = jobPostRepository.findById(jobPostId)
-                    .orElseThrow(() -> new RuntimeException("공고 없음"));
+                    .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
             if (!jobPost.getUser().getId().equals(loginUser.getId())) {
-                throw new RuntimeException("본인 공고만 조회 가능합니다.");
+                throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
             }
             filtered = payrollRepository.findByJobPostAndMonth(jobPost, yearMonth);
         } else if (jobPostId != null) {
             JobPost jobPost = jobPostRepository.findById(jobPostId)
-                    .orElseThrow(() -> new RuntimeException("공고 없음"));
+                    .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
             if (!jobPost.getUser().getId().equals(loginUser.getId())) {
-                throw new RuntimeException("본인 공고만 조회 가능합니다.");
+                throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
             }
             filtered = payrollRepository.findByJobPost(jobPost);
         } else if (yearMonth != null) {
@@ -372,7 +366,7 @@ public class PayrollService {
             PayrollStatus status, User loginUser) {
 
         if (loginUser.getRole() != Role.ADMIN) {
-            throw new RuntimeException("관리자만 조회 가능합니다.");
+            throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
 
         List<Payroll> payrolls = status != null
@@ -388,11 +382,11 @@ public class PayrollService {
     public PayrollResponseDto adminConfirmPayroll(Long payrollId, User loginUser) {
 
         if (loginUser.getRole() != Role.ADMIN) {
-            throw new RuntimeException("관리자만 강제 확정 가능합니다.");
+            throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
 
         Payroll payroll = payrollRepository.findById(payrollId)
-                .orElseThrow(() -> new RuntimeException("정산 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.PAYROLL_NOT_FOUND));
 
         payroll.setStatus(PayrollStatus.CONFIRMED);
         payroll.setConfirmedAt(LocalDateTime.now());
@@ -412,11 +406,11 @@ public class PayrollService {
             Long payrollId, String rejectReason, User loginUser) {
 
         if (loginUser.getRole() != Role.ADMIN) {
-            throw new RuntimeException("관리자만 강제 반려 가능합니다.");
+            throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
 
         Payroll payroll = payrollRepository.findById(payrollId)
-                .orElseThrow(() -> new RuntimeException("정산 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.PAYROLL_NOT_FOUND));
 
         payroll.setStatus(PayrollStatus.REJECTED);
         payroll.setRejectReason(rejectReason);

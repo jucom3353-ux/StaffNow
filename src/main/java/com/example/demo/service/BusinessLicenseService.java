@@ -1,14 +1,16 @@
 package com.example.demo.service;
 
+import com.example.demo.entity.BusinessLicenseStatus;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
+import com.example.demo.exception.CustomException;
+import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import com.example.demo.entity.BusinessLicenseStatus;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,34 +30,31 @@ public class BusinessLicenseService {
 
     @Transactional
     public String uploadLicense(MultipartFile file, User loginUser) {
-
         if (loginUser.getRole() != Role.COMPANY) {
-            throw new RuntimeException("기업 회원만 업로드 가능합니다.");
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
 
         if (file.isEmpty()) {
-            throw new RuntimeException("파일이 없습니다.");
+            throw new CustomException(ErrorCode.FILE_NOT_FOUND);
         }
 
         String originalFilename = file.getOriginalFilename();
         if (originalFilename == null || originalFilename.isBlank()) {
-            throw new RuntimeException("파일명이 올바르지 않습니다.");
+            throw new CustomException(ErrorCode.FILE_NOT_FOUND);
         }
 
         String ext = originalFilename
                 .substring(originalFilename.lastIndexOf(".")).toLowerCase();
 
-        if (!ext.equals(".jpg") && !ext.equals(".jpeg") &&
-            !ext.equals(".png") && !ext.equals(".pdf")) {
-            throw new RuntimeException("jpg, jpeg, png, pdf 파일만 업로드 가능합니다.");
+        if (!ext.equals(".jpg") && !ext.equals(".jpeg")
+                && !ext.equals(".png") && !ext.equals(".pdf")) {
+            throw new CustomException(ErrorCode.FILE_TYPE_NOT_ALLOWED);
         }
 
-        // 저장 디렉토리 생성
         String dirPath = System.getProperty("user.dir") + "/" + uploadDir + "/license";
         File dir = new File(dirPath);
         if (!dir.exists()) dir.mkdirs();
 
-        // 기존 파일 삭제
         if (loginUser.getBusinessLicenseUrl() != null) {
             String oldFileName = loginUser.getBusinessLicenseUrl()
                     .substring(loginUser.getBusinessLicenseUrl().lastIndexOf("/") + 1);
@@ -70,7 +69,7 @@ public class BusinessLicenseService {
         try {
             file.transferTo(savedFile);
         } catch (IOException e) {
-            throw new RuntimeException("파일 업로드 실패: " + e.getMessage());
+            throw new CustomException(ErrorCode.FILE_UPLOAD_FAILED);
         }
 
         String url = fileBaseUrl + "/uploads/license/" + savedFilename;

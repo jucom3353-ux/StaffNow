@@ -1,6 +1,8 @@
 package com.example.demo.service;
 
 import com.example.demo.entity.*;
+import com.example.demo.exception.CustomException;
+import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.ApplicationRepository;
 import com.example.demo.repository.WorkAttendanceRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,26 +40,23 @@ public class AttendanceService {
     }
 
     @Transactional
-    public void checkIn(Long applicationId,
-                        MultipartFile photo,
-                        Double latitude,
-                        Double longitude,
-                        User loginUser) {
+    public void checkIn(Long applicationId, MultipartFile photo,
+                        Double latitude, Double longitude, User loginUser) {
 
         Application application = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException("지원 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
         if (!application.getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 지원만 출근 처리 가능합니다.");
+            throw new CustomException(ErrorCode.NOT_MY_APPLICATION);
         }
 
         if (application.getStatus() != ApplicationStatus.APPROVED) {
-            throw new RuntimeException("승인된 지원만 출근 처리 가능합니다.");
+            throw new CustomException(ErrorCode.INVALID_STATUS_TRANSITION);
         }
 
         workAttendanceRepository.findByApplication(application).ifPresent(a -> {
             if (a.getCheckInTime() != null) {
-                throw new RuntimeException("이미 출근 처리되었습니다.");
+                throw new CustomException(ErrorCode.ALREADY_CHECKED_IN);
             }
         });
 
@@ -75,13 +74,11 @@ public class AttendanceService {
         attendance.setCheckInPhotoUrl(photoUrl);
         attendance.setStatus(AttendanceStatus.NORMAL);
 
-        // 지각 체크
         if (application.getWorkSession() != null) {
             String sessionStartTime = application.getWorkSession().getStartTime();
             if (sessionStartTime != null) {
                 LocalTime scheduledStart = LocalTime.parse(sessionStartTime);
-                LocalTime actualCheckIn = now.toLocalTime();
-                if (actualCheckIn.isAfter(scheduledStart)) {
+                if (now.toLocalTime().isAfter(scheduledStart)) {
                     attendance.setStatus(AttendanceStatus.LATE);
                     notificationService.send(
                             loginUser,
@@ -104,29 +101,27 @@ public class AttendanceService {
     }
 
     @Transactional
-    public void checkOut(Long applicationId,
-                         MultipartFile photo,
-                         Double latitude,
-                         Double longitude,
-                         User loginUser) {
+    public void checkOut(Long applicationId, MultipartFile photo,
+                         Double latitude, Double longitude, User loginUser) {
 
         Application application = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException("지원 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
         if (!application.getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 지원만 퇴근 처리 가능합니다.");
+            throw new CustomException(ErrorCode.NOT_MY_APPLICATION);
         }
 
         WorkAttendance attendance = workAttendanceRepository
                 .findByApplication(application)
-                .orElseThrow(() -> new RuntimeException("출근 기록이 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.WORK_ATTENDANCE_NOT_FOUND));
 
         if (attendance.getCheckInTime() == null) {
-            throw new RuntimeException("출근 처리 후 퇴근 가능합니다.");
+            throw new CustomException(ErrorCode.INVALID_STATUS_TRANSITION,
+                    "출근 처리 후 퇴근 가능합니다.");
         }
 
         if (attendance.getCheckOutTime() != null) {
-            throw new RuntimeException("이미 퇴근 처리되었습니다.");
+            throw new CustomException(ErrorCode.ALREADY_CHECKED_OUT);
         }
 
         String photoUrl = uploadPhoto(photo);
@@ -147,27 +142,24 @@ public class AttendanceService {
     }
 
     private String uploadPhoto(MultipartFile file) {
-
         if (file == null || file.isEmpty()) {
-            throw new RuntimeException("사진이 없습니다.");
+            throw new CustomException(ErrorCode.FILE_NOT_FOUND);
         }
 
         String originalFilename = file.getOriginalFilename();
         if (originalFilename == null || originalFilename.isBlank()) {
-            throw new RuntimeException("파일명이 올바르지 않습니다.");
+            throw new CustomException(ErrorCode.FILE_NOT_FOUND);
         }
 
         String ext = originalFilename
                 .substring(originalFilename.lastIndexOf(".")).toLowerCase();
 
         if (!ext.equals(".jpg") && !ext.equals(".jpeg") && !ext.equals(".png")) {
-            throw new RuntimeException("jpg, jpeg, png 파일만 업로드 가능합니다.");
+            throw new CustomException(ErrorCode.FILE_TYPE_NOT_ALLOWED);
         }
 
         File dir = new File(System.getProperty("user.dir") + "/" + uploadDir);
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
+        if (!dir.exists()) dir.mkdirs();
 
         String savedFilename = UUID.randomUUID() + ext;
         File savedFile = new File(dir.getAbsolutePath() + "/" + savedFilename);
@@ -175,7 +167,7 @@ public class AttendanceService {
         try {
             file.transferTo(savedFile);
         } catch (IOException e) {
-            throw new RuntimeException("파일 업로드 실패: " + e.getMessage());
+            throw new CustomException(ErrorCode.FILE_UPLOAD_FAILED);
         }
 
         return fileBaseUrl + "/uploads/attendance/" + savedFilename;

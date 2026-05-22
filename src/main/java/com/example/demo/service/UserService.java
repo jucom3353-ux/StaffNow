@@ -7,6 +7,8 @@ import com.example.demo.dto.UserUpdateRequestDto;
 import com.example.demo.entity.BusinessLicenseStatus;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
+import com.example.demo.exception.CustomException;
+import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.RefreshTokenRepository;
 import com.example.demo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +30,7 @@ public class UserService {
     @Transactional
     public void createUser(UserCreateRequestDto requestDto) {
         if (userRepository.existsByEmail(requestDto.getEmail())) {
-            throw new RuntimeException("이미 사용 중인 이메일입니다.");
+            throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
         User user = new User();
@@ -40,7 +42,6 @@ public class UserService {
         user.setRole(requestDto.getRole());
         user.setNoShowCount(0);
         user.setMbti(requestDto.getMbti());
-
         userRepository.save(user);
     }
 
@@ -61,15 +62,12 @@ public class UserService {
 
     @Transactional
     public void changePassword(User loginUser, PasswordChangeRequestDto requestDto) {
-        if (!passwordEncoder.matches(
-                requestDto.getCurrentPassword(),
-                loginUser.getPassword()
-        )) {
-            throw new RuntimeException("현재 비밀번호가 틀렸습니다.");
+        if (!passwordEncoder.matches(requestDto.getCurrentPassword(), loginUser.getPassword())) {
+            throw new CustomException(ErrorCode.ACCESS_DENIED, "현재 비밀번호가 틀렸습니다.");
         }
 
         if (requestDto.getNewPassword().length() < 8) {
-            throw new RuntimeException("새 비밀번호는 8자 이상이어야 합니다.");
+            throw new CustomException(ErrorCode.PASSWORD_TOO_SHORT);
         }
 
         loginUser.setPassword(passwordEncoder.encode(requestDto.getNewPassword()));
@@ -83,87 +81,77 @@ public class UserService {
         userRepository.delete(loginUser);
     }
 
-    // ✅ 사업자등록증 URL 등록
     @Transactional
     public void uploadBusinessLicense(User loginUser, String licenseUrl) {
         if (loginUser.getRole() != Role.COMPANY) {
-            throw new RuntimeException("기업 회원만 사업자등록증을 등록할 수 있습니다.");
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
         loginUser.setBusinessLicenseUrl(licenseUrl);
         loginUser.setBusinessLicenseStatus(BusinessLicenseStatus.PENDING);
         userRepository.save(loginUser);
     }
 
-    // ✅ 사업자등록증 승인 (ADMIN)
     @Transactional
     public void approveBusinessLicense(Long targetUserId, User loginUser) {
         if (loginUser.getRole() != Role.ADMIN) {
-            throw new RuntimeException("관리자만 승인 가능합니다.");
+            throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
         User target = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new RuntimeException("유저 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
         if (target.getBusinessLicenseStatus() != BusinessLicenseStatus.PENDING) {
-            throw new RuntimeException("검토 중인 사업자등록증만 승인 가능합니다.");
+            throw new CustomException(ErrorCode.BUSINESS_LICENSE_PENDING_ONLY);
         }
         target.setBusinessLicenseStatus(BusinessLicenseStatus.APPROVED);
         userRepository.save(target);
     }
 
-    // ✅ 사업자등록증 반려 (ADMIN)
     @Transactional
     public void rejectBusinessLicense(Long targetUserId, User loginUser) {
         if (loginUser.getRole() != Role.ADMIN) {
-            throw new RuntimeException("관리자만 반려 가능합니다.");
+            throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
         User target = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new RuntimeException("유저 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
         if (target.getBusinessLicenseStatus() != BusinessLicenseStatus.PENDING) {
-            throw new RuntimeException("검토 중인 사업자등록증만 반려 가능합니다.");
+            throw new CustomException(ErrorCode.BUSINESS_LICENSE_PENDING_ONLY);
         }
         target.setBusinessLicenseStatus(BusinessLicenseStatus.REJECTED);
         userRepository.save(target);
     }
 
-    // ✅ PENDING 목록 조회 (ADMIN)
     @Transactional(readOnly = true)
     public List<UserResponseDto> getPendingBusinessLicenses(User loginUser) {
         if (loginUser.getRole() != Role.ADMIN) {
-            throw new RuntimeException("관리자만 조회 가능합니다.");
+            throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
-        return userRepository.findByBusinessLicenseStatus(BusinessLicenseStatus.PENDING)
-                .stream()
-                .map(UserResponseDto::new)
-                .collect(Collectors.toList());
+        return userRepository.findByBusinessLicenseStatus(BusinessLicenseStatus.PENDING).stream()
+                .map(UserResponseDto::new).collect(Collectors.toList());
     }
-
-    // ===== ADMIN 전용 =====
 
     @Transactional(readOnly = true)
     public List<UserResponseDto> getAllUsers(Role role, User loginUser) {
         if (loginUser.getRole() != Role.ADMIN) {
-            throw new RuntimeException("관리자만 조회 가능합니다.");
+            throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
 
         List<User> users = role != null
                 ? userRepository.findByRole(role)
                 : userRepository.findAll();
 
-        return users.stream()
-                .map(UserResponseDto::new)
-                .collect(Collectors.toList());
+        return users.stream().map(UserResponseDto::new).collect(Collectors.toList());
     }
 
     @Transactional
     public void suspendUser(Long targetUserId, User loginUser) {
         if (loginUser.getRole() != Role.ADMIN) {
-            throw new RuntimeException("관리자만 정지 처리 가능합니다.");
+            throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
 
         User target = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new RuntimeException("유저 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         if (target.getRole() == Role.ADMIN) {
-            throw new RuntimeException("관리자 계정은 정지할 수 없습니다.");
+            throw new CustomException(ErrorCode.ADMIN_SUSPEND_NOT_ALLOWED);
         }
 
         target.setSuspended(true);
@@ -173,11 +161,11 @@ public class UserService {
     @Transactional
     public void unsuspendUser(Long targetUserId, User loginUser) {
         if (loginUser.getRole() != Role.ADMIN) {
-            throw new RuntimeException("관리자만 정지 해제 가능합니다.");
+            throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
 
         User target = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new RuntimeException("유저 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         target.setSuspended(false);
         userRepository.save(target);
@@ -186,19 +174,18 @@ public class UserService {
     @Transactional
     public void forceDeleteUser(Long targetUserId, User loginUser) {
         if (loginUser.getRole() != Role.ADMIN) {
-            throw new RuntimeException("관리자만 강제 탈퇴 처리 가능합니다.");
+            throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
 
         User target = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new RuntimeException("유저 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         if (target.getRole() == Role.ADMIN) {
-            throw new RuntimeException("관리자 계정은 삭제할 수 없습니다.");
+            throw new CustomException(ErrorCode.ADMIN_DELETE_NOT_ALLOWED);
         }
 
         refreshTokenRepository.findByUserId(target.getId())
                 .ifPresent(refreshTokenRepository::delete);
-
         userRepository.delete(target);
     }
 }

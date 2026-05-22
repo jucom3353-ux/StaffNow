@@ -3,6 +3,8 @@ package com.example.demo.service;
 import com.example.demo.dto.WorkSessionCreateRequestDto;
 import com.example.demo.dto.WorkSessionResponseDto;
 import com.example.demo.entity.*;
+import com.example.demo.exception.CustomException;
+import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.ApplicationRepository;
 import com.example.demo.repository.JobPostRepository;
 import com.example.demo.repository.WorkSessionRepository;
@@ -22,22 +24,19 @@ public class WorkSessionService {
     private final JobPostRepository jobPostRepository;
     private final ApplicationRepository applicationRepository;
 
-    // 근무회차 생성
     @Transactional
     public WorkSessionResponseDto createWorkSession(
-            Long jobPostId,
-            WorkSessionCreateRequestDto requestDto,
-            User loginUser
-    ) {
+            Long jobPostId, WorkSessionCreateRequestDto requestDto, User loginUser) {
+
         if (loginUser.getRole() != Role.COMPANY) {
-            throw new RuntimeException("기업 회원만 근무회차를 생성할 수 있습니다.");
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
 
         JobPost jobPost = jobPostRepository.findById(jobPostId)
-                .orElseThrow(() -> new RuntimeException("공고 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
         if (!jobPost.getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고에만 근무회차를 생성할 수 있습니다.");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
         WorkSession workSession = new WorkSession();
@@ -56,11 +55,10 @@ public class WorkSessionService {
         return toDto(workSession);
     }
 
-    // 공고별 근무회차 조회
     @Transactional(readOnly = true)
     public List<WorkSessionResponseDto> getWorkSessions(Long jobPostId) {
         JobPost jobPost = jobPostRepository.findById(jobPostId)
-                .orElseThrow(() -> new RuntimeException("공고 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
         return workSessionRepository.findByJobPost(jobPost)
                 .stream()
@@ -68,7 +66,6 @@ public class WorkSessionService {
                 .toList();
     }
 
-    // 날짜별 근무회차 조회
     @Transactional(readOnly = true)
     public List<WorkSessionResponseDto> getWorkSessionsByDate(String workDate) {
         return workSessionRepository.findByWorkDate(workDate)
@@ -77,13 +74,12 @@ public class WorkSessionService {
                 .toList();
     }
 
-    // 공고 + 날짜별 근무회차 조회
     @Transactional(readOnly = true)
     public List<WorkSessionResponseDto> getWorkSessionsByJobPostAndDate(
-            Long jobPostId, String workDate
-    ) {
+            Long jobPostId, String workDate) {
+
         JobPost jobPost = jobPostRepository.findById(jobPostId)
-                .orElseThrow(() -> new RuntimeException("공고 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
         return workSessionRepository.findByJobPostAndWorkDate(jobPost, workDate)
                 .stream()
@@ -91,11 +87,10 @@ public class WorkSessionService {
                 .toList();
     }
 
-    // 내 공고의 전체 근무회차 조회
     @Transactional(readOnly = true)
     public List<WorkSessionResponseDto> getAllMyWorkSessions(User loginUser) {
         if (loginUser.getRole() != Role.COMPANY) {
-            throw new RuntimeException("기업 회원만 조회 가능합니다.");
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
 
         return jobPostRepository.findByUser(loginUser)
@@ -105,83 +100,78 @@ public class WorkSessionService {
                 .toList();
     }
 
-    // 근무회차 상태 변경
     @Transactional
     public void changeWorkSessionStatus(
             Long jobPostId, Long workSessionId,
-            WorkStatus workStatus, User loginUser
-    ) {
+            WorkStatus workStatus, User loginUser) {
+
         if (loginUser.getRole() != Role.COMPANY) {
-            throw new RuntimeException("기업 회원만 상태를 변경할 수 있습니다.");
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
 
         JobPost jobPost = jobPostRepository.findById(jobPostId)
-                .orElseThrow(() -> new RuntimeException("공고 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
         if (!jobPost.getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고의 근무회차만 변경 가능합니다.");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
         WorkSession workSession = workSessionRepository.findById(workSessionId)
-                .orElseThrow(() -> new RuntimeException("근무회차 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.WORK_SESSION_NOT_FOUND));
 
         if (!workSession.getJobPost().getId().equals(jobPostId)) {
-            throw new RuntimeException("해당 공고의 근무회차가 아닙니다.");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
         workSession.setStatus(workStatus);
         workSessionRepository.save(workSession);
     }
 
-    // 메모 수정
     @Transactional
     public void updateMemo(Long workSessionId, String memo, User loginUser) {
         if (loginUser.getRole() != Role.COMPANY) {
-            throw new RuntimeException("기업 회원만 메모를 수정할 수 있습니다.");
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
 
         WorkSession workSession = workSessionRepository.findById(workSessionId)
-                .orElseThrow(() -> new RuntimeException("근무회차 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.WORK_SESSION_NOT_FOUND));
 
         if (!workSession.getJobPost().getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고의 근무회차만 수정 가능합니다.");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
         workSession.setMemo(memo);
         workSessionRepository.save(workSession);
     }
 
-    // Shift 배정
     @Transactional
     public void assignWorkSession(
-            Long applicationId, Long workSessionId, User loginUser
-    ) {
+            Long applicationId, Long workSessionId, User loginUser) {
+
         if (loginUser.getRole() != Role.COMPANY) {
-            throw new RuntimeException("기업 회원만 배정할 수 있습니다.");
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
 
         Application application = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException("지원 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
         if (!application.getJobPost().getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고의 지원자만 배정 가능합니다.");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
-        // 중복 배정 방어
         if (application.getWorkSession() != null) {
-            throw new RuntimeException("이미 배정된 지원자입니다.");
+            throw new CustomException(ErrorCode.ALREADY_ASSIGNED);
         }
 
         WorkSession workSession = workSessionRepository.findById(workSessionId)
-                .orElseThrow(() -> new RuntimeException("근무회차 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.WORK_SESSION_NOT_FOUND));
 
-        // 다른 공고 근무회차 배정 방어
         if (!workSession.getJobPost().getId().equals(application.getJobPost().getId())) {
-            throw new RuntimeException("같은 공고의 근무회차에만 배정 가능합니다.");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
         if (workSession.getCurrentCount() >= workSession.getRecruitCount()) {
-            throw new RuntimeException("해당 근무회차 인원이 꽉 찼습니다.");
+            throw new CustomException(ErrorCode.RECRUIT_FULL);
         }
 
         application.setWorkSession(workSession);
@@ -191,28 +181,27 @@ public class WorkSessionService {
         workSessionRepository.save(workSession);
     }
 
-    // 공고 기간 내 날짜별 Shift 자동 생성
     @Transactional
     public List<WorkSessionResponseDto> generateWorkSessions(
-            Long jobPostId, User loginUser
-    ) {
+            Long jobPostId, User loginUser) {
+
         if (loginUser.getRole() != Role.COMPANY) {
-            throw new RuntimeException("기업 회원만 자동 생성 가능합니다.");
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
 
         JobPost jobPost = jobPostRepository.findById(jobPostId)
-                .orElseThrow(() -> new RuntimeException("공고 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
         if (!jobPost.getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고만 자동 생성 가능합니다.");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
         if (jobPost.getWorkStartDate() == null || jobPost.getWorkEndDate() == null) {
-            throw new RuntimeException("공고에 근무 시작일/종료일이 설정되어 있지 않습니다.");
+            throw new CustomException(ErrorCode.WORK_DATE_NOT_SET);
         }
 
         if (jobPost.getWorkStartDate().isAfter(jobPost.getWorkEndDate())) {
-            throw new RuntimeException("근무 시작일이 종료일보다 늦습니다.");
+            throw new CustomException(ErrorCode.WORK_DATE_INVALID);
         }
 
         List<String> existingDates = workSessionRepository.findByJobPost(jobPost)
@@ -228,7 +217,7 @@ public class WorkSessionService {
 
             if (!existingDates.contains(dateStr)) {
                 WorkSession ws = new WorkSession();
-                ws.setShift("FULL");   // 자동 생성 기본값
+                ws.setShift("FULL");
                 ws.setWorkDate(dateStr);
                 ws.setStartTime(jobPost.getStartTime());
                 ws.setEndTime(jobPost.getEndTime());
@@ -246,7 +235,6 @@ public class WorkSessionService {
         return generated.stream().map(this::toDto).toList();
     }
 
-    // DTO 변환
     private WorkSessionResponseDto toDto(WorkSession ws) {
         return new WorkSessionResponseDto(
                 ws.getId(),

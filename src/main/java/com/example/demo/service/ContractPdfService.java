@@ -2,7 +2,8 @@ package com.example.demo.service;
 
 import com.example.demo.entity.Contract;
 import com.example.demo.entity.ContractStatus;
-import com.example.demo.entity.User;
+import com.example.demo.exception.CustomException;
+import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.ContractRepository;
 import com.itextpdf.html2pdf.HtmlConverter;
 import lombok.RequiredArgsConstructor;
@@ -28,30 +29,27 @@ public class ContractPdfService {
 
     @Transactional
     public String generateContractPdf(Long contractId, Long loginUserId) {
-
         Contract contract = contractRepository.findById(contractId)
-                .orElseThrow(() -> new RuntimeException("계약서 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
 
         if (!contract.getCompany().getId().equals(loginUserId) &&
             !contract.getWorker().getId().equals(loginUserId)) {
-            throw new RuntimeException("본인 계약서만 다운로드 가능합니다.");
+            throw new CustomException(ErrorCode.NOT_MY_CONTRACT);
         }
 
-        // 다운로드 상태 검증
         if (contract.getStatus() == ContractStatus.DOWNLOAD_EXPIRED) {
-            throw new RuntimeException(
+            throw new CustomException(ErrorCode.INVALID_STATUS_TRANSITION,
                     "다운로드 기간이 만료된 계약서입니다. (완료 후 1년)");
         }
         if (contract.getStatus() == ContractStatus.EXPIRED) {
-            throw new RuntimeException(
+            throw new CustomException(ErrorCode.INVALID_STATUS_TRANSITION,
                     "만료된 계약서입니다. (1개월 내 미서명)");
         }
         if (contract.getStatus() == ContractStatus.CANCELLED) {
-            throw new RuntimeException("취소된 계약서입니다.");
+            throw new CustomException(ErrorCode.CONTRACT_ALREADY_CANCELLED);
         }
 
         String html = buildHtml(contract);
-
         String dirPath = System.getProperty("user.dir") + "/" + uploadDir + "/contracts";
         File dir = new File(dirPath);
         if (!dir.exists()) dir.mkdirs();
@@ -62,14 +60,13 @@ public class ContractPdfService {
         try (FileOutputStream fos = new FileOutputStream(filePath)) {
             HtmlConverter.convertToPdf(html, fos);
         } catch (IOException e) {
-            throw new RuntimeException("PDF 생성 실패: " + e.getMessage());
+            throw new CustomException(ErrorCode.PDF_GENERATION_FAILED);
         }
 
         return fileBaseUrl + "/uploads/contracts/" + fileName;
     }
 
     private String buildHtml(Contract contract) {
-
         String fontPath = getClass().getClassLoader()
                 .getResource("fonts/NanumGothic.ttf").toExternalForm();
 
@@ -79,10 +76,7 @@ public class ContractPdfService {
                 <head>
                   <meta charset="UTF-8"/>
                   <style>
-                    @font-face {
-                      font-family: 'NanumGothic';
-                      src: url('%s');
-                    }
+                    @font-face { font-family: 'NanumGothic'; src: url('%s'); }
                     body { font-family: 'NanumGothic', Arial, sans-serif; padding: 40px; font-size: 14px; }
                     h1 { text-align: center; font-size: 22px; margin-bottom: 30px; }
                     table { width: 100%%; border-collapse: collapse; margin-bottom: 20px; }
@@ -93,14 +87,12 @@ public class ContractPdfService {
                 </head>
                 <body>
                   <h1>근로계약서</h1>
-
                   <div class="section">1. 계약 당사자</div>
                   <table>
                     <tr><td class="label">기업명</td><td>%s</td></tr>
                     <tr><td class="label">근로자명</td><td>%s</td></tr>
                     <tr><td class="label">근로자 연락처</td><td>%s</td></tr>
                   </table>
-
                   <div class="section">2. 근무 정보</div>
                   <table>
                     <tr><td class="label">공고명</td><td>%s</td></tr>
@@ -109,20 +101,17 @@ public class ContractPdfService {
                     <tr><td class="label">급여 유형</td><td>%s</td></tr>
                     <tr><td class="label">급여</td><td>%s 원</td></tr>
                   </table>
-
                   <div class="section">3. 계약 기간</div>
                   <table>
                     <tr><td class="label">계약 시작일</td><td>%s</td></tr>
                     <tr><td class="label">계약 종료일</td><td>%s</td></tr>
                     <tr><td class="label">계약 상태</td><td>%s</td></tr>
                   </table>
-
                   <div class="section">4. 서명</div>
                   <table>
                     <tr><td class="label">기업 서명일시</td><td>%s</td></tr>
                     <tr><td class="label">근로자 서명일시</td><td>%s</td></tr>
                   </table>
-
                 </body>
                 </html>
                 """.formatted(

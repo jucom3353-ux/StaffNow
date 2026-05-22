@@ -3,6 +3,8 @@ package com.example.demo.service;
 import com.example.demo.dto.ApplicationResponseDto;
 import com.example.demo.dto.WorkerProfileResponseDto;
 import com.example.demo.entity.*;
+import com.example.demo.exception.CustomException;
+import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.*;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
@@ -68,44 +70,45 @@ public class ApplicationService {
     @Transactional
     public void apply(Long jobPostId, Long jobPostRoleId, User loginUser) {
         if (loginUser.getRole() != Role.INDIVIDUAL) {
-            throw new RuntimeException("구직자만 지원할 수 있습니다.");
+            throw new CustomException(ErrorCode.WORKER_ONLY);
         }
         if (loginUser.getNoShowCount() >= 3) {
-            throw new RuntimeException("노쇼 누적으로 지원이 제한되었습니다.");
+            throw new CustomException(ErrorCode.INVALID_STATUS_TRANSITION,
+                    "노쇼 누적으로 지원이 제한되었습니다.");
         }
 
         JobPost jobPost = jobPostRepository.findById(jobPostId)
-                .orElseThrow(() -> new RuntimeException("공고 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
         if (jobPost.getPostStatus() == PostStatus.CLOSED) {
-            throw new RuntimeException("마감된 공고에는 지원할 수 없습니다.");
+            throw new CustomException(ErrorCode.JOB_POST_CLOSED);
         }
         if (jobPost.getPostStatus() == PostStatus.DRAFT) {
-            throw new RuntimeException("임시저장된 공고에는 지원할 수 없습니다.");
+            throw new CustomException(ErrorCode.JOB_POST_DRAFT);
         }
         if (applicationRepository.existsByUserAndJobPost(loginUser, jobPost)) {
-            throw new RuntimeException("이미 지원한 공고입니다.");
+            throw new CustomException(ErrorCode.ALREADY_APPLIED);
         }
 
         JobPostRole jobPostRole = jobPostRoleRepository.findById(jobPostRoleId)
-                .orElseThrow(() -> new RuntimeException("직무 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_ROLE_NOT_FOUND));
 
         if (!jobPostRole.getJobPost().getId().equals(jobPostId)) {
-            throw new RuntimeException("해당 공고의 직무가 아닙니다.");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
         int currentRoleCount = applicationRepository
                 .countByJobPostRoleAndStatusNot(jobPostRole, ApplicationStatus.REJECTED);
         if (currentRoleCount >= jobPostRole.getRecruitCount()) {
-            throw new RuntimeException("해당 직무 모집이 마감되었습니다.");
+            throw new CustomException(ErrorCode.RECRUIT_FULL);
         }
 
         if (jobPostRole.getRequiresExperience()) {
             List<Career> careers = careerRepository.findByResume(
-                    resumeRepository.findByUser(loginUser).orElse(null)
-            );
+                    resumeRepository.findByUser(loginUser).orElse(null));
             if (careers == null || careers.isEmpty()) {
-                throw new RuntimeException("해당 직무는 경력자만 지원 가능합니다.");
+                throw new CustomException(ErrorCode.INVALID_STATUS_TRANSITION,
+                        "해당 직무는 경력자만 지원 가능합니다.");
             }
         }
 
@@ -129,13 +132,13 @@ public class ApplicationService {
     @Transactional
     public void cancelApplication(Long applicationId, User loginUser) {
         Application application = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException("지원 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
         if (!application.getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 지원만 취소 가능");
+            throw new CustomException(ErrorCode.NOT_MY_APPLICATION);
         }
         if (application.getStatus() == ApplicationStatus.COMPLETED) {
-            throw new RuntimeException("완료된 지원은 취소할 수 없습니다.");
+            throw new CustomException(ErrorCode.APPLICATION_CANCEL_NOT_ALLOWED);
         }
 
         applicationRepository.delete(application);
@@ -146,10 +149,10 @@ public class ApplicationService {
             Long jobPostId, User loginUser, ApplicationStatus status) {
 
         JobPost jobPost = jobPostRepository.findById(jobPostId)
-                .orElseThrow(() -> new RuntimeException("공고 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
         if (!jobPost.getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고의 지원자만 조회 가능");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
         List<Application> applications = (status != null)
@@ -162,7 +165,8 @@ public class ApplicationService {
                         a.getUser().getName(),
                         a.getUser().getId(),
                         a.getStatus().name(),
-                        a.getJobPostRole() != null ? a.getJobPostRole().getRoleName() : null
+                        a.getJobPostRole() != null
+                                ? a.getJobPostRole().getRoleName() : null
                 ))
                 .collect(Collectors.toList());
     }
@@ -172,10 +176,10 @@ public class ApplicationService {
             Long applicationId, User loginUser) {
 
         Application application = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException("지원 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
         if (!application.getJobPost().getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고의 지원자만 조회 가능");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
         User worker = application.getUser();
@@ -183,17 +187,14 @@ public class ApplicationService {
         List<Career> careers = resume != null
                 ? careerRepository.findByResume(resume) : List.of();
 
-        // 구독 여부 확인
         boolean hasSubscription = companySubscriptionRepository
                 .findByCompanyAndStatus(loginUser, SubscriptionStatus.ACTIVE)
                 .isPresent();
 
         if (!hasSubscription) {
-            // 무료 → 이름/지역/MBTI/경력여부만
             return new WorkerProfileResponseDto(worker, careers);
         }
 
-        // 유료 → 전체 정보
         List<Skill> skills = skillRepository.findByUser(worker);
         List<Education> educations = resume != null
                 ? educationRepository.findByResume(resume) : List.of();
@@ -210,13 +211,14 @@ public class ApplicationService {
     @Transactional
     public void approveApplication(Long applicationId, User loginUser) {
         Application application = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException("지원 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
         if (!application.getJobPost().getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고의 지원자만 승인 가능");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
         if (application.getStatus() != ApplicationStatus.APPLIED) {
-            throw new RuntimeException("지원 상태인 경우에만 승인 가능합니다.");
+            throw new CustomException(ErrorCode.INVALID_STATUS_TRANSITION,
+                    "지원 상태인 경우에만 승인 가능합니다.");
         }
 
         application.setStatus(ApplicationStatus.APPROVED);
@@ -229,7 +231,6 @@ public class ApplicationService {
                 application.getId()
         );
 
-        // 계약서 자동 생성 (중복 방지)
         boolean contractExists = contractRepository
                 .findByCompanyAndWorker(loginUser, application.getUser())
                 .stream()
@@ -263,13 +264,14 @@ public class ApplicationService {
     @Transactional
     public void rejectApplication(Long applicationId, User loginUser) {
         Application application = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException("지원 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
         if (!application.getJobPost().getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고의 지원자만 거절 가능");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
         if (application.getStatus() != ApplicationStatus.APPLIED) {
-            throw new RuntimeException("지원 상태인 경우에만 거절 가능합니다.");
+            throw new CustomException(ErrorCode.INVALID_STATUS_TRANSITION,
+                    "지원 상태인 경우에만 거절 가능합니다.");
         }
 
         application.setStatus(ApplicationStatus.REJECTED);
@@ -286,13 +288,13 @@ public class ApplicationService {
     @Transactional
     public void completeApplication(Long applicationId, User loginUser) {
         Application application = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException("지원 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
         if (!application.getJobPost().getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고만 완료 처리 가능");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
         if (application.getStatus() == ApplicationStatus.COMPLETED) {
-            throw new RuntimeException("이미 완료된 지원입니다.");
+            throw new CustomException(ErrorCode.ALREADY_COMPLETED);
         }
 
         application.setStatus(ApplicationStatus.COMPLETED);
@@ -302,13 +304,13 @@ public class ApplicationService {
     @Transactional
     public void noShowApplication(Long applicationId, User loginUser) {
         Application application = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException("지원 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
         if (!application.getJobPost().getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고만 노쇼 처리 가능");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
         if (application.getStatus() == ApplicationStatus.NO_SHOW) {
-            throw new RuntimeException("이미 노쇼 처리된 지원입니다.");
+            throw new CustomException(ErrorCode.ALREADY_NO_SHOW);
         }
 
         application.setStatus(ApplicationStatus.NO_SHOW);
@@ -317,8 +319,7 @@ public class ApplicationService {
         worker.setNoShowCount(worker.getNoShowCount() + 1);
         double newTemp = Math.max(
                 worker.getTemperature() - NO_SHOW_TEMPERATURE_PENALTY,
-                MIN_TEMPERATURE
-        );
+                MIN_TEMPERATURE);
         worker.setTemperature(newTemp);
 
         applicationRepository.save(application);
@@ -336,13 +337,13 @@ public class ApplicationService {
     @Transactional
     public void absentApplication(Long applicationId, User loginUser) {
         Application application = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException("지원 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
         if (!application.getJobPost().getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고만 결근 처리 가능");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
         if (application.getStatus() == ApplicationStatus.ABSENT) {
-            throw new RuntimeException("이미 결근 처리된 지원입니다.");
+            throw new CustomException(ErrorCode.ALREADY_ABSENT);
         }
 
         application.setStatus(ApplicationStatus.ABSENT);
@@ -350,8 +351,7 @@ public class ApplicationService {
         User worker = application.getUser();
         double newTemp = Math.max(
                 worker.getTemperature() - ABSENT_TEMPERATURE_PENALTY,
-                MIN_TEMPERATURE
-        );
+                MIN_TEMPERATURE);
         worker.setTemperature(newTemp);
 
         applicationRepository.save(application);

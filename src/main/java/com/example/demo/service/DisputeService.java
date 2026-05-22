@@ -3,6 +3,8 @@ package com.example.demo.service;
 import com.example.demo.dto.DisputeRequestDto;
 import com.example.demo.dto.DisputeResponseDto;
 import com.example.demo.entity.*;
+import com.example.demo.exception.CustomException;
+import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.DisputeRepository;
 import com.example.demo.repository.PayrollRepository;
 import jakarta.transaction.Transactional;
@@ -22,26 +24,25 @@ public class DisputeService {
     private final NotificationService notificationService;
 
     @Transactional
-    public DisputeResponseDto createDispute(
-            DisputeRequestDto requestDto, User loginUser) {
-
+    public DisputeResponseDto createDispute(DisputeRequestDto requestDto, User loginUser) {
         if (loginUser.getRole() != Role.COMPANY) {
-            throw new RuntimeException("기업 회원만 분쟁을 신청할 수 있습니다.");
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
 
         Payroll payroll = payrollRepository.findById(requestDto.getPayrollId())
-                .orElseThrow(() -> new RuntimeException("정산 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.PAYROLL_NOT_FOUND));
 
         if (!payroll.getJobPost().getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고의 정산만 분쟁 신청 가능합니다.");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
         if (payroll.getStatus() != PayrollStatus.REJECTED) {
-            throw new RuntimeException("반려된 정산만 분쟁 신청 가능합니다.");
+            throw new CustomException(ErrorCode.INVALID_STATUS_TRANSITION,
+                    "반려된 정산만 분쟁 신청 가능합니다.");
         }
 
         if (disputeRepository.existsByPayrollId(payroll.getId())) {
-            throw new RuntimeException("이미 분쟁이 신청된 정산입니다.");
+            throw new CustomException(ErrorCode.ALREADY_DISPUTED);
         }
 
         Dispute dispute = new Dispute();
@@ -53,28 +54,25 @@ public class DisputeService {
         dispute.setStatus(DisputeStatus.PENDING);
         disputeRepository.save(dispute);
 
-        notificationService.send(
-                payroll.getWorker(),
-                NotificationType.DISPUTE_CREATED,
+        notificationService.send(payroll.getWorker(), NotificationType.DISPUTE_CREATED,
                 "[" + payroll.getJobPost().getTitle() + "] 정산 분쟁이 신청되었습니다. 확인해주세요.",
-                dispute.getId()
-        );
+                dispute.getId());
 
         return new DisputeResponseDto(dispute);
     }
 
     @Transactional
     public DisputeResponseDto acceptDispute(Long disputeId, User loginUser) {
-
         Dispute dispute = disputeRepository.findById(disputeId)
-                .orElseThrow(() -> new RuntimeException("분쟁 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.DISPUTE_NOT_FOUND));
 
         if (!dispute.getWorker().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 분쟁만 응답 가능합니다.");
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
         }
 
         if (dispute.getStatus() != DisputeStatus.PENDING) {
-            throw new RuntimeException("대기 상태의 분쟁만 응답 가능합니다.");
+            throw new CustomException(ErrorCode.INVALID_STATUS_TRANSITION,
+                    "대기 상태의 분쟁만 응답 가능합니다.");
         }
 
         dispute.setStatus(DisputeStatus.ACCEPTED);
@@ -87,59 +85,49 @@ public class DisputeService {
         payrollRepository.save(payroll);
         disputeRepository.save(dispute);
 
-        notificationService.send(
-                dispute.getCompany(),
-                NotificationType.DISPUTE_ACCEPTED,
-                "분쟁이 수락되었습니다. 정산이 확정 처리되었습니다.",
-                dispute.getId()
-        );
+        notificationService.send(dispute.getCompany(), NotificationType.DISPUTE_ACCEPTED,
+                "분쟁이 수락되었습니다. 정산이 확정 처리되었습니다.", dispute.getId());
 
         return new DisputeResponseDto(dispute);
     }
 
     @Transactional
-    public DisputeResponseDto declineDispute(
-            Long disputeId, String workerResponse, User loginUser) {
-
+    public DisputeResponseDto declineDispute(Long disputeId, String workerResponse, User loginUser) {
         Dispute dispute = disputeRepository.findById(disputeId)
-                .orElseThrow(() -> new RuntimeException("분쟁 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.DISPUTE_NOT_FOUND));
 
         if (!dispute.getWorker().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 분쟁만 응답 가능합니다.");
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
         }
 
         if (dispute.getStatus() != DisputeStatus.PENDING) {
-            throw new RuntimeException("대기 상태의 분쟁만 응답 가능합니다.");
+            throw new CustomException(ErrorCode.INVALID_STATUS_TRANSITION,
+                    "대기 상태의 분쟁만 응답 가능합니다.");
         }
 
         dispute.setStatus(DisputeStatus.DECLINED);
         dispute.setWorkerResponse(workerResponse);
         disputeRepository.save(dispute);
 
-        notificationService.send(
-                dispute.getCompany(),
-                NotificationType.DISPUTE_DECLINED,
-                "분쟁이 거절되었습니다. 관리자 중재가 시작됩니다.",
-                dispute.getId()
-        );
+        notificationService.send(dispute.getCompany(), NotificationType.DISPUTE_DECLINED,
+                "분쟁이 거절되었습니다. 관리자 중재가 시작됩니다.", dispute.getId());
 
         return new DisputeResponseDto(dispute);
     }
 
     @Transactional
-    public DisputeResponseDto resolveDispute(
-            Long disputeId, String adminMemo,
-            int finalPay, User loginUser) {
-
+    public DisputeResponseDto resolveDispute(Long disputeId, String adminMemo,
+                                              int finalPay, User loginUser) {
         if (loginUser.getRole() != Role.ADMIN) {
-            throw new RuntimeException("관리자만 중재 가능합니다.");
+            throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
 
         Dispute dispute = disputeRepository.findById(disputeId)
-                .orElseThrow(() -> new RuntimeException("분쟁 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.DISPUTE_NOT_FOUND));
 
         if (dispute.getStatus() != DisputeStatus.DECLINED) {
-            throw new RuntimeException("근로자가 거절한 분쟁만 중재 가능합니다.");
+            throw new CustomException(ErrorCode.INVALID_STATUS_TRANSITION,
+                    "근로자가 거절한 분쟁만 중재 가능합니다.");
         }
 
         dispute.setStatus(DisputeStatus.RESOLVED);
@@ -154,18 +142,10 @@ public class DisputeService {
         payrollRepository.save(payroll);
         disputeRepository.save(dispute);
 
-        notificationService.send(
-                dispute.getWorker(),
-                NotificationType.DISPUTE_RESOLVED,
-                "관리자 중재가 완료되었습니다. 최종 정산금액: " + finalPay + "원",
-                dispute.getId()
-        );
-        notificationService.send(
-                dispute.getCompany(),
-                NotificationType.DISPUTE_RESOLVED,
-                "관리자 중재가 완료되었습니다. 최종 정산금액: " + finalPay + "원",
-                dispute.getId()
-        );
+        notificationService.send(dispute.getWorker(), NotificationType.DISPUTE_RESOLVED,
+                "관리자 중재가 완료되었습니다. 최종 정산금액: " + finalPay + "원", dispute.getId());
+        notificationService.send(dispute.getCompany(), NotificationType.DISPUTE_RESOLVED,
+                "관리자 중재가 완료되었습니다. 최종 정산금액: " + finalPay + "원", dispute.getId());
 
         return new DisputeResponseDto(dispute);
     }
@@ -176,25 +156,19 @@ public class DisputeService {
                 ? disputeRepository.findByCompany(loginUser)
                 : disputeRepository.findByWorker(loginUser);
 
-        return disputes.stream()
-                .map(DisputeResponseDto::new)
-                .collect(Collectors.toList());
+        return disputes.stream().map(DisputeResponseDto::new).collect(Collectors.toList());
     }
 
     @Transactional
-    public List<DisputeResponseDto> getAllDisputes(
-            DisputeStatus status, User loginUser) {
-
+    public List<DisputeResponseDto> getAllDisputes(DisputeStatus status, User loginUser) {
         if (loginUser.getRole() != Role.ADMIN) {
-            throw new RuntimeException("관리자만 조회 가능합니다.");
+            throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
 
         List<Dispute> disputes = status != null
                 ? disputeRepository.findByStatus(status)
                 : disputeRepository.findAll();
 
-        return disputes.stream()
-                .map(DisputeResponseDto::new)
-                .collect(Collectors.toList());
+        return disputes.stream().map(DisputeResponseDto::new).collect(Collectors.toList());
     }
 }

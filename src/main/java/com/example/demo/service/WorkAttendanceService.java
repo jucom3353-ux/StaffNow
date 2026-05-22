@@ -5,6 +5,8 @@ import com.example.demo.dto.CheckInRequestDto;
 import com.example.demo.dto.CheckOutRequestDto;
 import com.example.demo.dto.WorkAttendanceResponseDto;
 import com.example.demo.entity.*;
+import com.example.demo.exception.CustomException;
+import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.ApplicationRepository;
 import com.example.demo.repository.JobPostRepository;
 import com.example.demo.repository.UserRepository;
@@ -29,44 +31,41 @@ public class WorkAttendanceService {
     private final ApplicationRepository applicationRepository;
     private final JobPostRepository jobPostRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     private static final int EARLY_THRESHOLD_MINUTES = 10;
     private static final double EARLY_TEMPERATURE_BONUS = 0.1;
     private static final double MAX_TEMPERATURE = 100.0;
-
-    // GPS 허용 반경 (미터)
     private static final double ALLOWED_RADIUS_METERS = 300.0;
 
-    // 출근 처리
     @Transactional
     public WorkAttendanceResponseDto checkIn(
             Long applicationId, CheckInRequestDto requestDto, User loginUser) {
 
         Application application = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException("지원 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
         if (!application.getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 지원만 출근 처리 가능");
+            throw new CustomException(ErrorCode.NOT_MY_APPLICATION);
         }
 
         if (application.getStatus() != ApplicationStatus.APPROVED) {
-            throw new RuntimeException("승인된 지원만 출근 처리 가능");
+            throw new CustomException(ErrorCode.INVALID_STATUS_TRANSITION);
         }
 
         workAttendanceRepository.findByApplication(application)
                 .ifPresent(w -> {
-                    throw new RuntimeException("이미 출근 처리된 지원입니다.");
+                    throw new CustomException(ErrorCode.ALREADY_CHECKED_IN);
                 });
 
-        // GPS 검증
         WorkSession workSession = application.getWorkSession();
         if (workSession != null
                 && requestDto.getLatitude() != null
                 && requestDto.getLongitude() != null) {
-
-            String workLocation = workSession.getJobPost().getWorkLocation();
             validateGpsLocation(
-                    requestDto.getLatitude(), requestDto.getLongitude(), workLocation);
+                    requestDto.getLatitude(),
+                    requestDto.getLongitude(),
+                    workSession.getJobPost().getWorkLocation());
         }
 
         WorkAttendance attendance = new WorkAttendance();
@@ -76,7 +75,6 @@ public class WorkAttendanceService {
         attendance.setCheckInLongitude(requestDto.getLongitude());
         attendance.setCheckInPhotoUrl(requestDto.getPhotoUrl());
 
-        // 지각 자동 판정
         AttendanceStatus attendanceStatus = AttendanceStatus.NORMAL;
         if (workSession != null && workSession.getStartTime() != null) {
             attendanceStatus = judgeAttendanceStatus(
@@ -89,26 +87,43 @@ public class WorkAttendanceService {
             applyEarlyBonus(loginUser, workSession);
         }
 
-        return new WorkAttendanceResponseDto(workAttendanceRepository.save(attendance));
+        WorkAttendance saved = workAttendanceRepository.save(attendance);
+
+        if (attendanceStatus == AttendanceStatus.LATE) {
+            notificationService.send(
+                    loginUser,
+                    NotificationType.ATTENDANCE_LATE,
+                    "[" + application.getJobPost().getTitle() + "] 지각 처리되었습니다.",
+                    saved.getId()
+            );
+        } else {
+            notificationService.send(
+                    loginUser,
+                    NotificationType.ATTENDANCE_CHECKED_IN,
+                    "[" + application.getJobPost().getTitle() + "] 출근이 확인되었습니다.",
+                    saved.getId()
+            );
+        }
+
+        return new WorkAttendanceResponseDto(saved);
     }
 
-    // 퇴근 처리
     @Transactional
     public WorkAttendanceResponseDto checkOut(
             Long applicationId, CheckOutRequestDto requestDto, User loginUser) {
 
         Application application = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException("지원 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
         if (!application.getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 지원만 퇴근 처리 가능");
+            throw new CustomException(ErrorCode.NOT_MY_APPLICATION);
         }
 
         WorkAttendance attendance = workAttendanceRepository.findByApplication(application)
-                .orElseThrow(() -> new RuntimeException("출근 기록 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.WORK_ATTENDANCE_NOT_FOUND));
 
         if (attendance.getCheckOutTime() != null) {
-            throw new RuntimeException("이미 퇴근 처리된 기록입니다.");
+            throw new CustomException(ErrorCode.ALREADY_CHECKED_OUT);
         }
 
         attendance.setCheckOutTime(LocalDateTime.now());
@@ -116,23 +131,31 @@ public class WorkAttendanceService {
         attendance.setCheckOutLongitude(requestDto.getLongitude());
         attendance.setCheckOutPhotoUrl(requestDto.getPhotoUrl());
 
-        return new WorkAttendanceResponseDto(workAttendanceRepository.save(attendance));
+        WorkAttendance saved = workAttendanceRepository.save(attendance);
+
+        notificationService.send(
+                loginUser,
+                NotificationType.ATTENDANCE_CHECKED_OUT,
+                "[" + application.getJobPost().getTitle() + "] 퇴근이 확인되었습니다.",
+                saved.getId()
+        );
+
+        return new WorkAttendanceResponseDto(saved);
     }
 
-    // 결근 처리 (스케줄러 또는 기업 수동)
     @Transactional
     public void markAbsent(Long applicationId, User loginUser) {
 
         Application application = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException("지원 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
         if (!application.getJobPost().getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고의 지원자만 결근 처리 가능");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
         workAttendanceRepository.findByApplication(application)
                 .ifPresent(w -> {
-                    throw new RuntimeException("이미 출퇴근 기록이 있습니다.");
+                    throw new CustomException(ErrorCode.ALREADY_CHECKED_IN);
                 });
 
         WorkAttendance attendance = new WorkAttendance();
@@ -146,7 +169,6 @@ public class WorkAttendanceService {
         workAttendanceRepository.save(attendance);
     }
 
-    // 내 출퇴근 기록 전체 조회
     @Transactional(readOnly = true)
     public List<WorkAttendanceResponseDto> getMyAttendances(User loginUser) {
         return workAttendanceRepository.findByUser(loginUser)
@@ -155,7 +177,6 @@ public class WorkAttendanceService {
                 .collect(Collectors.toList());
     }
 
-    // 날짜별 출퇴근 조회
     @Transactional(readOnly = true)
     public List<WorkAttendanceResponseDto> getMyAttendancesByDate(
             User loginUser, String date) {
@@ -170,7 +191,6 @@ public class WorkAttendanceService {
                 .collect(Collectors.toList());
     }
 
-    // 월별 출퇴근 달력 조회 (근로자)
     @Transactional(readOnly = true)
     public CalendarAttendanceResponseDto getMyAttendanceCalendar(
             User loginUser, int year, int month) {
@@ -191,20 +211,19 @@ public class WorkAttendanceService {
         return new CalendarAttendanceResponseDto(year, month, dailyRecords);
     }
 
-    // 공고별 전체 출퇴근 조회 (기업용)
     @Transactional(readOnly = true)
     public List<WorkAttendanceResponseDto> getAttendancesByJobPost(
             Long jobPostId, User loginUser) {
 
         if (loginUser.getRole() != Role.COMPANY) {
-            throw new RuntimeException("기업 회원만 조회 가능합니다.");
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
 
         JobPost jobPost = jobPostRepository.findById(jobPostId)
-                .orElseThrow(() -> new RuntimeException("공고 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
         if (!jobPost.getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고만 조회 가능합니다.");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
         return workAttendanceRepository.findByJobPost(jobPost)
@@ -213,24 +232,23 @@ public class WorkAttendanceService {
                 .collect(Collectors.toList());
     }
 
-    // 공고별 특정 근로자 출퇴근 조회 (기업용)
     @Transactional(readOnly = true)
     public List<WorkAttendanceResponseDto> getAttendancesByJobPostAndWorker(
             Long jobPostId, Long workerId, User loginUser) {
 
         if (loginUser.getRole() != Role.COMPANY) {
-            throw new RuntimeException("기업 회원만 조회 가능합니다.");
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
 
         JobPost jobPost = jobPostRepository.findById(jobPostId)
-                .orElseThrow(() -> new RuntimeException("공고 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
         if (!jobPost.getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고만 조회 가능합니다.");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
         User worker = userRepository.findById(workerId)
-                .orElseThrow(() -> new RuntimeException("근로자 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         return workAttendanceRepository.findByJobPostAndWorker(jobPost, worker)
                 .stream()
@@ -238,20 +256,19 @@ public class WorkAttendanceService {
                 .collect(Collectors.toList());
     }
 
-    // 월별 출퇴근 달력 조회 (기업용)
     @Transactional(readOnly = true)
     public CalendarAttendanceResponseDto getJobPostAttendanceCalendar(
             Long jobPostId, User loginUser, int year, int month) {
 
         if (loginUser.getRole() != Role.COMPANY) {
-            throw new RuntimeException("기업 회원만 조회 가능합니다.");
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
 
         JobPost jobPost = jobPostRepository.findById(jobPostId)
-                .orElseThrow(() -> new RuntimeException("공고 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
         if (!jobPost.getUser().getId().equals(loginUser.getId())) {
-            throw new RuntimeException("본인 공고만 조회 가능합니다.");
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
         LocalDateTime startOfMonth = LocalDate.of(year, month, 1).atStartOfDay();
@@ -272,7 +289,6 @@ public class WorkAttendanceService {
 
     // ===== private 헬퍼 =====
 
-    // 지각 자동 판정
     private AttendanceStatus judgeAttendanceStatus(
             LocalTime checkInTime, String shiftStartTimeStr) {
         try {
@@ -286,7 +302,6 @@ public class WorkAttendanceService {
         }
     }
 
-    // 조기 출근 온도 가산
     private void applyEarlyBonus(User worker, WorkSession workSession) {
         if (workSession.getStartTime() == null) return;
         try {
@@ -308,7 +323,6 @@ public class WorkAttendanceService {
         }
     }
 
-    // GPS 거리 검증 (Haversine 공식)
     private void validateGpsLocation(
             double userLat, double userLng, String workLocation) {
 
@@ -318,24 +332,25 @@ public class WorkAttendanceService {
             String[] parts = workLocation.split(",");
             double workLat = Double.parseDouble(parts[0].trim());
             double workLng = Double.parseDouble(parts[1].trim());
-
             double distance = haversineDistance(userLat, userLng, workLat, workLng);
 
             if (distance > ALLOWED_RADIUS_METERS) {
-                throw new RuntimeException(
+                throw new CustomException(ErrorCode.GPS_OUT_OF_RANGE,
                         "근무지에서 너무 멀리 떨어져 있습니다. (현재 거리: "
                         + (int) distance + "m, 허용 반경: "
                         + (int) ALLOWED_RADIUS_METERS + "m)");
             }
-        } catch (NumberFormatException e) {
-            // workLocation이 좌표 형식이 아니면 검증 스킵
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            // workLocation 좌표 형식 아니면 스킵
         }
     }
 
     private double haversineDistance(
             double lat1, double lng1, double lat2, double lng2) {
 
-        final int R = 6371000; // 지구 반지름 (미터)
+        final int R = 6371000;
         double dLat = Math.toRadians(lat2 - lat1);
         double dLng = Math.toRadians(lng2 - lng1);
         double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
