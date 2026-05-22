@@ -22,7 +22,6 @@ public class SubscriptionScheduler {
     private final NotificationService notificationService;
     private final RefreshTokenRepository refreshTokenRepository;
 
-    // 매일 자정
     @Scheduled(cron = "0 0 0 * * *")
     @Transactional
     public void processSubscriptions() {
@@ -31,7 +30,6 @@ public class SubscriptionScheduler {
         notifyExpiringSoon(now);
     }
 
-    // 매일 새벽 3시 - 만료 토큰 정리
     @Scheduled(cron = "0 0 3 * * *")
     @Transactional
     public void cleanExpiredTokens() {
@@ -51,6 +49,12 @@ public class SubscriptionScheduler {
                 sub.setStatus(SubscriptionStatus.EXPIRED);
                 companySubscriptionRepository.save(sub);
 
+                notificationService.send(
+                        sub.getCompany(),
+                        NotificationType.SUBSCRIPTION_RENEWAL_FAILED,
+                        sub.getPlan().getPlanName() + " 플랜 자동 갱신에 실패했습니다.",
+                        sub.getId()
+                );
                 notificationService.send(
                         sub.getCompany(),
                         NotificationType.SUBSCRIPTION_EXPIRED,

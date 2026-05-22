@@ -22,6 +22,7 @@ public class MessageReportService {
     private final MessageReportRepository messageReportRepository;
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public MessageReportResponseDto reportMessage(
@@ -96,7 +97,17 @@ public class MessageReportService {
             userRepository.save(sender);
         }
 
-        return new MessageReportResponseDto(messageReportRepository.save(report));
+        MessageReportResponseDto result =
+                new MessageReportResponseDto(messageReportRepository.save(report));
+
+        notificationService.send(
+                report.getReporter(),
+                NotificationType.REPORT_APPROVED,
+                "신고하신 메시지가 검토 완료되었습니다.",
+                report.getId()
+        );
+
+        return result;
     }
 
     @Transactional
@@ -114,6 +125,17 @@ public class MessageReportService {
         }
 
         report.setStatus(MessageReportStatus.DISMISSED);
-        return new MessageReportResponseDto(messageReportRepository.save(report));
+
+        MessageReportResponseDto result =
+                new MessageReportResponseDto(messageReportRepository.save(report));
+
+        notificationService.send(
+                report.getReporter(),
+                NotificationType.REPORT_DISMISSED,
+                "신고하신 메시지가 검토 결과 기각되었습니다.",
+                report.getId()
+        );
+
+        return result;
     }
 }
