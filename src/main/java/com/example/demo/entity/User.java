@@ -24,6 +24,8 @@ public class User {
     private String address;
     private String addressDetail;
 
+    private boolean twoFactorEnabled = false;
+
     @Column(columnDefinition = "TEXT")
     private String bio;
 
@@ -56,9 +58,15 @@ public class User {
     @Column(name = "suspended")
     private Boolean suspended = false;
 
+    
+
     @Enumerated(EnumType.STRING)
     private AuthProvider provider = AuthProvider.LOCAL;
     private String providerId;
+
+    @Enumerated(EnumType.STRING)
+    private Gender gender;
+    private Integer age;
 
     public Long getId() { return id; }
     public String getEmail() { return email; }
@@ -82,6 +90,9 @@ public class User {
     public Boolean getAvailableAlways() { return availableAlways; }
     public AuthProvider getProvider() { return provider; }
     public String getProviderId() { return providerId; }
+    public boolean isTwoFactorEnabled() { return twoFactorEnabled; }
+    public Gender getGender() { return gender; }
+    public Integer getAge() { return age; }
 
     public void setId(Long id) { this.id = id; }
     public void setEmail(String email) { this.email = email; }
@@ -105,4 +116,7 @@ public class User {
     public void setAvailableAlways(Boolean availableAlways) { this.availableAlways = availableAlways; }
     public void setProvider(AuthProvider provider) { this.provider = provider; }
     public void setProviderId(String providerId) { this.providerId = providerId; }
+    public void setTwoFactorEnabled(boolean twoFactorEnabled) { this.twoFactorEnabled = twoFactorEnabled; }
+    public void setGender(Gender gender) { this.gender = gender; }
+    public void setAge(Integer age) { this.age = age; }
 }

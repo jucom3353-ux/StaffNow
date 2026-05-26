@@ -1,7 +1,7 @@
 package com.example.demo.controller;
 
 import com.example.demo.dto.ApiResponse;
-import com.example.demo.entity.Role;
+import com.example.demo.entity.Gender;
 import com.example.demo.entity.User;
 import com.example.demo.service.WorkerSearchService;
 
@@ -23,7 +23,7 @@ public class WorkerSearchController {
 
     private final WorkerSearchService workerSearchService;
 
-    @Operation(summary = "추천 인력 조회 (sort: temperature/noShow, availableAlways 필터 추가)")
+    @Operation(summary = "추천 인력 조회 (sort: temperature/noShow, 성별/나이/시간대 필터 추가)")
     @GetMapping
     public ResponseEntity<ApiResponse<?>> searchWorkers(
             @RequestParam(required = false) String name,
@@ -32,6 +32,10 @@ public class WorkerSearchController {
             @RequestParam(required = false) String activityRegion,
             @RequestParam(required = false) String mbti,
             @RequestParam(required = false) Boolean availableAlways,
+            @RequestParam(required = false) Gender gender,
+            @RequestParam(required = false) Integer minAge,
+            @RequestParam(required = false) Integer maxAge,
+            @RequestParam(required = false) String timeType,
             @RequestParam(defaultValue = "temperature") String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
@@ -41,6 +45,7 @@ public class WorkerSearchController {
                 workerSearchService.searchWorkers(
                         name, minRating, maxNoShow,
                         activityRegion, mbti, availableAlways,
+                        gender, minAge, maxAge, timeType,
                         sort, page, size,
                         loginUser.getId()
                 )));

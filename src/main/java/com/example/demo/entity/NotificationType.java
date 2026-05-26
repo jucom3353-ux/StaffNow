@@ -51,4 +51,14 @@ public enum NotificationType {
 
     // 공고 관련
     JOB_POST_CLOSED,
+
+    LATE_APPEAL_RECEIVED,  // 소명 접수
+    LATE_APPEAL_APPROVED,  // 소명 승인
+    LATE_APPEAL_REJECTED,   // 소명 반려
+
+    ATTENDANCE_DISPUTE_RECEIVED,  // 분쟁 접수
+    ATTENDANCE_DISPUTE_APPROVED,  // 분쟁 승인
+    ATTENDANCE_DISPUTE_REJECTED,   // 분쟁 반려
+    
+    INQUIRY_REPLIED, // 문의 답변
 }

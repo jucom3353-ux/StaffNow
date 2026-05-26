@@ -1,6 +1,7 @@
 package com.example.demo.repository;
 
 import com.example.demo.entity.BusinessLicenseStatus;
+import com.example.demo.entity.Gender;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
 import org.springframework.data.domain.Page;
@@ -30,6 +31,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
            "AND (:activityRegion IS NULL OR u.activityRegion LIKE %:activityRegion%) " +
            "AND (:mbti IS NULL OR u.mbti = :mbti) " +
            "AND (:availableAlways IS NULL OR u.availableAlways = :availableAlways) " +
+           "AND (:gender IS NULL OR u.gender = :gender) " +
+           "AND (:minAge IS NULL OR u.age >= :minAge) " +
+           "AND (:maxAge IS NULL OR u.age <= :maxAge) " +
+           "AND (:timeType IS NULL OR EXISTS (" +
+           "    SELECT p FROM PreferredWorkTime p " +
+           "    WHERE p.user = u AND p.timeType = :timeType)) " +
            "AND u.suspended = false " +
            "AND u.id NOT IN " +
            "(SELECT b.blocked.id FROM Block b WHERE b.blocker.id = :blockerId)")
@@ -41,6 +48,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("activityRegion") String activityRegion,
             @Param("mbti") String mbti,
             @Param("availableAlways") Boolean availableAlways,
+            @Param("gender") Gender gender,
+            @Param("minAge") Integer minAge,
+            @Param("maxAge") Integer maxAge,
+            @Param("timeType") String timeType,
             @Param("blockerId") Long blockerId,
             Pageable pageable
     );
@@ -52,10 +63,22 @@ public interface UserRepository extends JpaRepository<User, Long> {
            "AND (:activityRegion IS NULL OR u.activityRegion LIKE %:activityRegion%) " +
            "AND (:mbti IS NULL OR u.mbti = :mbti) " +
            "AND (:availableAlways IS NULL OR u.availableAlways = :availableAlways) " +
+           "AND (:gender IS NULL OR u.gender = :gender) " +
+           "AND (:minAge IS NULL OR u.age >= :minAge) " +
+           "AND (:maxAge IS NULL OR u.age <= :maxAge) " +
+           "AND (:timeType IS NULL OR EXISTS (" +
+           "    SELECT p FROM PreferredWorkTime p " +
+           "    WHERE p.user = u AND p.timeType = :timeType)) " +
            "AND u.suspended = false " +
            "AND u.id NOT IN " +
            "(SELECT b.blocked.id FROM Block b WHERE b.blocker.id = :blockerId) " +
            "ORDER BY " +
+           "CASE WHEN u.id IN (" +
+           "    SELECT pb.user.id FROM ProfileBoost pb " +
+           "    WHERE pb.isActive = true " +
+           "    AND pb.startAt <= CURRENT_TIMESTAMP " +
+           "    AND pb.endAt >= CURRENT_TIMESTAMP" +
+           ") THEN 0 ELSE 1 END ASC, " +
            "CASE WHEN u.profileImageCount >= 5 THEN 0 ELSE 1 END ASC, " +
            "u.temperature DESC")
     Page<User> findWorkersWithTopRecommended(
@@ -66,6 +89,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("activityRegion") String activityRegion,
             @Param("mbti") String mbti,
             @Param("availableAlways") Boolean availableAlways,
+            @Param("gender") Gender gender,
+            @Param("minAge") Integer minAge,
+            @Param("maxAge") Integer maxAge,
+            @Param("timeType") String timeType,
             @Param("blockerId") Long blockerId,
             Pageable pageable
     );

@@ -94,6 +94,12 @@ public enum ErrorCode {
     MEMO_NOT_FOUND(HttpStatus.NOT_FOUND, "메모를 찾을 수 없습니다."),
     QUESTION_NOT_FOUND(HttpStatus.NOT_FOUND, "사전질문을 찾을 수 없습니다."),
     PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "결제 내역을 찾을 수 없습니다."),
+    APPEAL_NOT_FOUND(HttpStatus.NOT_FOUND, "소명 내역을 찾을 수 없습니다."),
+    ATTENDANCE_DISPUTE_NOT_FOUND(HttpStatus.NOT_FOUND, "출퇴근 분쟁 내역을 찾을 수 없습니다."),
+    INQUIRY_NOT_FOUND(HttpStatus.NOT_FOUND, "문의를 찾을 수 없습니다."),
+    TERMS_NOT_FOUND(HttpStatus.NOT_FOUND, "약관을 찾을 수 없습니다."),
+    STAMP_NOT_FOUND(HttpStatus.NOT_FOUND, "도장을 찾을 수 없습니다."),
+    BOOST_NOT_FOUND(HttpStatus.NOT_FOUND, "활성화된 부스트를 찾을 수 없습니다."),
 
 
     // 409 Conflict
@@ -114,10 +120,15 @@ public enum ErrorCode {
     ALREADY_SKILL(HttpStatus.CONFLICT, "이미 등록된 스킬입니다."),
     BLACKLIST_NOT_FOUND(HttpStatus.NOT_FOUND, "채용부적합 내역을 찾을 수 없습니다."),
     ALREADY_BLACKLISTED(HttpStatus.CONFLICT, "이미 채용부적합으로 등록된 인재입니다."),
+    ALREADY_APPEALED(HttpStatus.CONFLICT, "이미 소명을 신청한 출퇴근 기록입니다."),
+    ALREADY_DISPUTED_ATTENDANCE(HttpStatus.CONFLICT, "이미 분쟁을 신청한 출퇴근 기록입니다."),
+    APPLICATION_CANCEL_TIME_EXCEEDED(HttpStatus.BAD_REQUEST, "지원 후 48시간이 초과되어 취소할 수 없습니다."),
+    BOOST_ALREADY_ACTIVE(HttpStatus.CONFLICT, "이미 활성화된 부스트가 있습니다."),
 
     // 500 Internal Server Error
     FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "파일 업로드에 실패했습니다."),
     PDF_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "PDF 생성에 실패했습니다.");
+    
 
     private final HttpStatus httpStatus;
     private final String message;

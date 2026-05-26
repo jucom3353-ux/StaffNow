@@ -9,20 +9,25 @@ import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.ApplicationRepository;
 import com.example.demo.repository.JobPostRepository;
+import com.example.demo.repository.PayrollRepository;
 import com.example.demo.repository.UserRepository;
 import com.example.demo.repository.WorkAttendanceRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
+import java.time.DayOfWeek;
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class WorkAttendanceService {
@@ -32,6 +37,7 @@ public class WorkAttendanceService {
     private final JobPostRepository jobPostRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final PayrollRepository payrollRepository;
 
     private static final int EARLY_THRESHOLD_MINUTES = 10;
     private static final double EARLY_TEMPERATURE_BONUS = 0.1;
@@ -139,6 +145,9 @@ public class WorkAttendanceService {
                 "[" + application.getJobPost().getTitle() + "] 퇴근이 확인되었습니다.",
                 saved.getId()
         );
+
+        // 퇴근 시 정산 자동 생성
+        autoGeneratePayroll(saved, loginUser);
 
         return new WorkAttendanceResponseDto(saved);
     }
@@ -359,5 +368,67 @@ public class WorkAttendanceService {
                 * Math.sin(dLng / 2) * Math.sin(dLng / 2);
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
+    }
+
+    // 퇴근 시 정산 자동 생성
+    private void autoGeneratePayroll(WorkAttendance attendance, User worker) {
+        try {
+            Application application = attendance.getApplication();
+            JobPost jobPost = application.getJobPost();
+
+            if (jobPost.getWageType() != WageType.HOURLY) return;
+
+            if (attendance.getCheckInTime() == null ||
+                attendance.getCheckOutTime() == null) return;
+
+            String weekStart = attendance.getCheckInTime()
+                    .toLocalDate()
+                    .with(DayOfWeek.MONDAY)
+                    .toString();
+
+            if (payrollRepository.findByWorkerAndJobPostAndWorkWeekStart(
+                    worker, jobPost, weekStart).isPresent()) return;
+
+            double workHours = Duration.between(
+                    attendance.getCheckInTime(),
+                    attendance.getCheckOutTime()).toMinutes() / 60.0;
+
+            int hourlyWage = jobPost.getWageAmount();
+            int basicPay = (int) (workHours * hourlyWage);
+            int totalPay = basicPay;
+            int netPay = (int) Math.floor(totalPay * 0.967);
+
+            String weekEnd = attendance.getCheckInTime()
+                    .toLocalDate()
+                    .with(DayOfWeek.SUNDAY)
+                    .toString();
+
+            Payroll payroll = new Payroll();
+            payroll.setWorker(worker);
+            payroll.setJobPost(jobPost);
+            payroll.setWorkWeekStart(weekStart);
+            payroll.setWorkWeekEnd(weekEnd);
+            payroll.setTotalWorkHours(workHours);
+            payroll.setHourlyWage(hourlyWage);
+            payroll.setBasicPay(basicPay);
+            payroll.setHolidayPay(0);
+            payroll.setTotalPay(totalPay);
+            payroll.setNetPay(netPay);
+            payroll.setHolidayPayApplied(false);
+            payroll.setDeadlineAt(LocalDateTime.now().plusDays(14));
+            payrollRepository.save(payroll);
+
+            notificationService.send(
+                    worker,
+                    NotificationType.PAYROLL_CREATED,
+                    "[" + jobPost.getTitle() + "] 정산이 자동 생성되었습니다. " +
+                    "총 " + totalPay + "원 (실수령 " + netPay + "원)",
+                    payroll.getId()
+            );
+
+        } catch (Exception e) {
+            log.warn("정산 자동 생성 실패: attendanceId={}, error={}",
+                    attendance.getId(), e.getMessage());
+        }
     }
 }

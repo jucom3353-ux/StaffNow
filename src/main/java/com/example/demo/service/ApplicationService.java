@@ -13,6 +13,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -137,8 +139,20 @@ public class ApplicationService {
         if (!application.getUser().getId().equals(loginUser.getId())) {
             throw new CustomException(ErrorCode.NOT_MY_APPLICATION);
         }
+
         if (application.getStatus() == ApplicationStatus.COMPLETED) {
             throw new CustomException(ErrorCode.APPLICATION_CANCEL_NOT_ALLOWED);
+        }
+
+        // 48시간 취소 제한
+        if (application.getCreatedAt() != null) {
+            long hoursElapsed = Duration.between(
+                    application.getCreatedAt(),
+                    LocalDateTime.now()).toHours();
+
+            if (hoursElapsed > 48) {
+                throw new CustomException(ErrorCode.APPLICATION_CANCEL_TIME_EXCEEDED);
+            }
         }
 
         applicationRepository.delete(application);

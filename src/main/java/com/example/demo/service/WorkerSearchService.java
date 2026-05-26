@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import com.example.demo.dto.WorkerSearchResponseDto;
+import com.example.demo.entity.Gender;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
 import com.example.demo.exception.CustomException;
@@ -19,22 +20,38 @@ public class WorkerSearchService {
 
     @Transactional(readOnly = true)
     public Page<WorkerSearchResponseDto> searchWorkers(
-            String name, double minRating, int maxNoShow,
-            String activityRegion, String mbti, Boolean availableAlways,
-            String sort, int page, int size, Long blockerId) {
-
-        Pageable pageable = PageRequest.of(page, size);
+            String name,
+            double minRating,
+            int maxNoShow,
+            String activityRegion,
+            String mbti,
+            Boolean availableAlways,
+            Gender gender,
+            Integer minAge,
+            Integer maxAge,
+            String timeType,
+            String sort,
+            int page,
+            int size,
+            Long blockerId) {
 
         if (sort != null && sort.equals("noShow")) {
-            Pageable noShowPageable = PageRequest.of(page, size,
+            Pageable pageable = PageRequest.of(page, size,
                     Sort.by(Sort.Direction.ASC, "noShowCount"));
-            return userRepository.findWorkers(Role.INDIVIDUAL, name, minRating, maxNoShow,
-                    activityRegion, mbti, availableAlways, blockerId, noShowPageable)
+            return userRepository.findWorkers(
+                    Role.INDIVIDUAL, name, minRating, maxNoShow,
+                    activityRegion, mbti, availableAlways,
+                    gender, minAge, maxAge, timeType,
+                    blockerId, pageable)
                     .map(WorkerSearchResponseDto::new);
         }
 
-        return userRepository.findWorkersWithTopRecommended(Role.INDIVIDUAL, name, minRating,
-                maxNoShow, activityRegion, mbti, availableAlways, blockerId, pageable)
+        Pageable pageable = PageRequest.of(page, size);
+        return userRepository.findWorkersWithTopRecommended(
+                Role.INDIVIDUAL, name, minRating, maxNoShow,
+                activityRegion, mbti, availableAlways,
+                gender, minAge, maxAge, timeType,
+                blockerId, pageable)
                 .map(WorkerSearchResponseDto::new);
     }
 

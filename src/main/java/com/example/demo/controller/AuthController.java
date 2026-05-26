@@ -8,6 +8,7 @@ import com.example.demo.entity.User;
 import com.example.demo.jwt.JwtUtil;
 import com.example.demo.repository.RefreshTokenRepository;
 import com.example.demo.repository.UserRepository;
+import com.example.demo.service.TwoFactorAuthService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,6 +18,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,15 +34,18 @@ public class AuthController {
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
+    private final TwoFactorAuthService twoFactorAuthService;
 
     public AuthController(
             UserRepository userRepository,
             RefreshTokenRepository refreshTokenRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            TwoFactorAuthService twoFactorAuthService
     ) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = passwordEncoder;
+        this.twoFactorAuthService = twoFactorAuthService;
     }
 
     @Operation(summary = "로그인")
@@ -59,34 +65,54 @@ public class AuthController {
             throw new RuntimeException("정지된 계정입니다.");
         }
 
-        String accessToken = JwtUtil.createToken(user.getId(), user.getRole().name());
-        String refreshTokenValue = UUID.randomUUID().toString();
+        // 역할별 2단계 인증 적용
+        boolean requireTwoFactor = switch (user.getRole()) {
+            case ADMIN -> true;                           // 강제
+            case COMPANY -> user.isTwoFactorEnabled();    // 선택
+            case INDIVIDUAL -> user.isTwoFactorEnabled(); // 선택
+            default -> false;
+        };
 
-        // ✅ 기존 토큰 블랙리스트 처리 후 새 토큰 발급
-        refreshTokenRepository.findByUserId(user.getId())
-                .ifPresent(existing -> {
-                    existing.setBlacklisted(true);
-                    refreshTokenRepository.save(existing);
-                });
-
-        RefreshToken refreshToken = new RefreshToken();
-        refreshToken.setUserId(user.getId());
-        refreshToken.setRefreshToken(refreshTokenValue);
-        refreshToken.setExpiredAt(LocalDateTime.now().plusDays(7));
-        refreshToken.setBlacklisted(false);
-        refreshTokenRepository.save(refreshToken);
-
-        setAccessCookie(response, accessToken);
-        setRefreshCookie(response, refreshTokenValue);
+        if (requireTwoFactor) {
+            twoFactorAuthService.sendCode(user);
+            return ResponseEntity.ok(ApiResponse.ok("2단계 인증 코드가 발송되었습니다."));
+        }
 
         return ResponseEntity.ok(ApiResponse.ok("로그인 완료",
-                new LoginResponseDto(
-                        user.getRole().name(),
-                        user.getName(),
-                        user.getEmail(),
-                        user.getPhone(),
-                        user.getMbti()
-                )));
+                issueTokens(user, response)));
+    }
+
+    @Operation(summary = "2단계 인증 코드 검증 후 로그인")
+    @PostMapping("/2fa/verify-login")
+    public ResponseEntity<ApiResponse<?>> verifyTwoFactorLogin(
+            @RequestParam String email,
+            @RequestParam String code,
+            HttpServletResponse response
+    ) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("사용자 없음"));
+
+        twoFactorAuthService.verifyCode(user, code);
+
+        return ResponseEntity.ok(ApiResponse.ok("로그인 완료",
+                issueTokens(user, response)));
+    }
+
+    @Operation(summary = "2단계 인증 코드 재발송")
+    @PostMapping("/2fa/send")
+    public ResponseEntity<ApiResponse<?>> sendTwoFactorCode(
+            @RequestParam String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("사용자 없음"));
+        twoFactorAuthService.sendCode(user);
+        return ResponseEntity.ok(ApiResponse.ok("인증 코드 발송 완료"));
+    }
+
+    @Operation(summary = "2단계 인증 활성화/비활성화 토글")
+    @PatchMapping("/2fa/toggle")
+    public ResponseEntity<ApiResponse<?>> toggleTwoFactor() {
+        twoFactorAuthService.toggleTwoFactor(getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("2단계 인증 설정 변경 완료"));
     }
 
     @Operation(summary = "Access Token 재발급")
@@ -103,12 +129,10 @@ public class AuthController {
                 .findByRefreshToken(refreshTokenValue)
                 .orElseThrow(() -> new RuntimeException("Refresh Token 없음"));
 
-        // ✅ 블랙리스트 체크
         if (refreshToken.isBlacklisted()) {
             throw new RuntimeException("이미 사용된 Refresh Token입니다.");
         }
 
-        // ✅ 만료 체크
         if (refreshToken.getExpiredAt() != null
                 && refreshToken.getExpiredAt().isBefore(LocalDateTime.now())) {
             throw new RuntimeException("Refresh Token이 만료되었습니다.");
@@ -117,32 +141,11 @@ public class AuthController {
         User user = userRepository.findById(refreshToken.getUserId())
                 .orElseThrow(() -> new RuntimeException("사용자 없음"));
 
-        // ✅ Rotation: 기존 토큰 블랙리스트 처리
         refreshToken.setBlacklisted(true);
         refreshTokenRepository.save(refreshToken);
 
-        // ✅ 새 토큰 발급
-        String newAccessToken = JwtUtil.createToken(user.getId(), user.getRole().name());
-        String newRefreshTokenValue = UUID.randomUUID().toString();
-
-        RefreshToken newRefreshToken = new RefreshToken();
-        newRefreshToken.setUserId(user.getId());
-        newRefreshToken.setRefreshToken(newRefreshTokenValue);
-        newRefreshToken.setExpiredAt(LocalDateTime.now().plusDays(7));
-        newRefreshToken.setBlacklisted(false);
-        refreshTokenRepository.save(newRefreshToken);
-
-        setAccessCookie(response, newAccessToken);
-        setRefreshCookie(response, newRefreshTokenValue);
-
         return ResponseEntity.ok(ApiResponse.ok("토큰 재발급 완료",
-                new LoginResponseDto(
-                        user.getRole().name(),
-                        user.getName(),
-                        user.getEmail(),
-                        user.getPhone(),
-                        user.getMbti()
-                )));
+                issueTokens(user, response)));
     }
 
     @Operation(summary = "로그아웃")
@@ -154,7 +157,6 @@ public class AuthController {
         if (refreshTokenValue != null) {
             refreshTokenRepository.findByRefreshToken(refreshTokenValue)
                     .ifPresent(rt -> {
-                        // ✅ 삭제 대신 블랙리스트 처리
                         rt.setBlacklisted(true);
                         refreshTokenRepository.save(rt);
                     });
@@ -166,15 +168,49 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.ok("로그아웃 완료"));
     }
 
-    // ✅ 만료 토큰 정리 스케줄러 - SubscriptionScheduler에 추가하거나 별도 클래스
-    // @Scheduled(cron = "0 0 3 * * *") → 매일 새벽 3시
-    // refreshTokenRepository.deleteExpiredTokens(LocalDateTime.now());
+    // ===== private 헬퍼 =====
+
+    private LoginResponseDto issueTokens(User user, HttpServletResponse response) {
+
+        String accessToken = JwtUtil.createToken(user.getId(), user.getRole().name());
+        String refreshTokenValue = UUID.randomUUID().toString();
+
+        refreshTokenRepository.findByUserId(user.getId())
+                .ifPresent(existing -> {
+                    existing.setBlacklisted(true);
+                    refreshTokenRepository.save(existing);
+                });
+
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setUserId(user.getId());
+        refreshToken.setRefreshToken(refreshTokenValue);
+        refreshToken.setExpiredAt(LocalDateTime.now().plusDays(7));
+        refreshToken.setBlacklisted(false);
+        refreshTokenRepository.save(refreshToken);
+
+        setAccessCookie(response, accessToken);
+        setRefreshCookie(response, refreshTokenValue);
+
+        return new LoginResponseDto(
+                user.getRole().name(),
+                user.getName(),
+                user.getEmail(),
+                user.getPhone(),
+                user.getMbti()
+        );
+    }
+
+    private User getLoginUser() {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+        return (User) authentication.getPrincipal();
+    }
 
     private void setAccessCookie(HttpServletResponse response, String token) {
         Cookie cookie = new Cookie("access_token", token);
         cookie.setHttpOnly(true);
         cookie.setPath("/");
-        cookie.setMaxAge(60 * 60); // 1시간
+        cookie.setMaxAge(60 * 60);
         response.addCookie(cookie);
     }
 
@@ -182,7 +218,7 @@ public class AuthController {
         Cookie cookie = new Cookie("refresh_token", token);
         cookie.setHttpOnly(true);
         cookie.setPath("/");
-        cookie.setMaxAge(60 * 60 * 24 * 7); // 7일
+        cookie.setMaxAge(60 * 60 * 24 * 7);
         response.addCookie(cookie);
     }
 
