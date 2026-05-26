@@ -103,4 +103,29 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
     @Modifying
     @Query("UPDATE JobPost j SET j.viewCount = j.viewCount + 1 WHERE j.id = :id")
     void incrementViewCount(@Param("id") Long id);
+
+    // 자동완성 - 공고명
+    @Query("SELECT DISTINCT j.title FROM JobPost j " +
+           "WHERE j.title LIKE %:keyword% " +
+           "AND j.postStatus = 'OPEN' " +
+           "ORDER BY j.viewCount DESC")
+    List<String> findTitleSuggestions(
+            @Param("keyword") String keyword,
+            Pageable pageable);
+
+    // 자동완성 - 지역
+    @Query("SELECT DISTINCT j.workLocation FROM JobPost j " +
+           "WHERE j.workLocation LIKE %:keyword% " +
+           "AND j.postStatus = 'OPEN'")
+    List<String> findLocationSuggestions(
+            @Param("keyword") String keyword,
+            Pageable pageable);
+
+    // 자동완성 - 기업명
+    @Query("SELECT DISTINCT j.user.companyName FROM JobPost j " +
+           "WHERE j.user.companyName LIKE %:keyword% " +
+           "AND j.postStatus = 'OPEN'")
+    List<String> findCompanyNameSuggestions(
+            @Param("keyword") String keyword,
+            Pageable pageable);
 }
