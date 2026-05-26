@@ -58,6 +58,25 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
     );
 
     @Query("SELECT j FROM JobPost j WHERE j.postStatus = 'OPEN' " +
+           "AND j.deadline >= :today " +
+           "AND j.deadline <= :threeDaysLater " +
+           "ORDER BY j.deadline ASC")
+    List<JobPost> findUrgentJobPosts(
+            @Param("today") String today,
+            @Param("threeDaysLater") String threeDaysLater
+    );
+
+    @Query("SELECT j FROM JobPost j WHERE j.postStatus = 'OPEN' " +
+           "AND j.deadline >= :today " +
+           "AND j.deadline <= :threeDaysLater " +
+           "ORDER BY j.deadline ASC")
+    Page<JobPost> findUrgentJobPostsWithPage(
+            @Param("today") String today,
+            @Param("threeDaysLater") String threeDaysLater,
+            Pageable pageable
+    );
+
+    @Query("SELECT j FROM JobPost j WHERE j.postStatus = 'OPEN' " +
            "AND j.workLocation LIKE %:region% ORDER BY j.createdAt DESC")
     List<JobPost> findOpenByRegion(@Param("region") String region);
 

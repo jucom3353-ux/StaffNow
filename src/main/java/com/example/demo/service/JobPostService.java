@@ -26,22 +26,29 @@ public class JobPostService {
     private final ApplicationRepository applicationRepository;
     private final JobCategoryRepository jobCategoryRepository;
     private final JobPostViewHistoryRepository jobPostViewHistoryRepository;
+    private final SubscriptionService subscriptionService;
 
     public JobPostService(
             JobPostRepository jobPostRepository,
             ApplicationRepository applicationRepository,
             JobCategoryRepository jobCategoryRepository,
-            JobPostViewHistoryRepository jobPostViewHistoryRepository) {
+            JobPostViewHistoryRepository jobPostViewHistoryRepository,
+            SubscriptionService subscriptionService) {
         this.jobPostRepository = jobPostRepository;
         this.applicationRepository = applicationRepository;
         this.jobCategoryRepository = jobCategoryRepository;
         this.jobPostViewHistoryRepository = jobPostViewHistoryRepository;
+        this.subscriptionService = subscriptionService;
     }
 
     @Transactional
     public void createJobPost(JobPostCreateRequestDto requestDto, User loginUser) {
         if (loginUser.getRole() != Role.COMPANY) {
             throw new CustomException(ErrorCode.COMPANY_ONLY);
+        }
+
+        if (!subscriptionService.canPostJob(loginUser)) {
+            throw new CustomException(ErrorCode.JOB_POST_LIMIT_EXCEEDED);
         }
 
         validateDeadline(requestDto.getDeadline());
@@ -71,7 +78,8 @@ public class JobPostService {
                 title, workLocation, PostStatus.OPEN, categoryId, companyName, pageable);
 
         List<JobPostResponseDto> posts = result.getContent().stream()
-                .map(post -> new JobPostResponseDto(post, applicationRepository.countByJobPost(post)))
+                .map(post -> new JobPostResponseDto(post,
+                        applicationRepository.countByJobPost(post)))
                 .collect(Collectors.toList());
 
         return new JobPostPageResponseDto(posts, result.getNumber(),
@@ -83,8 +91,30 @@ public class JobPostService {
                                                  PostStatus postStatus) {
         return jobPostRepository.searchJobPosts(title, workLocation, postStatus, null, null)
                 .stream()
-                .map(post -> new JobPostResponseDto(post, applicationRepository.countByJobPost(post)))
+                .map(post -> new JobPostResponseDto(post,
+                        applicationRepository.countByJobPost(post)))
                 .collect(Collectors.toList());
+    }
+
+    // 급구 공고 조회
+    @Transactional(readOnly = true)
+    public JobPostPageResponseDto getUrgentJobPosts(int page, int size) {
+        String today = LocalDate.now().toString();
+        String threeDaysLater = LocalDate.now().plusDays(3).toString();
+
+        Pageable pageable = PageRequest.of(page, size,
+                Sort.by(Sort.Direction.ASC, "deadline"));
+
+        Page<JobPost> result = jobPostRepository.findUrgentJobPostsWithPage(
+                today, threeDaysLater, pageable);
+
+        List<JobPostResponseDto> posts = result.getContent().stream()
+                .map(post -> new JobPostResponseDto(post,
+                        applicationRepository.countByJobPost(post)))
+                .collect(Collectors.toList());
+
+        return new JobPostPageResponseDto(posts, result.getNumber(),
+                result.getTotalPages(), result.getTotalElements(), result.getSize());
     }
 
     @Transactional
@@ -137,7 +167,8 @@ public class JobPostService {
                 : jobPostRepository.findByUser(loginUser);
 
         return posts.stream()
-                .map(post -> new JobPostResponseDto(post, applicationRepository.countByJobPost(post)))
+                .map(post -> new JobPostResponseDto(post,
+                        applicationRepository.countByJobPost(post)))
                 .collect(Collectors.toList());
     }
 
@@ -255,7 +286,8 @@ public class JobPostService {
                 : jobPostRepository.findPopularJobPosts(pageable);
 
         return posts.stream()
-                .map(post -> new JobPostResponseDto(post, applicationRepository.countByJobPost(post)))
+                .map(post -> new JobPostResponseDto(post,
+                        applicationRepository.countByJobPost(post)))
                 .collect(Collectors.toList());
     }
 
@@ -270,7 +302,8 @@ public class JobPostService {
                 : jobPostRepository.findAll();
 
         return posts.stream()
-                .map(post -> new JobPostResponseDto(post, applicationRepository.countByJobPost(post)))
+                .map(post -> new JobPostResponseDto(post,
+                        applicationRepository.countByJobPost(post)))
                 .collect(Collectors.toList());
     }
 

@@ -44,6 +44,8 @@ public enum ErrorCode {
     ADMIN_DELETE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "관리자 계정은 삭제할 수 없습니다."),
     CATEGORY_REQUIRED(HttpStatus.BAD_REQUEST, "공고에 카테고리가 설정되어 있지 않습니다."),
     WORK_NOT_COMPLETED(HttpStatus.BAD_REQUEST, "근무 완료 후에만 리뷰 작성 가능합니다."),
+    JOB_POST_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "공고 등록 가능 횟수를 초과했습니다."),
+    INVITATION_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "초대 가능 인원을 초과했습니다."),
 
     // 403 Forbidden
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
@@ -91,6 +93,7 @@ public enum ErrorCode {
     SCRAP_NOT_FOUND(HttpStatus.NOT_FOUND, "스크랩을 찾을 수 없습니다."),
     MEMO_NOT_FOUND(HttpStatus.NOT_FOUND, "메모를 찾을 수 없습니다."),
     QUESTION_NOT_FOUND(HttpStatus.NOT_FOUND, "사전질문을 찾을 수 없습니다."),
+    PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "결제 내역을 찾을 수 없습니다."),
 
 
     // 409 Conflict
