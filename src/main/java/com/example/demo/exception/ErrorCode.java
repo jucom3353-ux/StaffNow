@@ -87,6 +87,10 @@ public enum ErrorCode {
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "댓글을 찾을 수 없습니다."),
     BANNER_NOT_FOUND(HttpStatus.NOT_FOUND, "배너를 찾을 수 없습니다."),
     POPUP_NOT_FOUND(HttpStatus.NOT_FOUND, "팝업을 찾을 수 없습니다."),
+    ALREADY_SCRAPPED(HttpStatus.CONFLICT, "이미 스크랩한 인재입니다."),
+    SCRAP_NOT_FOUND(HttpStatus.NOT_FOUND, "스크랩을 찾을 수 없습니다."),
+    MEMO_NOT_FOUND(HttpStatus.NOT_FOUND, "메모를 찾을 수 없습니다."),
+    QUESTION_NOT_FOUND(HttpStatus.NOT_FOUND, "사전질문을 찾을 수 없습니다."),
 
 
     // 409 Conflict
@@ -105,6 +109,8 @@ public enum ErrorCode {
     ALREADY_INVITED(HttpStatus.CONFLICT, "이미 초대한 근로자입니다."),
     ALREADY_REVIEWED(HttpStatus.CONFLICT, "이미 리뷰 작성 완료입니다."),
     ALREADY_SKILL(HttpStatus.CONFLICT, "이미 등록된 스킬입니다."),
+    BLACKLIST_NOT_FOUND(HttpStatus.NOT_FOUND, "채용부적합 내역을 찾을 수 없습니다."),
+    ALREADY_BLACKLISTED(HttpStatus.CONFLICT, "이미 채용부적합으로 등록된 인재입니다."),
 
     // 500 Internal Server Error
     FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "파일 업로드에 실패했습니다."),

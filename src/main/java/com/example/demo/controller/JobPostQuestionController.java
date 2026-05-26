@@ -1,0 +1,64 @@
+package com.example.demo.controller;
+
+import com.example.demo.dto.ApiResponse;
+import com.example.demo.dto.JobPostQuestionAnswerRequestDto;
+import com.example.demo.dto.JobPostQuestionRequestDto;
+import com.example.demo.entity.User;
+import com.example.demo.service.JobPostQuestionService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+
+@Tag(name = "사전질문 API")
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/job-posts")
+public class JobPostQuestionController {
+
+    private final JobPostQuestionService jobPostQuestionService;
+
+    @Operation(summary = "사전질문 등록/수정 (기업)")
+    @PutMapping("/{jobPostId}/questions")
+    public ResponseEntity<ApiResponse<?>> saveQuestions(
+            @PathVariable Long jobPostId,
+            @RequestBody JobPostQuestionRequestDto requestDto) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                jobPostQuestionService.saveQuestions(
+                        jobPostId, requestDto, getLoginUser())));
+    }
+
+    @Operation(summary = "사전질문 조회")
+    @GetMapping("/{jobPostId}/questions")
+    public ResponseEntity<ApiResponse<?>> getQuestions(@PathVariable Long jobPostId) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                jobPostQuestionService.getQuestions(jobPostId)));
+    }
+
+    @Operation(summary = "사전질문 답변 제출 (지원자)")
+    @PostMapping("/applications/{applicationId}/answers")
+    public ResponseEntity<ApiResponse<?>> submitAnswers(
+            @PathVariable Long applicationId,
+            @RequestBody JobPostQuestionAnswerRequestDto requestDto) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                jobPostQuestionService.submitAnswers(
+                        applicationId, requestDto, getLoginUser())));
+    }
+
+    @Operation(summary = "지원자 답변 조회 (기업)")
+    @GetMapping("/applications/{applicationId}/answers")
+    public ResponseEntity<ApiResponse<?>> getAnswers(
+            @PathVariable Long applicationId) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                jobPostQuestionService.getAnswers(applicationId, getLoginUser())));
+    }
+
+    private User getLoginUser() {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+        return (User) authentication.getPrincipal();
+    }
+}
