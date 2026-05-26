@@ -18,16 +18,13 @@ import java.util.List;
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
 
     boolean existsByUserAndJobPost(User user, JobPost jobPost);
-
     int countByJobPost(JobPost jobPost);
-
     Page<Application> findByUser(User user, Pageable pageable);
-
     List<Application> findByJobPost(JobPost jobPost);
-
     List<Application> findByJobPostAndStatus(JobPost jobPost, ApplicationStatus status);
-
     int countByUserAndStatus(User user, ApplicationStatus status);
+    List<Application> findByStatus(ApplicationStatus status);
+    long countByStatus(ApplicationStatus status);
 
     @Query("SELECT COUNT(a) FROM Application a WHERE a.jobPost.user = :company AND a.status = :status")
     int countByCompanyAndStatus(
@@ -37,9 +34,6 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     @Query("SELECT COUNT(a) FROM Application a WHERE a.jobPost.user = :company")
     int countByCompany(@Param("company") User company);
 
-    List<Application> findByStatus(ApplicationStatus status);
-
-    // 결근 대상 조회 (스케줄러용)
     @Query("SELECT a FROM Application a " +
            "WHERE a.status = 'APPROVED' " +
            "AND a.workSession IS NOT NULL " +
@@ -49,7 +43,6 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
            ")")
     List<Application> findAbsentApplications(@Param("today") String today);
 
-    // 추가: 직무별 지원자 수 (REJECTED 제외)
     @Query("SELECT COUNT(a) FROM Application a " +
            "WHERE a.jobPostRole = :jobPostRole " +
            "AND a.status != :status")

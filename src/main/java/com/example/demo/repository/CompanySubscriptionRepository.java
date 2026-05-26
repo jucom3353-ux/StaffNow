@@ -16,11 +16,10 @@ import java.util.Optional;
 public interface CompanySubscriptionRepository extends JpaRepository<CompanySubscription, Long> {
 
     Optional<CompanySubscription> findByCompanyAndStatus(User company, SubscriptionStatus status);
-
     List<CompanySubscription> findByStatusAndExpiredAtBefore(
             SubscriptionStatus status, LocalDateTime now);
+    long countByStatus(SubscriptionStatus status);
 
-    // 만료 7일 전 대상 조회
     @Query("SELECT s FROM CompanySubscription s " +
            "WHERE s.status = :status " +
            "AND s.expiredAt BETWEEN :now AND :soon")

@@ -17,11 +17,10 @@ import java.util.List;
 public interface JobPostRepository extends JpaRepository<JobPost, Long> {
 
     List<JobPost> findByUser(User user);
-
     List<JobPost> findByPostStatus(PostStatus postStatus);
-
-    // ✅ 4번: getMyJobPosts DB 필터링
     List<JobPost> findByUserAndPostStatus(User user, PostStatus postStatus);
+    long countByPostStatus(PostStatus postStatus);
+    long countByUserAndPostStatusNot(User user, PostStatus postStatus);
 
     @Query("SELECT j FROM JobPost j WHERE " +
            "(:title IS NULL OR j.title LIKE %:title%) AND " +
@@ -82,7 +81,6 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
             Pageable pageable
     );
 
-    // ✅ 3번: 조회수 동시성 문제 해결
     @Modifying
     @Query("UPDATE JobPost j SET j.viewCount = j.viewCount + 1 WHERE j.id = :id")
     void incrementViewCount(@Param("id") Long id);

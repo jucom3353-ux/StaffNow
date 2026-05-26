@@ -65,6 +65,9 @@ public class JobPost {
     private Boolean mealProvided = false;
     private String uniformInfo;
 
+    private Boolean topExposure = false;  // 상단 노출
+    private Boolean urgentBadge = false;  // 급구 배지
+
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
@@ -112,6 +115,8 @@ public class JobPost {
     public String getManagerPhone() { return managerPhone; }
     public String getManagerEmail() { return managerEmail; }
     public String getManagerFax() { return managerFax; }
+    public Boolean getTopExposure() { return topExposure; }
+    public Boolean getUrgentBadge() { return urgentBadge; }
 
     public void setId(Long id) { this.id = id; }
     public void setTitle(String title) { this.title = title; }
@@ -147,4 +152,6 @@ public class JobPost {
     public void setManagerPhone(String managerPhone) { this.managerPhone = managerPhone; }
     public void setManagerEmail(String managerEmail) { this.managerEmail = managerEmail; }
     public void setManagerFax(String managerFax) { this.managerFax = managerFax; }
+    public void setTopExposure(Boolean topExposure) { this.topExposure = topExposure; }
+    public void setUrgentBadge(Boolean urgentBadge) { this.urgentBadge = urgentBadge; }
 }

@@ -17,18 +17,15 @@ import java.util.Optional;
 public interface PayrollRepository extends JpaRepository<Payroll, Long> {
 
     List<Payroll> findByWorker(User worker);
-
     List<Payroll> findByJobPost(JobPost jobPost);
+    List<Payroll> findByWorkerAndStatus(User worker, PayrollStatus status);
+    List<Payroll> findByJobPostAndStatus(JobPost jobPost, PayrollStatus status);
+    List<Payroll> findByStatus(PayrollStatus status);
+    long countByStatus(PayrollStatus status);
+    List<Payroll> findByStatusAndDeadlineAtBefore(PayrollStatus status, LocalDateTime dateTime);
 
     Optional<Payroll> findByWorkerAndJobPostAndWorkWeekStart(
             User worker, JobPost jobPost, String workWeekStart);
-
-    List<Payroll> findByWorkerAndStatus(User worker, PayrollStatus status);
-
-    List<Payroll> findByJobPostAndStatus(JobPost jobPost, PayrollStatus status);
-
-    // 추가: ADMIN 전용 상태별 조회
-    List<Payroll> findByStatus(PayrollStatus status);
 
     @Query("SELECT p FROM Payroll p WHERE p.worker = :worker " +
            "AND p.workWeekStart >= :startDate AND p.workWeekStart <= :endDate " +
@@ -72,5 +69,6 @@ public interface PayrollRepository extends JpaRepository<Payroll, Long> {
            "WHERE p.worker = :worker AND p.status = 'PAID'")
     int sumPaidEverByWorker(@Param("worker") User worker);
 
-    List<Payroll> findByStatusAndDeadlineAtBefore(PayrollStatus status, LocalDateTime dateTime);
+    @Query("SELECT COALESCE(SUM(p.totalPay), 0) FROM Payroll p WHERE p.status = 'PAID'")
+    long sumTotalPaidAmount();
 }

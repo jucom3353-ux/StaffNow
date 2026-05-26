@@ -27,4 +27,5 @@ public interface InvitationRepository extends JpaRepository<Invitation, Long> {
     @Modifying
     @Query("UPDATE Invitation i SET i.status = 'EXPIRED', i.updatedAt = CURRENT_TIMESTAMP WHERE i.status = 'PENDING' AND i.createdAt < :expiredTime")
     void expireOldInvitations(@Param("expiredTime") LocalDateTime expiredTime);
+    long countByCompany(User company);
 }

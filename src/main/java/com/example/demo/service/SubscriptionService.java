@@ -20,6 +20,8 @@ public class SubscriptionService {
     private final CompanySubscriptionRepository companySubscriptionRepository;
     private final ResumeViewHistoryRepository resumeViewHistoryRepository;
     private final UserRepository userRepository;
+    private final JobPostRepository jobPostRepository;
+    private final InvitationRepository invitationRepository;
 
     @Transactional(readOnly = true)
     public List<SubscriptionPlan> getPlans() {
@@ -110,6 +112,57 @@ public class SubscriptionService {
         resumeViewHistoryRepository.save(history);
 
         return subscription.isPresent();
+    }
+
+    // 공고 등록 가능 여부 체크
+    @Transactional(readOnly = true)
+    public boolean canPostJob(User loginUser) {
+        if (loginUser.getRole() != Role.COMPANY) {
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
+        }
+
+        CompanySubscription subscription = companySubscriptionRepository
+                .findByCompanyAndStatus(loginUser, SubscriptionStatus.ACTIVE)
+                .orElse(null);
+
+        // 구독 없으면 FREE 기준 1건
+        if (subscription == null) {
+            long currentPostCount = jobPostRepository.countByUserAndPostStatusNot(
+                    loginUser, PostStatus.CLOSED);
+            return currentPostCount < 1;
+        }
+
+        Integer jobPostLimit = subscription.getPlan().getJobPostLimit();
+
+        // null = 무제한
+        if (jobPostLimit == null) return true;
+
+        long currentPostCount = jobPostRepository.countByUserAndPostStatusNot(
+                loginUser, PostStatus.CLOSED);
+
+        return currentPostCount < jobPostLimit;
+    }
+
+    // 초대 가능 여부 체크
+    @Transactional(readOnly = true)
+    public boolean canInvite(User loginUser) {
+        if (loginUser.getRole() != Role.COMPANY) {
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
+        }
+
+        CompanySubscription subscription = companySubscriptionRepository
+                .findByCompanyAndStatus(loginUser, SubscriptionStatus.ACTIVE)
+                .orElse(null);
+
+        if (subscription == null) return false;
+
+        Integer invitationLimit = subscription.getPlan().getInvitationLimit();
+
+        // null = 무제한
+        if (invitationLimit == null) return true;
+
+        long currentInviteCount = invitationRepository.countByCompany(loginUser);
+        return currentInviteCount < invitationLimit;
     }
 
     @Transactional
