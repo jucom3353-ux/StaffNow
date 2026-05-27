@@ -26,6 +26,11 @@ public class UserResponseDto {
     private int referralCount;
     private Long companyId;        // MANAGER 소속 기업 ID
     private String companyUserName; // MANAGER 소속 기업명
+    private String emergencyContactName;
+    private String emergencyContactPhone;
+    private String emergencyContactRelation;
+    private String workAvailability;
+
 
     public UserResponseDto(User user) {
         this.id = user.getId();
@@ -47,6 +52,11 @@ public class UserResponseDto {
                 ? user.getBusinessLicenseStatus().name() : null;
         this.referralCode = user.getReferralCode();
         this.referralCount = user.getReferralCount();
+        this.emergencyContactName = user.getEmergencyContactName();
+        this.emergencyContactPhone = user.getEmergencyContactPhone();
+        this.emergencyContactRelation = user.getEmergencyContactRelation();
+        this.workAvailability = user.getWorkAvailability() != null
+                ? user.getWorkAvailability().name() : null;
         // MANAGER인 경우 소속 기업 정보 노출
         if (user.getCompany() != null) {
             this.companyId = user.getCompany().getId();

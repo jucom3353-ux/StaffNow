@@ -96,6 +96,10 @@ public class UserService {
         if (requestDto.getAddressDetail() != null) loginUser.setAddressDetail(requestDto.getAddressDetail());
         if (requestDto.getBio() != null) loginUser.setBio(requestDto.getBio());
         if (requestDto.getActivityRegion() != null) loginUser.setActivityRegion(requestDto.getActivityRegion());
+        if (requestDto.getEmergencyContactName() != null) loginUser.setEmergencyContactName(requestDto.getEmergencyContactName());
+        if (requestDto.getEmergencyContactPhone() != null) loginUser.setEmergencyContactPhone(requestDto.getEmergencyContactPhone());
+        if (requestDto.getEmergencyContactRelation() != null) loginUser.setEmergencyContactRelation(requestDto.getEmergencyContactRelation());
+        if (requestDto.getWorkAvailability() != null) loginUser.setWorkAvailability(requestDto.getWorkAvailability());
         userRepository.save(loginUser);
     }
 

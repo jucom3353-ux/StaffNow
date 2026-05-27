@@ -72,6 +72,9 @@ public class JobPost {
     private Double latitude;   // 위도
     private Double longitude;  // 경도
 
+    @Column(length = 500)
+    private String imageUrl;
+
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
@@ -123,6 +126,7 @@ public class JobPost {
     public Boolean getUrgentBadge() { return urgentBadge; }
     public Double getLatitude() { return latitude; }
     public Double getLongitude() { return longitude; }
+    public String getImageUrl() { return imageUrl; }
 
     public void setId(Long id) { this.id = id; }
     public void setTitle(String title) { this.title = title; }
@@ -162,4 +166,5 @@ public class JobPost {
     public void setUrgentBadge(Boolean urgentBadge) { this.urgentBadge = urgentBadge; }
     public void setLatitude(Double latitude) { this.latitude = latitude; }
     public void setLongitude(Double longitude) { this.longitude = longitude; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 }

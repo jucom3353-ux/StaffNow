@@ -264,6 +264,7 @@ public class JobPostService {
         copy.setManagerPhone(original.getManagerPhone());
         copy.setManagerEmail(original.getManagerEmail());
         copy.setManagerFax(original.getManagerFax());
+        copy.setImageUrl(original.getImageUrl());
         copy.setPostStatus(PostStatus.DRAFT);
         copy.setViewCount(0);
         copy.setUser(loginUser);
@@ -380,6 +381,9 @@ public class JobPostService {
                 post.setLongitude(coords[1]);
             }
         }
+
+        // 공고 이미지 (선택)
+        if (dto.getImageUrl() != null) post.setImageUrl(dto.getImageUrl());
     }
 
     private void validateDeadline(String deadline) {

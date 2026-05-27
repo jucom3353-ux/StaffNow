@@ -13,8 +13,8 @@ public class JobPostResponseDto {
     private String content;
     private String companyName;
     private String workLocation;
-    private Double latitude;   // 추가
-    private Double longitude;  // 추가
+    private Double latitude;
+    private Double longitude;
     private String startTime;
     private String endTime;
     private String breakTime;
@@ -50,6 +50,7 @@ public class JobPostResponseDto {
     private String managerPhone;
     private String managerEmail;
     private String managerFax;
+    private String imageUrl;
 
     public JobPostResponseDto(JobPost jobPost, int currentCount) {
         this.id = jobPost.getId();
@@ -98,6 +99,7 @@ public class JobPostResponseDto {
         this.managerPhone = jobPost.getManagerPhone();
         this.managerEmail = jobPost.getManagerEmail();
         this.managerFax = jobPost.getManagerFax();
+        this.imageUrl = jobPost.getImageUrl();
 
         if (jobPost.getDeadline() != null) {
             this.isDeadlined = LocalDate.parse(jobPost.getDeadline())

@@ -84,7 +84,7 @@ public class ApplicationService {
     }
 
     @Transactional
-    public void apply(Long jobPostId, Long jobPostRoleId, User loginUser) {
+    public void apply(Long jobPostId, Long jobPostRoleId, ApplyMethod applyMethod, User loginUser) {
         if (loginUser.getRole() != Role.INDIVIDUAL) {
             throw new CustomException(ErrorCode.WORKER_ONLY);
         }
@@ -133,6 +133,7 @@ public class ApplicationService {
         application.setJobPost(jobPost);
         application.setJobPostRole(jobPostRole);
         application.setStatus(ApplicationStatus.APPLIED);
+        application.setApplyMethod(applyMethod != null ? applyMethod : ApplyMethod.ONLINE);
         applicationRepository.save(application);
     }
 

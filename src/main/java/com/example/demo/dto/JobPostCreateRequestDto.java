@@ -67,4 +67,5 @@ public class JobPostCreateRequestDto {
     private String managerPhone;
     private String managerEmail;
     private String managerFax;
+    private String imageUrl;
 }

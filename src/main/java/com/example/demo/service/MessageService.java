@@ -5,6 +5,7 @@ import com.example.demo.dto.MessageRequestDto;
 import com.example.demo.dto.MessageResponseDto;
 import com.example.demo.entity.Message;
 import com.example.demo.entity.NotificationType;
+import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
@@ -37,6 +38,12 @@ public class MessageService {
 
         if (receiver.getId().equals(loginUser.getId())) {
             throw new CustomException(ErrorCode.SELF_MESSAGE_NOT_ALLOWED);
+        }
+
+        // 구직자 → 기업 메시지 차단
+        if (loginUser.getRole() == Role.INDIVIDUAL &&
+                (receiver.getRole() == Role.COMPANY || receiver.getRole() == Role.MANAGER)) {
+            throw new CustomException(ErrorCode.ACCESS_DENIED, "기업에게 먼저 메시지를 보낼 수 없습니다.");
         }
 
         Message message = new Message();

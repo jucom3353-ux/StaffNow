@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.entity.ApplicationStatus;
+import com.example.demo.entity.ApplyMethod;
 import com.example.demo.entity.User;
 import com.example.demo.service.ApplicationService;
 
@@ -24,12 +25,13 @@ public class ApplicationController {
 
     private final ApplicationService applicationService;
 
-    @Operation(summary = "공고 지원")
+    @Operation(summary = "공고 지원", description = "applyMethod: ONLINE(기본값), PHONE, MESSAGE")
     @PostMapping("/{jobPostId}")
     public ResponseEntity<ApiResponse<?>> createApplication(
             @PathVariable Long jobPostId,
-            @RequestParam Long jobPostRoleId) {
-        applicationService.apply(jobPostId, jobPostRoleId, getLoginUser());
+            @RequestParam Long jobPostRoleId,
+            @RequestParam(required = false) ApplyMethod applyMethod) {
+        applicationService.apply(jobPostId, jobPostRoleId, applyMethod, getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("지원 완료"));
     }
 
@@ -37,8 +39,7 @@ public class ApplicationController {
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<?>> getMyApplications(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
+            @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(ApiResponse.ok(
                 applicationService.getMyApplications(getLoginUser(), page, size)));
     }
@@ -55,8 +56,7 @@ public class ApplicationController {
     @GetMapping("/job-posts/{jobPostId}")
     public ResponseEntity<ApiResponse<?>> getApplications(
             @PathVariable Long jobPostId,
-            @RequestParam(required = false) ApplicationStatus status
-    ) {
+            @RequestParam(required = false) ApplicationStatus status) {
         return ResponseEntity.ok(ApiResponse.ok(
                 applicationService.getApplications(jobPostId, getLoginUser(), status)));
     }

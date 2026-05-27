@@ -38,6 +38,10 @@ public class Application {
         this.createdAt = LocalDateTime.now();
     }
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "apply_method")
+    private ApplyMethod applyMethod = ApplyMethod.ONLINE;
+
     public Long getId() { return id; }
     public User getUser() { return user; }
     public JobPost getJobPost() { return jobPost; }
@@ -45,10 +49,12 @@ public class Application {
     public JobPostRole getJobPostRole() { return jobPostRole; }
     public ApplicationStatus getStatus() { return status; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public ApplyMethod getApplyMethod() { return applyMethod; }
 
     public void setUser(User user) { this.user = user; }
     public void setJobPost(JobPost jobPost) { this.jobPost = jobPost; }
     public void setWorkSession(WorkSession workSession) { this.workSession = workSession; }
     public void setJobPostRole(JobPostRole jobPostRole) { this.jobPostRole = jobPostRole; }
     public void setStatus(ApplicationStatus status) { this.status = status; }
+    public void setApplyMethod(ApplyMethod applyMethod) { this.applyMethod = applyMethod; }
 }

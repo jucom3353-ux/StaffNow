@@ -4,9 +4,6 @@ import com.example.demo.entity.AuthProvider;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 
 @Entity
 @Table(name = "users")
@@ -74,6 +71,14 @@ public class User {
     @Column(length = 10)
     private String referredBy;
 
+    @Column(length = 50)
+    private String emergencyContactName;
+
+    @Column(length = 20)
+    private String emergencyContactPhone;
+
+    @Column(length = 20)
+    private String emergencyContactRelation;
 
     @Enumerated(EnumType.STRING)
     private AuthProvider provider = AuthProvider.LOCAL;
@@ -82,6 +87,10 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Gender gender;
     private Integer age;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "work_availability")
+    private WorkAvailability workAvailability = WorkAvailability.NEGOTIABLE;
 
     public Long getId() { return id; }
     public String getEmail() { return email; }
@@ -112,6 +121,11 @@ public class User {
     public String getReferredBy() { return referredBy; }
     public int getReferralCount() { return referralCount; }
     public User getCompany() { return company; }
+    public String getEmergencyContactName() { return emergencyContactName; }
+    public String getEmergencyContactPhone() { return emergencyContactPhone; }
+    public String getEmergencyContactRelation() { return emergencyContactRelation; }
+    public WorkAvailability getWorkAvailability() { return workAvailability; }
+
 
     public void setId(Long id) { this.id = id; }
     public void setEmail(String email) { this.email = email; }
@@ -143,4 +157,8 @@ public class User {
     public void setReferredBy(String referredBy) { this.referredBy = referredBy; }
     public void setReferralCount(int referralCount) { this.referralCount = referralCount; }
     public void setCompany(User company) { this.company = company; }
+    public void setEmergencyContactName(String emergencyContactName) { this.emergencyContactName = emergencyContactName; }
+    public void setEmergencyContactPhone(String emergencyContactPhone) { this.emergencyContactPhone = emergencyContactPhone; }
+    public void setEmergencyContactRelation(String emergencyContactRelation) { this.emergencyContactRelation = emergencyContactRelation; }
+    public void setWorkAvailability(WorkAvailability workAvailability) { this.workAvailability = workAvailability; }
 }
