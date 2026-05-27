@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import com.example.demo.dto.PasswordChangeRequestDto;
+import com.example.demo.dto.ReferralInfoResponse;
 import com.example.demo.dto.UserCreateRequestDto;
 import com.example.demo.dto.UserResponseDto;
 import com.example.demo.dto.UserUpdateRequestDto;
@@ -11,13 +12,17 @@ import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.RefreshTokenRepository;
 import com.example.demo.repository.UserRepository;
+import com.example.demo.service.CompanyInviteService;
+import com.example.demo.entity.CompanyInviteCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.util.List;
 import java.util.stream.Collectors;
+
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +31,23 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenRepository refreshTokenRepository;
+
+    private static final String CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    private static final int CODE_LENGTH = 6;
+
+    private final CompanyInviteService companyInviteService;
+
+    private String generateReferralCode() {
+        SecureRandom random = new SecureRandom();
+        StringBuilder code = new StringBuilder();
+        do {
+            code.setLength(0);
+            for (int i = 0; i < CODE_LENGTH; i++) {
+                code.append(CHARS.charAt(random.nextInt(CHARS.length())));
+            }
+        } while (userRepository.existsByReferralCode(code.toString()));
+        return code.toString();
+    }
 
     @Transactional
     public void createUser(UserCreateRequestDto requestDto) {
@@ -42,6 +64,23 @@ public class UserService {
         user.setRole(requestDto.getRole());
         user.setNoShowCount(0);
         user.setMbti(requestDto.getMbti());
+
+        // 추천 코드 자동 생성
+        user.setReferralCode(generateReferralCode());
+
+        // 추천인 코드 입력한 경우
+        if (requestDto.getReferralCode() != null && !requestDto.getReferralCode().isBlank()) {
+            userRepository.findByReferralCode(requestDto.getReferralCode())
+                .ifPresentOrElse(
+                    referrer -> {
+                        user.setReferredBy(requestDto.getReferralCode());
+                        referrer.incrementReferralCount();
+                        userRepository.save(referrer);
+                    },
+                    () -> { throw new CustomException(ErrorCode.INVALID_REFERRAL_CODE); }
+                );
+        }
+
         userRepository.save(user);
     }
 
@@ -187,5 +226,12 @@ public class UserService {
         refreshTokenRepository.findByUserId(target.getId())
                 .ifPresent(refreshTokenRepository::delete);
         userRepository.delete(target);
+    }
+
+    @Transactional(readOnly = true)
+    public ReferralInfoResponse getReferralInfo(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        return new ReferralInfoResponse(user.getReferralCode(), user.getReferralCount());
     }
 }

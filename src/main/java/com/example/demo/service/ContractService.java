@@ -25,16 +25,28 @@ public class ContractService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
-    @Transactional
-    public void createContract(ContractCreateRequestDto requestDto, User loginUser) {
-        if (loginUser.getRole() != Role.COMPANY) {
+    private void validateCompanyOrManager(User user) {
+        if (user.getRole() != Role.COMPANY && user.getRole() != Role.MANAGER) {
             throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
+    }
+
+    private boolean isMyJobPost(JobPost post, User loginUser) {
+        Long companyId = loginUser.getRole() == Role.MANAGER
+                ? loginUser.getCompany().getId()
+                : loginUser.getId();
+        return post.getUser().getId().equals(companyId) ||
+               post.getUser().getId().equals(loginUser.getId());
+    }
+
+    @Transactional
+    public void createContract(ContractCreateRequestDto requestDto, User loginUser) {
+        validateCompanyOrManager(loginUser);
 
         JobPost jobPost = jobPostRepository.findById(requestDto.getJobPostId())
                 .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
-        if (!jobPost.getUser().getId().equals(loginUser.getId())) {
+        if (!isMyJobPost(jobPost, loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
@@ -45,9 +57,12 @@ public class ContractService {
             throw new CustomException(ErrorCode.WORKER_ONLY);
         }
 
+        User companyUser = loginUser.getRole() == Role.MANAGER
+                ? loginUser.getCompany() : loginUser;
+
         Contract contract = new Contract();
         contract.setJobPost(jobPost);
-        contract.setCompany(loginUser);
+        contract.setCompany(companyUser);
         contract.setWorker(worker);
         contract.setContractStartDate(requestDto.getContractStartDate());
         contract.setContractEndDate(requestDto.getContractEndDate());
@@ -61,8 +76,10 @@ public class ContractService {
 
     @Transactional(readOnly = true)
     public List<ContractResponseDto> getMyContracts(User loginUser) {
-        if (loginUser.getRole() == Role.COMPANY) {
-            return contractRepository.findByCompany(loginUser).stream()
+        if (loginUser.getRole() == Role.COMPANY || loginUser.getRole() == Role.MANAGER) {
+            User companyUser = loginUser.getRole() == Role.MANAGER
+                    ? loginUser.getCompany() : loginUser;
+            return contractRepository.findByCompany(companyUser).stream()
                     .map(ContractResponseDto::new).collect(Collectors.toList());
         }
         return contractRepository.findByWorker(loginUser).stream()
@@ -74,7 +91,10 @@ public class ContractService {
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
 
-        if (!contract.getCompany().getId().equals(loginUser.getId()) &&
+        User companyUser = loginUser.getRole() == Role.MANAGER
+                ? loginUser.getCompany() : loginUser;
+
+        if (!contract.getCompany().getId().equals(companyUser.getId()) &&
             !contract.getWorker().getId().equals(loginUser.getId())) {
             throw new CustomException(ErrorCode.NOT_MY_CONTRACT);
         }
@@ -102,7 +122,10 @@ public class ContractService {
                     "다운로드 기간이 만료된 계약서입니다.");
         }
 
-        if (loginUser.getId().equals(contract.getCompany().getId())) {
+        User companyUser = loginUser.getRole() == Role.MANAGER
+                ? loginUser.getCompany() : loginUser;
+
+        if (companyUser.getId().equals(contract.getCompany().getId())) {
             if (contract.getCompanySignedAt() != null) {
                 throw new CustomException(ErrorCode.CONTRACT_ALREADY_SIGNED);
             }
@@ -136,14 +159,15 @@ public class ContractService {
 
     @Transactional
     public void cancelContract(Long contractId, User loginUser) {
-        if (loginUser.getRole() != Role.COMPANY) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
+        validateCompanyOrManager(loginUser);
 
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
 
-        if (!contract.getCompany().getId().equals(loginUser.getId())) {
+        User companyUser = loginUser.getRole() == Role.MANAGER
+                ? loginUser.getCompany() : loginUser;
+
+        if (!contract.getCompany().getId().equals(companyUser.getId())) {
             throw new CustomException(ErrorCode.NOT_MY_CONTRACT);
         }
         if (contract.getStatus() == ContractStatus.SIGNED) {
@@ -162,7 +186,10 @@ public class ContractService {
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
 
-        if (!contract.getCompany().getId().equals(loginUser.getId()) &&
+        User companyUser = loginUser.getRole() == Role.MANAGER
+                ? loginUser.getCompany() : loginUser;
+
+        if (!contract.getCompany().getId().equals(companyUser.getId()) &&
             !contract.getWorker().getId().equals(loginUser.getId())) {
             throw new CustomException(ErrorCode.NOT_MY_CONTRACT);
         }

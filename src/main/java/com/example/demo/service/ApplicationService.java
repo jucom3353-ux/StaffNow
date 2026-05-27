@@ -69,6 +69,20 @@ public class ApplicationService {
         this.companySubscriptionRepository = companySubscriptionRepository;
     }
 
+    private void validateCompanyOrManager(User user) {
+        if (user.getRole() != Role.COMPANY && user.getRole() != Role.MANAGER) {
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
+        }
+    }
+
+    private boolean isMyJobPost(JobPost post, User loginUser) {
+        Long companyId = loginUser.getRole() == Role.MANAGER
+                ? loginUser.getCompany().getId()
+                : loginUser.getId();
+        return post.getUser().getId().equals(companyId) ||
+               post.getUser().getId().equals(loginUser.getId());
+    }
+
     @Transactional
     public void apply(Long jobPostId, Long jobPostRoleId, User loginUser) {
         if (loginUser.getRole() != Role.INDIVIDUAL) {
@@ -144,12 +158,10 @@ public class ApplicationService {
             throw new CustomException(ErrorCode.APPLICATION_CANCEL_NOT_ALLOWED);
         }
 
-        // 48시간 취소 제한
         if (application.getCreatedAt() != null) {
             long hoursElapsed = Duration.between(
                     application.getCreatedAt(),
                     LocalDateTime.now()).toHours();
-
             if (hoursElapsed > 48) {
                 throw new CustomException(ErrorCode.APPLICATION_CANCEL_TIME_EXCEEDED);
             }
@@ -165,7 +177,7 @@ public class ApplicationService {
         JobPost jobPost = jobPostRepository.findById(jobPostId)
                 .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
-        if (!jobPost.getUser().getId().equals(loginUser.getId())) {
+        if (!isMyJobPost(jobPost, loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
@@ -192,7 +204,7 @@ public class ApplicationService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        if (!application.getJobPost().getUser().getId().equals(loginUser.getId())) {
+        if (!isMyJobPost(application.getJobPost(), loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
@@ -201,8 +213,11 @@ public class ApplicationService {
         List<Career> careers = resume != null
                 ? careerRepository.findByResume(resume) : List.of();
 
+        User companyUser = loginUser.getRole() == Role.MANAGER
+                ? loginUser.getCompany() : loginUser;
+
         boolean hasSubscription = companySubscriptionRepository
-                .findByCompanyAndStatus(loginUser, SubscriptionStatus.ACTIVE)
+                .findByCompanyAndStatus(companyUser, SubscriptionStatus.ACTIVE)
                 .isPresent();
 
         if (!hasSubscription) {
@@ -227,7 +242,7 @@ public class ApplicationService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        if (!application.getJobPost().getUser().getId().equals(loginUser.getId())) {
+        if (!isMyJobPost(application.getJobPost(), loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
         if (application.getStatus() != ApplicationStatus.APPLIED) {
@@ -253,9 +268,12 @@ public class ApplicationService {
 
         if (!contractExists) {
             JobPost jobPost = application.getJobPost();
+            User companyUser = loginUser.getRole() == Role.MANAGER
+                    ? loginUser.getCompany() : loginUser;
+
             Contract contract = new Contract();
             contract.setJobPost(jobPost);
-            contract.setCompany(loginUser);
+            contract.setCompany(companyUser);
             contract.setWorker(application.getUser());
             contract.setContractStartDate(
                     jobPost.getWorkStartDate() != null
@@ -280,7 +298,7 @@ public class ApplicationService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        if (!application.getJobPost().getUser().getId().equals(loginUser.getId())) {
+        if (!isMyJobPost(application.getJobPost(), loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
         if (application.getStatus() != ApplicationStatus.APPLIED) {
@@ -304,7 +322,7 @@ public class ApplicationService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        if (!application.getJobPost().getUser().getId().equals(loginUser.getId())) {
+        if (!isMyJobPost(application.getJobPost(), loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
         if (application.getStatus() == ApplicationStatus.COMPLETED) {
@@ -320,7 +338,7 @@ public class ApplicationService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        if (!application.getJobPost().getUser().getId().equals(loginUser.getId())) {
+        if (!isMyJobPost(application.getJobPost(), loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
         if (application.getStatus() == ApplicationStatus.NO_SHOW) {
@@ -353,7 +371,7 @@ public class ApplicationService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        if (!application.getJobPost().getUser().getId().equals(loginUser.getId())) {
+        if (!isMyJobPost(application.getJobPost(), loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
         if (application.getStatus() == ApplicationStatus.ABSENT) {

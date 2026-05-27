@@ -27,6 +27,20 @@ public class PayrollService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
+    private void validateCompanyOrManager(User user) {
+        if (user.getRole() != Role.COMPANY && user.getRole() != Role.MANAGER) {
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
+        }
+    }
+
+    private boolean isMyJobPost(JobPost post, User loginUser) {
+        Long companyId = loginUser.getRole() == Role.MANAGER
+                ? loginUser.getCompany().getId()
+                : loginUser.getId();
+        return post.getUser().getId().equals(companyId) ||
+               post.getUser().getId().equals(loginUser.getId());
+    }
+
     @Transactional
     public PayrollResponseDto createPayroll(
             Long applicationId, String weekStart, User loginUser) {
@@ -34,7 +48,7 @@ public class PayrollService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        if (!application.getJobPost().getUser().getId().equals(loginUser.getId())) {
+        if (!isMyJobPost(application.getJobPost(), loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
@@ -115,15 +129,12 @@ public class PayrollService {
 
     @Transactional
     public PayrollResponseDto confirmPayroll(Long payrollId, User loginUser) {
-
-        if (loginUser.getRole() != Role.COMPANY) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
+        validateCompanyOrManager(loginUser);
 
         Payroll payroll = payrollRepository.findById(payrollId)
                 .orElseThrow(() -> new CustomException(ErrorCode.PAYROLL_NOT_FOUND));
 
-        if (!payroll.getJobPost().getUser().getId().equals(loginUser.getId())) {
+        if (!isMyJobPost(payroll.getJobPost(), loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
@@ -147,15 +158,12 @@ public class PayrollService {
 
     @Transactional
     public PayrollResponseDto payPayroll(Long payrollId, User loginUser) {
-
-        if (loginUser.getRole() != Role.COMPANY) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
+        validateCompanyOrManager(loginUser);
 
         Payroll payroll = payrollRepository.findById(payrollId)
                 .orElseThrow(() -> new CustomException(ErrorCode.PAYROLL_NOT_FOUND));
 
-        if (!payroll.getJobPost().getUser().getId().equals(loginUser.getId())) {
+        if (!isMyJobPost(payroll.getJobPost(), loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
@@ -181,15 +189,12 @@ public class PayrollService {
     @Transactional
     public PayrollResponseDto rejectPayroll(
             Long payrollId, String rejectReason, User loginUser) {
-
-        if (loginUser.getRole() != Role.COMPANY) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
+        validateCompanyOrManager(loginUser);
 
         Payroll payroll = payrollRepository.findById(payrollId)
                 .orElseThrow(() -> new CustomException(ErrorCode.PAYROLL_NOT_FOUND));
 
-        if (!payroll.getJobPost().getUser().getId().equals(loginUser.getId())) {
+        if (!isMyJobPost(payroll.getJobPost(), loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
@@ -282,11 +287,12 @@ public class PayrollService {
     public Map<String, Object> getCompanyPayrollSummary(
             User loginUser, Long jobPostId, String yearMonth) {
 
-        if (loginUser.getRole() != Role.COMPANY) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
+        validateCompanyOrManager(loginUser);
 
-        List<JobPost> jobPosts = jobPostRepository.findByUser(loginUser);
+        User companyUser = loginUser.getRole() == Role.MANAGER
+                ? loginUser.getCompany() : loginUser;
+
+        List<JobPost> jobPosts = jobPostRepository.findByUser(companyUser);
 
         int totalPending = jobPosts.stream()
                 .mapToInt(jp -> payrollRepository
@@ -304,7 +310,7 @@ public class PayrollService {
                 .sum();
 
         List<Map<String, Object>> workerStats = payrollRepository
-                .sumTotalPayByWorker(loginUser)
+                .sumTotalPayByWorker(companyUser)
                 .stream()
                 .map(row -> {
                     User worker = (User) row[0];
@@ -321,14 +327,14 @@ public class PayrollService {
         if (jobPostId != null && yearMonth != null) {
             JobPost jobPost = jobPostRepository.findById(jobPostId)
                     .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
-            if (!jobPost.getUser().getId().equals(loginUser.getId())) {
+            if (!isMyJobPost(jobPost, loginUser)) {
                 throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
             }
             filtered = payrollRepository.findByJobPostAndMonth(jobPost, yearMonth);
         } else if (jobPostId != null) {
             JobPost jobPost = jobPostRepository.findById(jobPostId)
                     .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
-            if (!jobPost.getUser().getId().equals(loginUser.getId())) {
+            if (!isMyJobPost(jobPost, loginUser)) {
                 throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
             }
             filtered = payrollRepository.findByJobPost(jobPost);
@@ -358,8 +364,6 @@ public class PayrollService {
                 "payrolls", payrolls
         );
     }
-
-    // ===== ADMIN 전용 =====
 
     @Transactional(readOnly = true)
     public List<PayrollResponseDto> adminGetAllPayrolls(

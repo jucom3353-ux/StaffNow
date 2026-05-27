@@ -68,6 +68,10 @@ public class JobPost {
     private Boolean topExposure = false;  // 상단 노출
     private Boolean urgentBadge = false;  // 급구 배지
 
+    // 기존 필드들 아래에 추가
+    private Double latitude;   // 위도
+    private Double longitude;  // 경도
+
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
@@ -117,6 +121,8 @@ public class JobPost {
     public String getManagerFax() { return managerFax; }
     public Boolean getTopExposure() { return topExposure; }
     public Boolean getUrgentBadge() { return urgentBadge; }
+    public Double getLatitude() { return latitude; }
+    public Double getLongitude() { return longitude; }
 
     public void setId(Long id) { this.id = id; }
     public void setTitle(String title) { this.title = title; }
@@ -154,4 +160,6 @@ public class JobPost {
     public void setManagerFax(String managerFax) { this.managerFax = managerFax; }
     public void setTopExposure(Boolean topExposure) { this.topExposure = topExposure; }
     public void setUrgentBadge(Boolean urgentBadge) { this.urgentBadge = urgentBadge; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
 }

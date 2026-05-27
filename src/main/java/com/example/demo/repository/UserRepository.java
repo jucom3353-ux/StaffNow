@@ -23,6 +23,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findByBusinessLicenseStatus(BusinessLicenseStatus status);
     long countByRole(Role role);
     long countBySuspendedTrue();
+    List<User> findByCompanyId(Long companyId);
 
     @Query("SELECT u FROM User u WHERE u.role = :role " +
            "AND (:name IS NULL OR u.name LIKE %:name%) " +
@@ -96,4 +97,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("blockerId") Long blockerId,
             Pageable pageable
     );
+
+    // 추천 코드 관련
+    Optional<User> findByReferralCode(String referralCode);
+    boolean existsByReferralCode(String referralCode);
 }

@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.PasswordChangeRequestDto;
+import com.example.demo.dto.ReferralInfoResponse;
 import com.example.demo.dto.UserCreateRequestDto;
 import com.example.demo.dto.UserResponseDto;
 import com.example.demo.dto.UserUpdateRequestDto;
@@ -49,6 +50,14 @@ public class UserController {
                 ApiResponse.ok(new UserResponseDto(getLoginUser())));
     }
 
+    @Operation(summary = "내 추천 코드 조회", description = "내 추천 코드와 추천한 인원 수를 반환합니다.")
+    @GetMapping("/me/referral")
+    public ResponseEntity<ApiResponse<?>> getReferralInfo() {
+        User loginUser = getLoginUser();
+        return ResponseEntity.ok(
+                ApiResponse.ok(userService.getReferralInfo(loginUser.getEmail())));
+    }
+
     @Operation(summary = "내 프로필 수정")
     @PatchMapping("/me")
     public ResponseEntity<ApiResponse<?>> updateMe(
@@ -74,7 +83,6 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.ok("회원 탈퇴 완료"));
     }
 
-    // ✅ 사업자등록증 관련
     @Operation(summary = "사업자등록증 URL 등록")
     @PatchMapping("/me/business-license")
     public ResponseEntity<ApiResponse<?>> uploadBusinessLicense(

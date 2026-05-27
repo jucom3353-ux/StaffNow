@@ -58,7 +58,7 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/disputes/*/resolve").hasRole("ADMIN")
-                        .requestMatchers("/disputes").hasAnyRole("ADMIN", "COMPANY", "INDIVIDUAL")
+                        .requestMatchers("/disputes").hasAnyRole("ADMIN", "COMPANY", "MANAGER", "INDIVIDUAL")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)

@@ -31,4 +31,8 @@ public class UserCreateRequestDto {
     private Role role;
 
     private String mbti;
+
+    private String referralCode; // 추천인 코드 (선택)
+
+    private String inviteCode; // 담당자 초대 코드 (MANAGER 가입 시 필요)
 }

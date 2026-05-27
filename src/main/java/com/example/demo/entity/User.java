@@ -4,6 +4,9 @@ import com.example.demo.entity.AuthProvider;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 
 @Entity
 @Table(name = "users")
@@ -39,6 +42,10 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Role role;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id")
+    private User company;
+
     @Column(name = "no_show_count")
     private Integer noShowCount = 0;
 
@@ -58,7 +65,15 @@ public class User {
     @Column(name = "suspended")
     private Boolean suspended = false;
 
-    
+    @Column(unique = true, length = 10)
+    private String referralCode;
+
+    @Column(columnDefinition = "int default 0")
+    private int referralCount;
+
+    @Column(length = 10)
+    private String referredBy;
+
 
     @Enumerated(EnumType.STRING)
     private AuthProvider provider = AuthProvider.LOCAL;
@@ -93,6 +108,10 @@ public class User {
     public boolean isTwoFactorEnabled() { return twoFactorEnabled; }
     public Gender getGender() { return gender; }
     public Integer getAge() { return age; }
+    public String getReferralCode() { return referralCode; }
+    public String getReferredBy() { return referredBy; }
+    public int getReferralCount() { return referralCount; }
+    public User getCompany() { return company; }
 
     public void setId(Long id) { this.id = id; }
     public void setEmail(String email) { this.email = email; }
@@ -119,4 +138,9 @@ public class User {
     public void setTwoFactorEnabled(boolean twoFactorEnabled) { this.twoFactorEnabled = twoFactorEnabled; }
     public void setGender(Gender gender) { this.gender = gender; }
     public void setAge(Integer age) { this.age = age; }
+    public void incrementReferralCount() {    this.referralCount++;}
+    public void setReferralCode(String referralCode) { this.referralCode = referralCode; }
+    public void setReferredBy(String referredBy) { this.referredBy = referredBy; }
+    public void setReferralCount(int referralCount) { this.referralCount = referralCount; }
+    public void setCompany(User company) { this.company = company; }
 }

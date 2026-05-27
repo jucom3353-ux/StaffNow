@@ -20,6 +20,10 @@ public class JobPostCreateRequestDto {
     @NotBlank(message = "근무 지역을 입력하세요")
     private String workLocation;
 
+    // 좌표 추가
+    private Double latitude;
+    private Double longitude;
+
     private String startTime;
     private String endTime;
     private String breakTime;
@@ -53,10 +57,7 @@ public class JobPostCreateRequestDto {
     private Integer recruitCount;
 
     private PostStatus postStatus;
-
-    // 변경: JobCategory → Long
     private Long categoryId;
-
     private String deadline;
     private LocalDate workStartDate;
     private LocalDate workEndDate;

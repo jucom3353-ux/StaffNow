@@ -41,13 +41,33 @@ public class JobPostService {
         this.subscriptionService = subscriptionService;
     }
 
-    @Transactional
-    public void createJobPost(JobPostCreateRequestDto requestDto, User loginUser) {
-        if (loginUser.getRole() != Role.COMPANY) {
+    // COMPANY 또는 MANAGER 여부 확인
+    private void validateCompanyOrManager(User user) {
+        if (user.getRole() != Role.COMPANY && user.getRole() != Role.MANAGER) {
             throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
+    }
 
-        if (!subscriptionService.canPostJob(loginUser)) {
+    // 공고 소유권 확인 (MANAGER는 소속 기업 공고 전체 접근 가능)
+    private void validateJobPostOwnership(JobPost post, User loginUser) {
+        Long companyId = loginUser.getRole() == Role.MANAGER
+                ? loginUser.getCompany().getId()
+                : loginUser.getId();
+        if (!post.getUser().getId().equals(companyId) &&
+                !post.getUser().getId().equals(loginUser.getId())) {
+            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
+        }
+    }
+
+    @Transactional
+    public void createJobPost(JobPostCreateRequestDto requestDto, User loginUser) {
+        validateCompanyOrManager(loginUser);
+
+        // 구독 체크는 COMPANY 기준으로
+        User companyUser = loginUser.getRole() == Role.MANAGER
+                ? loginUser.getCompany() : loginUser;
+
+        if (!subscriptionService.canPostJob(companyUser)) {
             throw new CustomException(ErrorCode.JOB_POST_LIMIT_EXCEEDED);
         }
 
@@ -96,7 +116,6 @@ public class JobPostService {
                 .collect(Collectors.toList());
     }
 
-    // 급구 공고 조회
     @Transactional(readOnly = true)
     public JobPostPageResponseDto getUrgentJobPosts(int page, int size) {
         String today = LocalDate.now().toString();
@@ -158,13 +177,15 @@ public class JobPostService {
 
     @Transactional(readOnly = true)
     public List<JobPostResponseDto> getMyJobPosts(User loginUser, PostStatus postStatus) {
-        if (loginUser.getRole() != Role.COMPANY) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
+        validateCompanyOrManager(loginUser);
+
+        // MANAGER는 소속 기업 공고 전체 조회
+        User companyUser = loginUser.getRole() == Role.MANAGER
+                ? loginUser.getCompany() : loginUser;
 
         List<JobPost> posts = postStatus != null
-                ? jobPostRepository.findByUserAndPostStatus(loginUser, postStatus)
-                : jobPostRepository.findByUser(loginUser);
+                ? jobPostRepository.findByUserAndPostStatus(companyUser, postStatus)
+                : jobPostRepository.findByUser(companyUser);
 
         return posts.stream()
                 .map(post -> new JobPostResponseDto(post,
@@ -174,34 +195,24 @@ public class JobPostService {
 
     @Transactional
     public void changePostStatus(Long id, PostStatus postStatus, User loginUser) {
-        if (loginUser.getRole() != Role.COMPANY) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
+        validateCompanyOrManager(loginUser);
 
         JobPost post = jobPostRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
-        if (!post.getUser().getId().equals(loginUser.getId())) {
-            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
-        }
-
+        validateJobPostOwnership(post, loginUser);
         post.setPostStatus(postStatus);
         jobPostRepository.save(post);
     }
 
     @Transactional
     public void updateJobPost(Long id, JobPostCreateRequestDto requestDto, User loginUser) {
-        if (loginUser.getRole() != Role.COMPANY) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
+        validateCompanyOrManager(loginUser);
 
         JobPost post = jobPostRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
-        if (!post.getUser().getId().equals(loginUser.getId())) {
-            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
-        }
-
+        validateJobPostOwnership(post, loginUser);
         validateDeadline(requestDto.getDeadline());
         applyJobPostFields(post, requestDto);
 
@@ -214,21 +225,19 @@ public class JobPostService {
 
     @Transactional
     public void copyJobPost(Long id, User loginUser) {
-        if (loginUser.getRole() != Role.COMPANY) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
+        validateCompanyOrManager(loginUser);
 
         JobPost original = jobPostRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
-        if (!original.getUser().getId().equals(loginUser.getId())) {
-            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
-        }
+        validateJobPostOwnership(original, loginUser);
 
         JobPost copy = new JobPost();
         copy.setTitle("[복사] " + original.getTitle());
         copy.setContent(original.getContent());
         copy.setWorkLocation(original.getWorkLocation());
+        copy.setLatitude(original.getLatitude());
+        copy.setLongitude(original.getLongitude());
         copy.setStartTime(original.getStartTime());
         copy.setEndTime(original.getEndTime());
         copy.setBreakTime(original.getBreakTime());
@@ -264,17 +273,12 @@ public class JobPostService {
 
     @Transactional
     public void deleteJobPost(Long id, User loginUser) {
-        if (loginUser.getRole() != Role.COMPANY) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
+        validateCompanyOrManager(loginUser);
 
         JobPost post = jobPostRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
-        if (!post.getUser().getId().equals(loginUser.getId())) {
-            throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
-        }
-
+        validateJobPostOwnership(post, loginUser);
         jobPostRepository.deleteById(id);
     }
 
@@ -336,6 +340,8 @@ public class JobPostService {
         post.setTitle(dto.getTitle());
         post.setContent(dto.getContent());
         post.setWorkLocation(dto.getWorkLocation());
+        post.setLatitude(dto.getLatitude());
+        post.setLongitude(dto.getLongitude());
         post.setStartTime(dto.getStartTime());
         post.setEndTime(dto.getEndTime());
         post.setBreakTime(dto.getBreakTime());

@@ -13,6 +13,8 @@ public class JobPostResponseDto {
     private String content;
     private String companyName;
     private String workLocation;
+    private Double latitude;   // 추가
+    private Double longitude;  // 추가
     private String startTime;
     private String endTime;
     private String breakTime;
@@ -32,7 +34,6 @@ public class JobPostResponseDto {
     private Integer recruitCount;
     private Integer currentCount;
     private PostStatus postStatus;
-    // 변경: category 객체로
     private Long categoryId;
     private String categoryName;
     private Long parentCategoryId;
@@ -54,8 +55,11 @@ public class JobPostResponseDto {
         this.id = jobPost.getId();
         this.title = jobPost.getTitle();
         this.content = jobPost.getContent();
-        this.companyName = jobPost.getUser() != null ? jobPost.getUser().getCompanyName() : null;
+        this.companyName = jobPost.getUser() != null
+                ? jobPost.getUser().getCompanyName() : null;
         this.workLocation = jobPost.getWorkLocation();
+        this.latitude = jobPost.getLatitude();
+        this.longitude = jobPost.getLongitude();
         this.startTime = jobPost.getStartTime();
         this.endTime = jobPost.getEndTime();
         this.breakTime = jobPost.getBreakTime();

@@ -46,6 +46,7 @@ public enum ErrorCode {
     WORK_NOT_COMPLETED(HttpStatus.BAD_REQUEST, "근무 완료 후에만 리뷰 작성 가능합니다."),
     JOB_POST_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "공고 등록 가능 횟수를 초과했습니다."),
     INVITATION_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "초대 가능 인원을 초과했습니다."),
+    INVALID_REFERRAL_CODE(HttpStatus.BAD_REQUEST, "유효하지 않은 추천 코드입니다."),
 
     // 403 Forbidden
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),

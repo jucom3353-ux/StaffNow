@@ -44,6 +44,20 @@ public class WorkAttendanceService {
     private static final double MAX_TEMPERATURE = 100.0;
     private static final double ALLOWED_RADIUS_METERS = 300.0;
 
+    private void validateCompanyOrManager(User user) {
+        if (user.getRole() != Role.COMPANY && user.getRole() != Role.MANAGER) {
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
+        }
+    }
+
+    private boolean isMyJobPost(JobPost post, User loginUser) {
+        Long companyId = loginUser.getRole() == Role.MANAGER
+                ? loginUser.getCompany().getId()
+                : loginUser.getId();
+        return post.getUser().getId().equals(companyId) ||
+               post.getUser().getId().equals(loginUser.getId());
+    }
+
     @Transactional
     public WorkAttendanceResponseDto checkIn(
             Long applicationId, CheckInRequestDto requestDto, User loginUser) {
@@ -146,7 +160,6 @@ public class WorkAttendanceService {
                 saved.getId()
         );
 
-        // 퇴근 시 정산 자동 생성
         autoGeneratePayroll(saved, loginUser);
 
         return new WorkAttendanceResponseDto(saved);
@@ -154,11 +167,12 @@ public class WorkAttendanceService {
 
     @Transactional
     public void markAbsent(Long applicationId, User loginUser) {
+        validateCompanyOrManager(loginUser);
 
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        if (!application.getJobPost().getUser().getId().equals(loginUser.getId())) {
+        if (!isMyJobPost(application.getJobPost(), loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
@@ -224,14 +238,12 @@ public class WorkAttendanceService {
     public List<WorkAttendanceResponseDto> getAttendancesByJobPost(
             Long jobPostId, User loginUser) {
 
-        if (loginUser.getRole() != Role.COMPANY) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
+        validateCompanyOrManager(loginUser);
 
         JobPost jobPost = jobPostRepository.findById(jobPostId)
                 .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
-        if (!jobPost.getUser().getId().equals(loginUser.getId())) {
+        if (!isMyJobPost(jobPost, loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
@@ -245,14 +257,12 @@ public class WorkAttendanceService {
     public List<WorkAttendanceResponseDto> getAttendancesByJobPostAndWorker(
             Long jobPostId, Long workerId, User loginUser) {
 
-        if (loginUser.getRole() != Role.COMPANY) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
+        validateCompanyOrManager(loginUser);
 
         JobPost jobPost = jobPostRepository.findById(jobPostId)
                 .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
-        if (!jobPost.getUser().getId().equals(loginUser.getId())) {
+        if (!isMyJobPost(jobPost, loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
@@ -269,14 +279,12 @@ public class WorkAttendanceService {
     public CalendarAttendanceResponseDto getJobPostAttendanceCalendar(
             Long jobPostId, User loginUser, int year, int month) {
 
-        if (loginUser.getRole() != Role.COMPANY) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
+        validateCompanyOrManager(loginUser);
 
         JobPost jobPost = jobPostRepository.findById(jobPostId)
                 .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
-        if (!jobPost.getUser().getId().equals(loginUser.getId())) {
+        if (!isMyJobPost(jobPost, loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
@@ -295,8 +303,6 @@ public class WorkAttendanceService {
 
         return new CalendarAttendanceResponseDto(year, month, dailyRecords);
     }
-
-    // ===== private 헬퍼 =====
 
     private AttendanceStatus judgeAttendanceStatus(
             LocalTime checkInTime, String shiftStartTimeStr) {
@@ -370,14 +376,12 @@ public class WorkAttendanceService {
         return R * c;
     }
 
-    // 퇴근 시 정산 자동 생성
     private void autoGeneratePayroll(WorkAttendance attendance, User worker) {
         try {
             Application application = attendance.getApplication();
             JobPost jobPost = application.getJobPost();
 
             if (jobPost.getWageType() != WageType.HOURLY) return;
-
             if (attendance.getCheckInTime() == null ||
                 attendance.getCheckOutTime() == null) return;
 
@@ -395,8 +399,7 @@ public class WorkAttendanceService {
 
             int hourlyWage = jobPost.getWageAmount();
             int basicPay = (int) (workHours * hourlyWage);
-            int totalPay = basicPay;
-            int netPay = (int) Math.floor(totalPay * 0.967);
+            int netPay = (int) Math.floor(basicPay * 0.967);
 
             String weekEnd = attendance.getCheckInTime()
                     .toLocalDate()
@@ -412,7 +415,7 @@ public class WorkAttendanceService {
             payroll.setHourlyWage(hourlyWage);
             payroll.setBasicPay(basicPay);
             payroll.setHolidayPay(0);
-            payroll.setTotalPay(totalPay);
+            payroll.setTotalPay(basicPay);
             payroll.setNetPay(netPay);
             payroll.setHolidayPayApplied(false);
             payroll.setDeadlineAt(LocalDateTime.now().plusDays(14));
@@ -422,7 +425,7 @@ public class WorkAttendanceService {
                     worker,
                     NotificationType.PAYROLL_CREATED,
                     "[" + jobPost.getTitle() + "] 정산이 자동 생성되었습니다. " +
-                    "총 " + totalPay + "원 (실수령 " + netPay + "원)",
+                    "총 " + basicPay + "원 (실수령 " + netPay + "원)",
                     payroll.getId()
             );
 
