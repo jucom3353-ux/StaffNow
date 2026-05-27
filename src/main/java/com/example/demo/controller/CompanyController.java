@@ -1,6 +1,7 @@
 package com.example.demo.controller;
 
 import com.example.demo.dto.ApiResponse;
+import com.example.demo.dto.CompanyInviteCodeResponseDto;
 import com.example.demo.dto.UserResponseDto;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
@@ -34,6 +35,25 @@ public class CompanyController {
             @RequestParam(required = false) Role role) {
         String code = companyInviteService.generateInviteCode(getLoginUser(), role);
         return ResponseEntity.ok(ApiResponse.ok(code));
+    }
+
+    @Operation(summary = "초대 코드 목록 조회", description = "발급한 초대 코드 전체 조회")
+    @GetMapping("/invite")
+    public ResponseEntity<ApiResponse<?>> getInviteCodes() {
+        List<CompanyInviteCodeResponseDto> codes = companyInviteService
+                .getInviteCodes(getLoginUser())
+                .stream()
+                .map(CompanyInviteCodeResponseDto::new)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(ApiResponse.ok(codes));
+    }
+
+    @Operation(summary = "초대 코드 취소", description = "미사용 초대 코드 삭제")
+    @DeleteMapping("/invite/{inviteCodeId}")
+    public ResponseEntity<ApiResponse<?>> cancelInviteCode(
+            @PathVariable Long inviteCodeId) {
+        companyInviteService.cancelInviteCode(inviteCodeId, getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("초대 코드 취소 완료"));
     }
 
     @Operation(summary = "담당자 목록 조회", description = "소속 담당자 전체 조회")

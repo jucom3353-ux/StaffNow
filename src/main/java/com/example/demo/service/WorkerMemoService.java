@@ -23,54 +23,58 @@ public class WorkerMemoService {
     private final WorkerMemoRepository workerMemoRepository;
     private final UserRepository userRepository;
 
-    // 메모 저장 (없으면 생성, 있으면 수정)
+    private void validateCompanyOrManager(User user) {
+        if (user.getRole() != Role.COMPANY && user.getRole() != Role.MANAGER) {
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
+        }
+    }
+
+    private User getCompanyUser(User loginUser) {
+        return loginUser.getRole() == Role.MANAGER
+                ? loginUser.getCompany() : loginUser;
+    }
+
     @Transactional
     public WorkerMemoResponseDto saveMemo(
             Long workerId, WorkerMemoRequestDto requestDto, User loginUser) {
+        validateCompanyOrManager(loginUser);
 
-        if (loginUser.getRole() != Role.COMPANY) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
-
+        User companyUser = getCompanyUser(loginUser);
         User worker = userRepository.findById(workerId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         WorkerMemo memo = workerMemoRepository
-                .findByCompanyAndWorker(loginUser, worker)
+                .findByCompanyAndWorker(companyUser, worker)
                 .orElse(new WorkerMemo());
 
-        memo.setCompany(loginUser);
+        memo.setCompany(companyUser);
         memo.setWorker(worker);
         memo.setMemo(requestDto.getMemo());
 
         return new WorkerMemoResponseDto(workerMemoRepository.save(memo));
     }
 
-    // 메모 목록 조회
     @Transactional(readOnly = true)
     public List<WorkerMemoResponseDto> getMemos(User loginUser) {
-        if (loginUser.getRole() != Role.COMPANY) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
+        validateCompanyOrManager(loginUser);
 
-        return workerMemoRepository.findByCompany(loginUser)
+        User companyUser = getCompanyUser(loginUser);
+        return workerMemoRepository.findByCompany(companyUser)
                 .stream()
                 .map(WorkerMemoResponseDto::new)
                 .collect(Collectors.toList());
     }
 
-    // 메모 삭제
     @Transactional
     public void deleteMemo(Long workerId, User loginUser) {
-        if (loginUser.getRole() != Role.COMPANY) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
+        validateCompanyOrManager(loginUser);
 
+        User companyUser = getCompanyUser(loginUser);
         User worker = userRepository.findById(workerId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         WorkerMemo memo = workerMemoRepository
-                .findByCompanyAndWorker(loginUser, worker)
+                .findByCompanyAndWorker(companyUser, worker)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMO_NOT_FOUND));
 
         workerMemoRepository.delete(memo);

@@ -67,3 +67,11 @@ logging:
     org.springframework.web: INFO
   file:
     name: logs/staffnow.log
+
+kakao:
+  api:
+    key: ${KAKAO_API_KEY:dummy}
+
+nts:
+  api:
+    key: ${NTS_API_KEY:dummy}

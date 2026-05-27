@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +22,6 @@ public class CompanyInviteService {
     private static final String CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int CODE_LENGTH = 8;
 
-    // 초대 코드 생성 (기업만 가능)
     @Transactional
     public String generateInviteCode(User loginUser, Role role) {
         if (loginUser.getRole() != Role.COMPANY) {
@@ -41,13 +41,12 @@ public class CompanyInviteService {
         inviteCode.setCompany(loginUser);
         inviteCode.setCode(code.toString());
         inviteCode.setRole(role != null ? role : Role.MANAGER);
-        inviteCode.setExpiredAt(LocalDateTime.now().plusDays(7)); // 7일 유효
+        inviteCode.setExpiredAt(LocalDateTime.now().plusDays(7));
         companyInviteCodeRepository.save(inviteCode);
 
         return code.toString();
     }
 
-    // 초대 코드 검증 및 반환
     @Transactional
     public CompanyInviteCode validateInviteCode(String code) {
         CompanyInviteCode inviteCode = companyInviteCodeRepository.findByCode(code)
@@ -56,12 +55,34 @@ public class CompanyInviteService {
         if (inviteCode.isUsed()) {
             throw new CustomException(ErrorCode.ALREADY_ASSIGNED);
         }
-        if (inviteCode.getExpiredAt() != null && inviteCode.getExpiredAt().isBefore(LocalDateTime.now())) {
+        if (inviteCode.getExpiredAt() != null &&
+                inviteCode.getExpiredAt().isBefore(LocalDateTime.now())) {
             throw new CustomException(ErrorCode.VERIFY_CODE_EXPIRED);
         }
 
         inviteCode.setUsed(true);
         companyInviteCodeRepository.save(inviteCode);
         return inviteCode;
+    }
+
+    @Transactional(readOnly = true)
+    public List<CompanyInviteCode> getInviteCodes(User loginUser) {
+        if (loginUser.getRole() != Role.COMPANY) {
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
+        }
+        return companyInviteCodeRepository.findByCompany(loginUser);
+    }
+
+    @Transactional
+    public void cancelInviteCode(Long inviteCodeId, User loginUser) {
+        if (loginUser.getRole() != Role.COMPANY) {
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
+        }
+        CompanyInviteCode inviteCode = companyInviteCodeRepository.findById(inviteCodeId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        if (!inviteCode.getCompany().getId().equals(loginUser.getId())) {
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
+        }
+        companyInviteCodeRepository.delete(inviteCode);
     }
 }

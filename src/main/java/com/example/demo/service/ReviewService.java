@@ -29,11 +29,23 @@ public class ReviewService {
         this.userRepository = userRepository;
     }
 
-    public void createReview(Long applicationId, ReviewRequestDto requestDto, User company) {
+    private boolean isMyJobPost(JobPost post, User loginUser) {
+        Long companyId = loginUser.getRole() == Role.MANAGER
+                ? loginUser.getCompany().getId()
+                : loginUser.getId();
+        return post.getUser().getId().equals(companyId) ||
+               post.getUser().getId().equals(loginUser.getId());
+    }
+
+    public void createReview(Long applicationId, ReviewRequestDto requestDto, User loginUser) {
+        if (loginUser.getRole() != Role.COMPANY && loginUser.getRole() != Role.MANAGER) {
+            throw new CustomException(ErrorCode.COMPANY_ONLY);
+        }
+
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        if (!application.getJobPost().getUser().getId().equals(company.getId())) {
+        if (!isMyJobPost(application.getJobPost(), loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
@@ -42,11 +54,14 @@ public class ReviewService {
             throw new CustomException(ErrorCode.ALREADY_REVIEWED);
         }
 
+        User companyUser = loginUser.getRole() == Role.MANAGER
+                ? loginUser.getCompany() : loginUser;
+
         User worker = application.getUser();
         Review review = new Review();
         review.setApplication(application);
         review.setWorker(worker);
-        review.setCompany(company);
+        review.setCompany(companyUser);
         review.setRating(requestDto.getRating());
         review.setComment(requestDto.getComment());
         review.setReviewType(ReviewType.COMPANY_TO_WORKER);
@@ -101,9 +116,17 @@ public class ReviewService {
     }
 
     public List<ReviewResponseDto> getMyReviews(User loginUser) {
-        List<Review> reviews = loginUser.getRole() == Role.INDIVIDUAL
-                ? reviewRepository.findByWorker(loginUser)
-                : reviewRepository.findByTargetCompany(loginUser);
+        List<Review> reviews;
+
+        if (loginUser.getRole() == Role.INDIVIDUAL) {
+            reviews = reviewRepository.findByWorker(loginUser);
+        } else if (loginUser.getRole() == Role.MANAGER) {
+            // MANAGER는 소속 기업 기준으로 리뷰 조회
+            User companyUser = loginUser.getCompany();
+            reviews = reviewRepository.findByTargetCompany(companyUser);
+        } else {
+            reviews = reviewRepository.findByTargetCompany(loginUser);
+        }
 
         return reviews.stream().map(ReviewResponseDto::new).collect(Collectors.toList());
     }

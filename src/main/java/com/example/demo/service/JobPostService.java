@@ -27,28 +27,29 @@ public class JobPostService {
     private final JobCategoryRepository jobCategoryRepository;
     private final JobPostViewHistoryRepository jobPostViewHistoryRepository;
     private final SubscriptionService subscriptionService;
+    private final KakaoGeocodingService kakaoGeocodingService;
 
     public JobPostService(
             JobPostRepository jobPostRepository,
             ApplicationRepository applicationRepository,
             JobCategoryRepository jobCategoryRepository,
             JobPostViewHistoryRepository jobPostViewHistoryRepository,
-            SubscriptionService subscriptionService) {
+            SubscriptionService subscriptionService,
+            KakaoGeocodingService kakaoGeocodingService) {
         this.jobPostRepository = jobPostRepository;
         this.applicationRepository = applicationRepository;
         this.jobCategoryRepository = jobCategoryRepository;
         this.jobPostViewHistoryRepository = jobPostViewHistoryRepository;
         this.subscriptionService = subscriptionService;
+        this.kakaoGeocodingService = kakaoGeocodingService;
     }
 
-    // COMPANY 또는 MANAGER 여부 확인
     private void validateCompanyOrManager(User user) {
         if (user.getRole() != Role.COMPANY && user.getRole() != Role.MANAGER) {
             throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
     }
 
-    // 공고 소유권 확인 (MANAGER는 소속 기업 공고 전체 접근 가능)
     private void validateJobPostOwnership(JobPost post, User loginUser) {
         Long companyId = loginUser.getRole() == Role.MANAGER
                 ? loginUser.getCompany().getId()
@@ -63,7 +64,6 @@ public class JobPostService {
     public void createJobPost(JobPostCreateRequestDto requestDto, User loginUser) {
         validateCompanyOrManager(loginUser);
 
-        // 구독 체크는 COMPANY 기준으로
         User companyUser = loginUser.getRole() == Role.MANAGER
                 ? loginUser.getCompany() : loginUser;
 
@@ -179,7 +179,6 @@ public class JobPostService {
     public List<JobPostResponseDto> getMyJobPosts(User loginUser, PostStatus postStatus) {
         validateCompanyOrManager(loginUser);
 
-        // MANAGER는 소속 기업 공고 전체 조회
         User companyUser = loginUser.getRole() == Role.MANAGER
                 ? loginUser.getCompany() : loginUser;
 
@@ -340,8 +339,6 @@ public class JobPostService {
         post.setTitle(dto.getTitle());
         post.setContent(dto.getContent());
         post.setWorkLocation(dto.getWorkLocation());
-        post.setLatitude(dto.getLatitude());
-        post.setLongitude(dto.getLongitude());
         post.setStartTime(dto.getStartTime());
         post.setEndTime(dto.getEndTime());
         post.setBreakTime(dto.getBreakTime());
@@ -373,6 +370,15 @@ public class JobPostService {
             JobCategory category = jobCategoryRepository.findById(dto.getCategoryId())
                     .orElseThrow(() -> new CustomException(ErrorCode.CATEGORY_NOT_FOUND));
             post.setCategory(category);
+        }
+
+        // 주소 → 좌표 자동 변환
+        if (dto.getWorkLocation() != null && !dto.getWorkLocation().isBlank()) {
+            double[] coords = kakaoGeocodingService.getCoordinates(dto.getWorkLocation());
+            if (coords != null) {
+                post.setLatitude(coords[0]);
+                post.setLongitude(coords[1]);
+            }
         }
     }
 

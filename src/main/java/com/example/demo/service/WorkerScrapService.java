@@ -22,51 +22,56 @@ public class WorkerScrapService {
     private final WorkerScrapRepository workerScrapRepository;
     private final UserRepository userRepository;
 
-    // 스크랩 추가
-    @Transactional
-    public void addScrap(Long workerId, User loginUser) {
-        if (loginUser.getRole() != Role.COMPANY) {
+    private void validateCompanyOrManager(User user) {
+        if (user.getRole() != Role.COMPANY && user.getRole() != Role.MANAGER) {
             throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
+    }
 
+    private User getCompanyUser(User loginUser) {
+        return loginUser.getRole() == Role.MANAGER
+                ? loginUser.getCompany() : loginUser;
+    }
+
+    @Transactional
+    public void addScrap(Long workerId, User loginUser) {
+        validateCompanyOrManager(loginUser);
+
+        User companyUser = getCompanyUser(loginUser);
         User worker = userRepository.findById(workerId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        if (workerScrapRepository.existsByCompanyAndWorker(loginUser, worker)) {
+        if (workerScrapRepository.existsByCompanyAndWorker(companyUser, worker)) {
             throw new CustomException(ErrorCode.ALREADY_SCRAPPED);
         }
 
         WorkerScrap scrap = new WorkerScrap();
-        scrap.setCompany(loginUser);
+        scrap.setCompany(companyUser);
         scrap.setWorker(worker);
         workerScrapRepository.save(scrap);
     }
 
-    // 스크랩 취소
     @Transactional
     public void removeScrap(Long workerId, User loginUser) {
-        if (loginUser.getRole() != Role.COMPANY) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
+        validateCompanyOrManager(loginUser);
 
+        User companyUser = getCompanyUser(loginUser);
         User worker = userRepository.findById(workerId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         WorkerScrap scrap = workerScrapRepository
-                .findByCompanyAndWorker(loginUser, worker)
+                .findByCompanyAndWorker(companyUser, worker)
                 .orElseThrow(() -> new CustomException(ErrorCode.SCRAP_NOT_FOUND));
 
         workerScrapRepository.delete(scrap);
     }
 
-    // 스크랩 목록 조회
     @Transactional(readOnly = true)
     public List<WorkerScrapResponseDto> getScraps(User loginUser) {
-        if (loginUser.getRole() != Role.COMPANY) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
+        validateCompanyOrManager(loginUser);
 
-        return workerScrapRepository.findByCompany(loginUser)
+        User companyUser = getCompanyUser(loginUser);
+        return workerScrapRepository.findByCompany(companyUser)
                 .stream()
                 .map(WorkerScrapResponseDto::new)
                 .collect(Collectors.toList());
