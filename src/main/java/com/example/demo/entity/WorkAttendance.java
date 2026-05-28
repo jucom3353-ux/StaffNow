@@ -19,6 +19,12 @@ public class WorkAttendance {
     @JoinColumn(name = "work_session_id")
     private WorkSession workSession;
 
+    // 사진 메타데이터
+    private LocalDateTime checkInPhotoTakenAt;
+    private LocalDateTime checkOutPhotoTakenAt;
+    private String checkInAddress;
+    private String checkOutAddress;
+
     private LocalDateTime checkInTime;
     private LocalDateTime checkOutTime;
 
@@ -51,6 +57,10 @@ public class WorkAttendance {
     public String getCheckInPhotoUrl() { return checkInPhotoUrl; }
     public String getCheckOutPhotoUrl() { return checkOutPhotoUrl; }
     public AttendanceStatus getStatus() { return status; }
+    public LocalDateTime getCheckInPhotoTakenAt() { return checkInPhotoTakenAt; }
+    public LocalDateTime getCheckOutPhotoTakenAt() { return checkOutPhotoTakenAt; }
+    public String getCheckInAddress() { return checkInAddress; }
+    public String getCheckOutAddress() { return checkOutAddress; }
 
     public void setId(Long id) { this.id = id; }
     public void setApplication(Application application) { this.application = application; }
@@ -64,4 +74,8 @@ public class WorkAttendance {
     public void setCheckInPhotoUrl(String checkInPhotoUrl) { this.checkInPhotoUrl = checkInPhotoUrl; }
     public void setCheckOutPhotoUrl(String checkOutPhotoUrl) { this.checkOutPhotoUrl = checkOutPhotoUrl; }
     public void setStatus(AttendanceStatus status) { this.status = status; }
+    public void setCheckInPhotoTakenAt(LocalDateTime t) { this.checkInPhotoTakenAt = t; }
+    public void setCheckOutPhotoTakenAt(LocalDateTime t) { this.checkOutPhotoTakenAt = t; }
+    public void setCheckInAddress(String address) { this.checkInAddress = address; }
+    public void setCheckOutAddress(String address) { this.checkOutAddress = address; }
 }

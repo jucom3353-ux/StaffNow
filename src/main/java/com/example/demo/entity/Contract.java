@@ -42,6 +42,10 @@ public class Contract {
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
+    // 서명 이미지
+    private String companySignatureUrl;  // 기업 서명 이미지
+    private String workerSignatureUrl;   // 근로자 서명 이미지
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
@@ -57,6 +61,8 @@ public class Contract {
     public LocalDateTime getCompanySignedAt() { return companySignedAt; }
     public LocalDateTime getWorkerSignedAt() { return workerSignedAt; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public String getCompanySignatureUrl() { return companySignatureUrl; }
+    public String getWorkerSignatureUrl() { return workerSignatureUrl; }
 
     public void setId(Long id) { this.id = id; }
     public void setJobPost(JobPost jobPost) { this.jobPost = jobPost; }
@@ -67,4 +73,6 @@ public class Contract {
     public void setStatus(ContractStatus status) { this.status = status; }
     public void setCompanySignedAt(LocalDateTime companySignedAt) { this.companySignedAt = companySignedAt; }
     public void setWorkerSignedAt(LocalDateTime workerSignedAt) { this.workerSignedAt = workerSignedAt; }
+    public void setCompanySignatureUrl(String url) { this.companySignatureUrl = url; }
+    public void setWorkerSignatureUrl(String url) { this.workerSignatureUrl = url; }
 }

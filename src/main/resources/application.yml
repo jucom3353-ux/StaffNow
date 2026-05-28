@@ -75,3 +75,7 @@ kakao:
 nts:
   api:
     key: ${NTS_API_KEY:dummy}
+
+app:
+  cookie:
+    secure: false  # 로컬 개발용 (배포 시 true로 변경)

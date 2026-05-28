@@ -68,4 +68,6 @@ public class JobPostCreateRequestDto {
     private String managerEmail;
     private String managerFax;
     private String imageUrl;
+    private Boolean topExposure = false;
+    private Boolean urgentBadge = false;
 }

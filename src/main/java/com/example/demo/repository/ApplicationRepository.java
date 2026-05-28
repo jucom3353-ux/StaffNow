@@ -42,6 +42,8 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
            "    SELECT w FROM WorkAttendance w WHERE w.application = a" +
            ")")
     List<Application> findAbsentApplications(@Param("today") String today);
+    List<Application> findByJobPostIdAndStatus(Long jobPostId, ApplicationStatus status);
+    List<Application> findByJobPostId(Long jobPostId);
 
     @Query("SELECT COUNT(a) FROM Application a " +
            "WHERE a.jobPostRole = :jobPostRole " +

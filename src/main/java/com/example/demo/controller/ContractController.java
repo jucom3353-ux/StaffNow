@@ -5,16 +5,12 @@ import com.example.demo.dto.ContractCreateRequestDto;
 import com.example.demo.entity.User;
 import com.example.demo.service.ContractPdfService;
 import com.example.demo.service.ContractService;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -50,10 +46,12 @@ public class ContractController {
                 contractService.getContract(contractId, getLoginUser())));
     }
 
-    @Operation(summary = "계약서 서명 (기업/구직자 각각)")
+    @Operation(summary = "계약서 서명 (기업/구직자 각각) - signatureUrl: 서명 이미지 URL (선택)")
     @PatchMapping("/{contractId}/sign")
-    public ResponseEntity<ApiResponse<?>> signContract(@PathVariable Long contractId) {
-        contractService.signContract(contractId, getLoginUser());
+    public ResponseEntity<ApiResponse<?>> signContract(
+            @PathVariable Long contractId,
+            @RequestParam(required = false) String signatureUrl) {
+        contractService.signContract(contractId, signatureUrl, getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("서명 완료"));
     }
 

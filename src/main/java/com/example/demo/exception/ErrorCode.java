@@ -47,6 +47,16 @@ public enum ErrorCode {
     JOB_POST_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "공고 등록 가능 횟수를 초과했습니다."),
     INVITATION_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "초대 가능 인원을 초과했습니다."),
     INVALID_REFERRAL_CODE(HttpStatus.BAD_REQUEST, "유효하지 않은 추천 코드입니다."),
+    INVALID_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 요청입니다."),
+    INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "비밀번호가 틀렸습니다."),
+    INVALID_EMAIL(HttpStatus.BAD_REQUEST, "이메일이 존재하지 않습니다."),
+
+    // 401 Unauthorized
+    TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "토큰이 만료되었습니다."),
+    TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
+    REFRESH_TOKEN_NOT_FOUND(HttpStatus.UNAUTHORIZED, "Refresh Token이 없습니다."),
+    REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "Refresh Token이 만료되었습니다."),
+    REFRESH_TOKEN_BLACKLISTED(HttpStatus.UNAUTHORIZED, "이미 사용된 Refresh Token입니다."),
 
     // 403 Forbidden
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
@@ -58,6 +68,7 @@ public enum ErrorCode {
     NOT_MY_CONTRACT(HttpStatus.FORBIDDEN, "본인 계약서만 접근 가능합니다."),
     NOT_MY_APPLICATION_COMPANY(HttpStatus.FORBIDDEN, "본인 공고의 지원자만 접근 가능합니다."),
     WORKER_PROFILE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "본인에게 온 초대만 접근 가능합니다."),
+    FORBIDDEN(HttpStatus.FORBIDDEN, "권한이 없습니다."),
 
     // 404 Not Found
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),
@@ -101,6 +112,7 @@ public enum ErrorCode {
     TERMS_NOT_FOUND(HttpStatus.NOT_FOUND, "약관을 찾을 수 없습니다."),
     STAMP_NOT_FOUND(HttpStatus.NOT_FOUND, "도장을 찾을 수 없습니다."),
     BOOST_NOT_FOUND(HttpStatus.NOT_FOUND, "활성화된 부스트를 찾을 수 없습니다."),
+    EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "이벤트를 찾을 수 없습니다."),
 
 
     // 409 Conflict

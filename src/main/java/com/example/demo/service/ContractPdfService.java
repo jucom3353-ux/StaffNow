@@ -70,6 +70,17 @@ public class ContractPdfService {
         String fontPath = getClass().getClassLoader()
                 .getResource("fonts/NanumGothic.ttf").toExternalForm();
 
+        // 서명 이미지 HTML 생성
+        String companySignatureHtml = contract.getCompanySignatureUrl() != null
+                ? "<img src='" + contract.getCompanySignatureUrl()
+                  + "' style='height:60px; object-fit:contain;'/>"
+                : "미서명";
+
+        String workerSignatureHtml = contract.getWorkerSignatureUrl() != null
+                ? "<img src='" + contract.getWorkerSignatureUrl()
+                  + "' style='height:60px; object-fit:contain;'/>"
+                : "미서명";
+
         return """
                 <!DOCTYPE html>
                 <html>
@@ -83,6 +94,7 @@ public class ContractPdfService {
                     td { padding: 8px 12px; border: 1px solid #ccc; }
                     .label { background-color: #f5f5f5; font-weight: bold; width: 30%%; }
                     .section { margin-top: 30px; font-weight: bold; font-size: 16px; }
+                    .sign-cell { height: 80px; vertical-align: middle; text-align: center; }
                   </style>
                 </head>
                 <body>
@@ -109,8 +121,22 @@ public class ContractPdfService {
                   </table>
                   <div class="section">4. 서명</div>
                   <table>
-                    <tr><td class="label">기업 서명일시</td><td>%s</td></tr>
-                    <tr><td class="label">근로자 서명일시</td><td>%s</td></tr>
+                    <tr>
+                      <td class="label">기업 서명</td>
+                      <td class="sign-cell">%s</td>
+                    </tr>
+                    <tr>
+                      <td class="label">기업 서명일시</td>
+                      <td>%s</td>
+                    </tr>
+                    <tr>
+                      <td class="label">근로자 서명</td>
+                      <td class="sign-cell">%s</td>
+                    </tr>
+                    <tr>
+                      <td class="label">근로자 서명일시</td>
+                      <td>%s</td>
+                    </tr>
                   </table>
                 </body>
                 </html>
@@ -130,8 +156,10 @@ public class ContractPdfService {
                 nullSafe(contract.getContractStartDate()),
                 nullSafe(contract.getContractEndDate()),
                 nullSafe(contract.getStatus().name()),
+                companySignatureHtml,
                 contract.getCompanySignedAt() != null
                         ? contract.getCompanySignedAt().toString() : "미서명",
+                workerSignatureHtml,
                 contract.getWorkerSignedAt() != null
                         ? contract.getWorkerSignedAt().toString() : "미서명"
         );

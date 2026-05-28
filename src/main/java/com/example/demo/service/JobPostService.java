@@ -10,6 +10,7 @@ import com.example.demo.repository.ApplicationRepository;
 import com.example.demo.repository.JobCategoryRepository;
 import com.example.demo.repository.JobPostRepository;
 import com.example.demo.repository.JobPostViewHistoryRepository;
+import com.example.demo.repository.UserRepository;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,8 @@ public class JobPostService {
     private final JobPostViewHistoryRepository jobPostViewHistoryRepository;
     private final SubscriptionService subscriptionService;
     private final KakaoGeocodingService kakaoGeocodingService;
+    private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     public JobPostService(
             JobPostRepository jobPostRepository,
@@ -35,13 +38,17 @@ public class JobPostService {
             JobCategoryRepository jobCategoryRepository,
             JobPostViewHistoryRepository jobPostViewHistoryRepository,
             SubscriptionService subscriptionService,
-            KakaoGeocodingService kakaoGeocodingService) {
+            KakaoGeocodingService kakaoGeocodingService,
+            NotificationService notificationService,
+            UserRepository userRepository) {
         this.jobPostRepository = jobPostRepository;
         this.applicationRepository = applicationRepository;
         this.jobCategoryRepository = jobCategoryRepository;
         this.jobPostViewHistoryRepository = jobPostViewHistoryRepository;
         this.subscriptionService = subscriptionService;
         this.kakaoGeocodingService = kakaoGeocodingService;
+        this.notificationService = notificationService;
+        this.userRepository = userRepository;
     }
 
     private void validateCompanyOrManager(User user) {
@@ -79,7 +86,13 @@ public class JobPostService {
                 ? requestDto.getPostStatus() : PostStatus.DRAFT);
         jobPost.setViewCount(0);
         jobPost.setUser(loginUser);
-        jobPostRepository.save(jobPost);
+        JobPost saved = jobPostRepository.save(jobPost);
+
+        // 긴급 공고 등록 시 즉시출근 가능 근로자에게 알림 발송
+        if (Boolean.TRUE.equals(saved.getUrgentBadge())
+                && saved.getPostStatus() == PostStatus.OPEN) {
+            sendUrgentNotification(saved);
+        }
     }
 
     @Transactional
@@ -202,6 +215,11 @@ public class JobPostService {
         validateJobPostOwnership(post, loginUser);
         post.setPostStatus(postStatus);
         jobPostRepository.save(post);
+
+        // DRAFT → OPEN 전환 시 긴급 공고면 알림 발송
+        if (postStatus == PostStatus.OPEN && Boolean.TRUE.equals(post.getUrgentBadge())) {
+            sendUrgentNotification(post);
+        }
     }
 
     @Transactional
@@ -336,6 +354,21 @@ public class JobPostService {
         jobPostRepository.deleteById(id);
     }
 
+    // 긴급 공고 알림 발송
+    private void sendUrgentNotification(JobPost jobPost) {
+        List<User> immediateWorkers = userRepository.findByRoleAndWorkAvailability(
+                Role.INDIVIDUAL, WorkAvailability.IMMEDIATE);
+
+        immediateWorkers.forEach(worker ->
+                notificationService.send(
+                        worker,
+                        NotificationType.URGENT_JOB_POST,
+                        "[긴급구인] " + jobPost.getTitle() + " - 즉시 지원 가능합니다.",
+                        jobPost.getId()
+                )
+        );
+    }
+
     private void applyJobPostFields(JobPost post, JobPostCreateRequestDto dto) {
         post.setTitle(dto.getTitle());
         post.setContent(dto.getContent());
@@ -366,6 +399,8 @@ public class JobPostService {
         post.setManagerPhone(dto.getManagerPhone());
         post.setManagerEmail(dto.getManagerEmail());
         post.setManagerFax(dto.getManagerFax());
+        post.setTopExposure(dto.getTopExposure() != null ? dto.getTopExposure() : false);
+        post.setUrgentBadge(dto.getUrgentBadge() != null ? dto.getUrgentBadge() : false);
 
         if (dto.getCategoryId() != null) {
             JobCategory category = jobCategoryRepository.findById(dto.getCategoryId())
@@ -373,7 +408,6 @@ public class JobPostService {
             post.setCategory(category);
         }
 
-        // 주소 → 좌표 자동 변환
         if (dto.getWorkLocation() != null && !dto.getWorkLocation().isBlank()) {
             double[] coords = kakaoGeocodingService.getCoordinates(dto.getWorkLocation());
             if (coords != null) {
@@ -382,7 +416,6 @@ public class JobPostService {
             }
         }
 
-        // 공고 이미지 (선택)
         if (dto.getImageUrl() != null) post.setImageUrl(dto.getImageUrl());
     }
 

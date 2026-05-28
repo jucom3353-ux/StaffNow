@@ -94,6 +94,8 @@ public class WorkAttendanceService {
         attendance.setCheckInLatitude(requestDto.getLatitude());
         attendance.setCheckInLongitude(requestDto.getLongitude());
         attendance.setCheckInPhotoUrl(requestDto.getPhotoUrl());
+        attendance.setCheckInPhotoTakenAt(requestDto.getPhotoTakenAt());
+        attendance.setCheckInAddress(requestDto.getAddress());
 
         AttendanceStatus attendanceStatus = AttendanceStatus.NORMAL;
         if (workSession != null && workSession.getStartTime() != null) {
@@ -150,6 +152,8 @@ public class WorkAttendanceService {
         attendance.setCheckOutLatitude(requestDto.getLatitude());
         attendance.setCheckOutLongitude(requestDto.getLongitude());
         attendance.setCheckOutPhotoUrl(requestDto.getPhotoUrl());
+        attendance.setCheckOutPhotoTakenAt(requestDto.getPhotoTakenAt());
+        attendance.setCheckOutAddress(requestDto.getAddress());
 
         WorkAttendance saved = workAttendanceRepository.save(attendance);
 
@@ -393,9 +397,20 @@ public class WorkAttendanceService {
             if (payrollRepository.findByWorkerAndJobPostAndWorkWeekStart(
                     worker, jobPost, weekStart).isPresent()) return;
 
-            double workHours = Duration.between(
+            long totalMinutes = Duration.between(
                     attendance.getCheckInTime(),
-                    attendance.getCheckOutTime()).toMinutes() / 60.0;
+                    attendance.getCheckOutTime()).toMinutes();
+
+            int breakMinutes = 0;
+            WorkSession workSession = attendance.getWorkSession();
+            if (workSession != null) {
+                breakMinutes = workSession.getBreakMinutes();
+            } else {
+                breakMinutes = calculateLegalBreakMinutes(totalMinutes);
+            }
+
+            long actualWorkMinutes = Math.max(0, totalMinutes - breakMinutes);
+            double workHours = actualWorkMinutes / 60.0;
 
             int hourlyWage = jobPost.getWageAmount();
             int basicPay = (int) (workHours * hourlyWage);
@@ -425,7 +440,8 @@ public class WorkAttendanceService {
                     worker,
                     NotificationType.PAYROLL_CREATED,
                     "[" + jobPost.getTitle() + "] 정산이 자동 생성되었습니다. " +
-                    "총 " + basicPay + "원 (실수령 " + netPay + "원)",
+                    "총 " + basicPay + "원 (실수령 " + netPay + "원)" +
+                    (breakMinutes > 0 ? " [휴게 " + breakMinutes + "분 차감]" : ""),
                     payroll.getId()
             );
 
@@ -433,5 +449,11 @@ public class WorkAttendanceService {
             log.warn("정산 자동 생성 실패: attendanceId={}, error={}",
                     attendance.getId(), e.getMessage());
         }
+    }
+
+    private int calculateLegalBreakMinutes(long totalMinutes) {
+        if (totalMinutes >= 480) return 60;
+        if (totalMinutes >= 240) return 30;
+        return 0;
     }
 }

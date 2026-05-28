@@ -1,9 +1,13 @@
 package com.example.demo.entity;
 
+import java.time.LocalDateTime;
+
 import com.example.demo.entity.AuthProvider;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
@@ -92,6 +96,14 @@ public class User {
     @Column(name = "work_availability")
     private WorkAvailability workAvailability = WorkAvailability.NEGOTIABLE;
 
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    public void prePersist() {
+    this.createdAt = LocalDateTime.now();
+}
+
     public Long getId() { return id; }
     public String getEmail() { return email; }
     public String getPassword() { return password; }
@@ -125,6 +137,7 @@ public class User {
     public String getEmergencyContactPhone() { return emergencyContactPhone; }
     public String getEmergencyContactRelation() { return emergencyContactRelation; }
     public WorkAvailability getWorkAvailability() { return workAvailability; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
 
 
     public void setId(Long id) { this.id = id; }

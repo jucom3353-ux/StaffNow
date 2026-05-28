@@ -5,6 +5,8 @@ import com.example.demo.dto.LoginRequestDto;
 import com.example.demo.dto.LoginResponseDto;
 import com.example.demo.entity.RefreshToken;
 import com.example.demo.entity.User;
+import com.example.demo.exception.CustomException;
+import com.example.demo.exception.ErrorCode;
 import com.example.demo.jwt.JwtUtil;
 import com.example.demo.repository.RefreshTokenRepository;
 import com.example.demo.repository.UserRepository;
@@ -17,6 +19,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -35,6 +38,9 @@ public class AuthController {
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final TwoFactorAuthService twoFactorAuthService;
+
+    @Value("${app.cookie.secure:false}")
+    private boolean cookieSecure;
 
     public AuthController(
             UserRepository userRepository,
@@ -55,21 +61,20 @@ public class AuthController {
             HttpServletResponse response
     ) {
         User user = userRepository.findByEmail(requestDto.getEmail())
-                .orElseThrow(() -> new RuntimeException("이메일이 존재하지 않습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_EMAIL));
 
         if (!passwordEncoder.matches(requestDto.getPassword(), user.getPassword())) {
-            throw new RuntimeException("비밀번호가 틀렸습니다.");
+            throw new CustomException(ErrorCode.INVALID_PASSWORD);
         }
 
         if (Boolean.TRUE.equals(user.getSuspended())) {
-            throw new RuntimeException("정지된 계정입니다.");
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
         }
 
-        // 역할별 2단계 인증 적용
         boolean requireTwoFactor = switch (user.getRole()) {
-            case ADMIN -> true;                           // 강제
-            case COMPANY -> user.isTwoFactorEnabled();    // 선택
-            case INDIVIDUAL -> user.isTwoFactorEnabled(); // 선택
+            case ADMIN -> true;
+            case COMPANY -> user.isTwoFactorEnabled();
+            case INDIVIDUAL -> user.isTwoFactorEnabled();
             default -> false;
         };
 
@@ -90,7 +95,7 @@ public class AuthController {
             HttpServletResponse response
     ) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("사용자 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         twoFactorAuthService.verifyCode(user, code);
 
@@ -103,7 +108,7 @@ public class AuthController {
     public ResponseEntity<ApiResponse<?>> sendTwoFactorCode(
             @RequestParam String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("사용자 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
         twoFactorAuthService.sendCode(user);
         return ResponseEntity.ok(ApiResponse.ok("인증 코드 발송 완료"));
     }
@@ -122,24 +127,28 @@ public class AuthController {
             HttpServletResponse response
     ) {
         if (refreshTokenValue == null) {
-            throw new RuntimeException("Refresh Token 없음");
+            throw new CustomException(ErrorCode.REFRESH_TOKEN_NOT_FOUND);
         }
 
         RefreshToken refreshToken = refreshTokenRepository
                 .findByRefreshToken(refreshTokenValue)
-                .orElseThrow(() -> new RuntimeException("Refresh Token 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.REFRESH_TOKEN_NOT_FOUND));
 
         if (refreshToken.isBlacklisted()) {
-            throw new RuntimeException("이미 사용된 Refresh Token입니다.");
+            throw new CustomException(ErrorCode.REFRESH_TOKEN_BLACKLISTED);
         }
 
         if (refreshToken.getExpiredAt() != null
                 && refreshToken.getExpiredAt().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Refresh Token이 만료되었습니다.");
+            throw new CustomException(ErrorCode.REFRESH_TOKEN_EXPIRED);
         }
 
         User user = userRepository.findById(refreshToken.getUserId())
-                .orElseThrow(() -> new RuntimeException("사용자 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        if (Boolean.TRUE.equals(user.getSuspended())) {
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
+        }
 
         refreshToken.setBlacklisted(true);
         refreshTokenRepository.save(refreshToken);
@@ -209,6 +218,7 @@ public class AuthController {
     private void setAccessCookie(HttpServletResponse response, String token) {
         Cookie cookie = new Cookie("access_token", token);
         cookie.setHttpOnly(true);
+        cookie.setSecure(cookieSecure);
         cookie.setPath("/");
         cookie.setMaxAge(60 * 60);
         response.addCookie(cookie);
@@ -217,6 +227,7 @@ public class AuthController {
     private void setRefreshCookie(HttpServletResponse response, String token) {
         Cookie cookie = new Cookie("refresh_token", token);
         cookie.setHttpOnly(true);
+        cookie.setSecure(cookieSecure);
         cookie.setPath("/");
         cookie.setMaxAge(60 * 60 * 24 * 7);
         response.addCookie(cookie);
@@ -225,6 +236,7 @@ public class AuthController {
     private void clearCookie(HttpServletResponse response, String name) {
         Cookie cookie = new Cookie(name, "");
         cookie.setHttpOnly(true);
+        cookie.setSecure(cookieSecure);
         cookie.setPath("/");
         cookie.setMaxAge(0);
         response.addCookie(cookie);

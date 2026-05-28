@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -128,4 +129,12 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
     List<String> findCompanyNameSuggestions(
             @Param("keyword") String keyword,
             Pageable pageable);
+
+    // 기간별 공고 등록 수
+    @Query("SELECT COUNT(j) FROM JobPost j WHERE j.createdAt >= :start AND j.createdAt < :end")
+    long countNewJobPosts(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    // 전체 공고 조회수 합계
+    @Query("SELECT COALESCE(SUM(j.viewCount), 0) FROM JobPost j")
+    long sumTotalViewCount();
 }

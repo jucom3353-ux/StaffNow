@@ -5,6 +5,7 @@ import com.example.demo.dto.ContractResponseDto;
 import com.example.demo.entity.*;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
+import com.example.demo.repository.CompanyStampRepository;
 import com.example.demo.repository.ContractRepository;
 import com.example.demo.repository.JobPostRepository;
 import com.example.demo.repository.UserRepository;
@@ -24,6 +25,7 @@ public class ContractService {
     private final JobPostRepository jobPostRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final CompanyStampRepository companyStampRepository;
 
     private void validateCompanyOrManager(User user) {
         if (user.getRole() != Role.COMPANY && user.getRole() != Role.MANAGER) {
@@ -103,7 +105,7 @@ public class ContractService {
     }
 
     @Transactional
-    public void signContract(Long contractId, User loginUser) {
+    public void signContract(Long contractId, String signatureUrl, User loginUser) {
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
 
@@ -126,18 +128,35 @@ public class ContractService {
                 ? loginUser.getCompany() : loginUser;
 
         if (companyUser.getId().equals(contract.getCompany().getId())) {
+            // 기업 서명
             if (contract.getCompanySignedAt() != null) {
                 throw new CustomException(ErrorCode.CONTRACT_ALREADY_SIGNED);
             }
+
+            // 서명 이미지: 파라미터 우선, 없으면 등록된 도장 자동 적용
+            if (signatureUrl != null && !signatureUrl.isBlank()) {
+                contract.setCompanySignatureUrl(signatureUrl);
+            } else {
+                companyStampRepository.findByUser(companyUser)
+                        .ifPresent(stamp -> contract.setCompanySignatureUrl(stamp.getStampUrl()));
+            }
+
             contract.setCompanySignedAt(LocalDateTime.now());
             notificationService.send(contract.getWorker(), NotificationType.CONTRACT_SIGNED,
                     "[" + contract.getJobPost().getTitle() + "] 기업이 계약서에 서명했습니다. 서명해주세요.",
                     contract.getId());
 
         } else if (loginUser.getId().equals(contract.getWorker().getId())) {
+            // 근로자 서명
             if (contract.getWorkerSignedAt() != null) {
                 throw new CustomException(ErrorCode.CONTRACT_ALREADY_SIGNED);
             }
+
+            // 서명 이미지 저장 (선택)
+            if (signatureUrl != null && !signatureUrl.isBlank()) {
+                contract.setWorkerSignatureUrl(signatureUrl);
+            }
+
             contract.setWorkerSignedAt(LocalDateTime.now());
             notificationService.send(contract.getCompany(), NotificationType.CONTRACT_SIGNED,
                     "[" + contract.getJobPost().getTitle() + "] 근로자가 계약서에 서명했습니다.",
@@ -146,6 +165,7 @@ public class ContractService {
             throw new CustomException(ErrorCode.NOT_MY_CONTRACT);
         }
 
+        // 양측 서명 완료 시 SIGNED 처리
         if (contract.getCompanySignedAt() != null && contract.getWorkerSignedAt() != null) {
             contract.setStatus(ContractStatus.SIGNED);
             notificationService.send(contract.getCompany(), NotificationType.CONTRACT_COMPLETED,

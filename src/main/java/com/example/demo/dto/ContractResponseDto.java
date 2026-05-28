@@ -26,6 +26,8 @@ public class ContractResponseDto {
     private ContractStatus status;
     private LocalDateTime companySignedAt;
     private LocalDateTime workerSignedAt;
+    private String companySignatureUrl;   // 추가
+    private String workerSignatureUrl;    // 추가
     private LocalDateTime createdAt;
 
     public ContractResponseDto(Contract contract) {
@@ -47,6 +49,8 @@ public class ContractResponseDto {
         this.status = contract.getStatus();
         this.companySignedAt = contract.getCompanySignedAt();
         this.workerSignedAt = contract.getWorkerSignedAt();
+        this.companySignatureUrl = contract.getCompanySignatureUrl();
+        this.workerSignatureUrl = contract.getWorkerSignatureUrl();
         this.createdAt = contract.getCreatedAt();
     }
 }

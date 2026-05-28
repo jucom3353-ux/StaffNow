@@ -71,4 +71,9 @@ public interface PayrollRepository extends JpaRepository<Payroll, Long> {
 
     @Query("SELECT COALESCE(SUM(p.totalPay), 0) FROM Payroll p WHERE p.status = 'PAID'")
     long sumTotalPaidAmount();
+
+    // 기간별 매출 합계
+    @Query("SELECT COALESCE(SUM(p.totalPay), 0) FROM Payroll p " +
+           "WHERE p.status = 'PAID' AND p.workWeekStart >= :start AND p.workWeekStart <= :end")
+    long sumPaidAmountByPeriod(@Param("start") String start, @Param("end") String end);
 }

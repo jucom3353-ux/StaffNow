@@ -17,10 +17,24 @@ public class Notice {
     private String content;
 
     @Enumerated(EnumType.STRING)
-    private NoticeCategory category; // GENERAL, EVENT, UPDATE, URGENT
+    private NoticeCategory category;
 
-    private boolean isPinned = false;  // 상단 고정
-    private boolean isActive = true;   // 노출 여부
+    @Enumerated(EnumType.STRING)
+    private NoticeType noticeType;
+
+    @Enumerated(EnumType.STRING)
+    private NoticeTarget targetType;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "author_id")
+    private User author;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "job_post_id", nullable = true)
+    private JobPost jobPost;
+
+    private boolean isPinned = false;
+    private boolean isActive = true;
     private int viewCount = 0;
 
     @Column(updatable = false)
@@ -42,6 +56,10 @@ public class Notice {
     public String getTitle() { return title; }
     public String getContent() { return content; }
     public NoticeCategory getCategory() { return category; }
+    public NoticeType getNoticeType() { return noticeType; }
+    public NoticeTarget getTargetType() { return targetType; }
+    public User getAuthor() { return author; }
+    public JobPost getJobPost() { return jobPost; }
     public boolean isPinned() { return isPinned; }
     public boolean isActive() { return isActive; }
     public int getViewCount() { return viewCount; }
@@ -51,6 +69,10 @@ public class Notice {
     public void setTitle(String title) { this.title = title; }
     public void setContent(String content) { this.content = content; }
     public void setCategory(NoticeCategory category) { this.category = category; }
+    public void setNoticeType(NoticeType noticeType) { this.noticeType = noticeType; }
+    public void setTargetType(NoticeTarget targetType) { this.targetType = targetType; }
+    public void setAuthor(User author) { this.author = author; }
+    public void setJobPost(JobPost jobPost) { this.jobPost = jobPost; }
     public void setPinned(boolean pinned) { isPinned = pinned; }
     public void setActive(boolean active) { isActive = active; }
     public void setViewCount(int viewCount) { this.viewCount = viewCount; }

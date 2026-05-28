@@ -27,6 +27,7 @@ public class WorkSession {
     private int currentCount;
     private int pay;
     private String memo;
+    private int breakMinutes = 0;  // 휴게시간 (분 단위)
 
     @Enumerated(EnumType.STRING)
     private WorkStatus status;

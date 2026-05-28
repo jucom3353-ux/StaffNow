@@ -7,11 +7,12 @@ import lombok.Setter;
 @Setter
 public class WorkSessionCreateRequestDto {
 
-    private String shift;        // AM / PM / FULL
+    private String shift;
     private String workDate;
     private String startTime;
     private String endTime;
     private int recruitCount;
     private int pay;
     private String memo;
+    private int breakMinutes = 0;  // 추가
 }

@@ -29,4 +29,10 @@ public interface ProfileBoostRepository extends JpaRepository<ProfileBoost, Long
     List<Long> findBoostedUserIds(@Param("now") LocalDateTime now);
 
     List<ProfileBoost> findByUser(User user);
+
+    // 만료된 활성 부스트 조회 (Scheduler용)
+    @Query("SELECT p FROM ProfileBoost p " +
+       "WHERE p.isActive = true " +
+       "AND p.endAt < :now")
+    List<ProfileBoost> findExpiredActiveBoosts(@Param("now") LocalDateTime now);
 }

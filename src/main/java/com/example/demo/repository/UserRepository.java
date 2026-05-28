@@ -4,6 +4,8 @@ import com.example.demo.entity.BusinessLicenseStatus;
 import com.example.demo.entity.Gender;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
+import com.example.demo.entity.WorkAvailability;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,8 +13,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+
+import java.time.LocalDateTime;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
@@ -101,4 +108,16 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // 추천 코드 관련
     Optional<User> findByReferralCode(String referralCode);
     boolean existsByReferralCode(String referralCode);
+
+    // 기간별 신규 가입자
+    @Query("SELECT COUNT(u) FROM User u WHERE u.createdAt >= :start AND u.createdAt < :end")
+    long countNewUsers(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    // 즉시출근 가능 근로자 조회 (긴급 공고 알림용)
+    @Query("SELECT u FROM User u WHERE u.role = :role " +
+       "AND u.workAvailability = :availability " +
+       "AND u.suspended = false")
+    List<User> findByRoleAndWorkAvailability(
+        @Param("role") Role role,
+        @Param("availability") WorkAvailability availability);
 }

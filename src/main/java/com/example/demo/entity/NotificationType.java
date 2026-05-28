@@ -61,4 +61,9 @@ public enum NotificationType {
     ATTENDANCE_DISPUTE_REJECTED,   // 분쟁 반려
     
     INQUIRY_REPLIED, // 문의 답변
+
+    // 공지사항
+    NOTICE_RECEIVED,  // 공지사항 수신
+
+    URGENT_JOB_POST,  // 긴급 구인 알림
 }

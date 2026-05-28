@@ -21,7 +21,7 @@ public class NoticeController {
 
     private final NoticeService noticeService;
 
-    @Operation(summary = "공지사항 목록 조회")
+    @Operation(summary = "전체 공지사항 목록 조회")
     @GetMapping
     public ResponseEntity<ApiResponse<?>> getNotices(
             @RequestParam(required = false) NoticeCategory category,
@@ -30,13 +30,28 @@ public class NoticeController {
                 noticeService.getNotices(category, keyword)));
     }
 
+    @Operation(summary = "ADMIN 공지만 조회")
+    @GetMapping("/admin")
+    public ResponseEntity<ApiResponse<?>> getAdminNotices() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                noticeService.getAdminNotices()));
+    }
+
+    @Operation(summary = "공고별 기업 공지 조회")
+    @GetMapping("/job-post/{jobPostId}")
+    public ResponseEntity<ApiResponse<?>> getNoticesByJobPost(
+            @PathVariable Long jobPostId) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                noticeService.getNoticesByJobPost(jobPostId)));
+    }
+
     @Operation(summary = "공지사항 단건 조회")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<?>> getNotice(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.ok(noticeService.getNotice(id)));
     }
 
-    @Operation(summary = "공지사항 등록 (관리자)")
+    @Operation(summary = "공지사항 등록 (ADMIN/COMPANY/MANAGER)")
     @PostMapping
     public ResponseEntity<ApiResponse<?>> createNotice(
             @RequestBody NoticeRequestDto requestDto) {
@@ -44,7 +59,7 @@ public class NoticeController {
                 noticeService.createNotice(requestDto, getLoginUser())));
     }
 
-    @Operation(summary = "공지사항 수정 (관리자)")
+    @Operation(summary = "공지사항 수정")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<?>> updateNotice(
             @PathVariable Long id,
@@ -53,7 +68,7 @@ public class NoticeController {
                 noticeService.updateNotice(id, requestDto, getLoginUser())));
     }
 
-    @Operation(summary = "공지사항 삭제 (관리자)")
+    @Operation(summary = "공지사항 삭제")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<?>> deleteNotice(@PathVariable Long id) {
         noticeService.deleteNotice(id, getLoginUser());
