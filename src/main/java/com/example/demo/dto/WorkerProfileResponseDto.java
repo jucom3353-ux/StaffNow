@@ -19,8 +19,8 @@ public class WorkerProfileResponseDto {
     private int profileImageCount;
     private boolean isTopRecommended;
     private String workerStatus;
-    private Boolean hasCareer;      // 경력 보유 여부 (무료)
-    private Integer age;            // 연령 (무료)
+    private Boolean hasCareer;
+    private Integer age;
 
     // ===== 구독 여부 =====
     private Boolean hasSubscription;
@@ -28,6 +28,7 @@ public class WorkerProfileResponseDto {
     // ===== 유료 공개 정보 (구독 시) =====
     private String phone;
     private Boolean availableAlways;
+    private String workAvailability;        // 추가: 즉시출근/시간협의
     private double temperature;
     private int noShowCount;
     private double averageRating;
@@ -41,8 +42,13 @@ public class WorkerProfileResponseDto {
     private String desiredSalary;
     private List<String> skills;
     private List<String> educations;
-    private List<String> careers;       // 상세 경력 내용 (유료)
+    private List<String> careers;
     private List<String> certificates;
+
+    // 비상연락망 (구독 시 공개)
+    private String emergencyContactName;
+    private String emergencyContactPhone;
+    private String emergencyContactRelation;
 
     // 기본 생성자 (기존 호환)
     public WorkerProfileResponseDto(
@@ -72,8 +78,7 @@ public class WorkerProfileResponseDto {
         this.noShowCount = worker.getNoShowCount() != null ? worker.getNoShowCount() : 0;
         this.workerStatus = calcStatus(this.noShowCount);
         this.hasSubscription = false;
-
-        // 무료 공개
+        this.age = worker.getAge();
         this.hasCareer = careers != null && !careers.isEmpty();
     }
 
@@ -101,14 +106,22 @@ public class WorkerProfileResponseDto {
         this.workerStatus = calcStatus(this.noShowCount);
         this.hasSubscription = hasSubscription;
         this.hasCareer = careers != null && !careers.isEmpty();
+        this.age = worker.getAge();
 
         if (hasSubscription) {
             // 유료 정보
             this.phone = worker.getPhone();
             this.availableAlways = worker.getAvailableAlways();
+            this.workAvailability = worker.getWorkAvailability() != null
+                    ? worker.getWorkAvailability().name() : null;
             this.temperature = worker.getTemperature() != null
                     ? worker.getTemperature() : 36.5;
             this.bio = worker.getBio();
+
+            // 비상연락망 (구독 시 공개)
+            this.emergencyContactName = worker.getEmergencyContactName();
+            this.emergencyContactPhone = worker.getEmergencyContactPhone();
+            this.emergencyContactRelation = worker.getEmergencyContactRelation();
 
             // 스킬
             this.skills = skills.stream()
@@ -131,7 +144,7 @@ public class WorkerProfileResponseDto {
                               " (" + e.getGraduateStatus() + ")")
                     .collect(Collectors.toList());
 
-            // 경력 상세 (유료)
+            // 경력 상세
             this.careers = careers.stream()
                     .map(c -> c.getCompanyName() + " " + c.getJobTitle() +
                               " (" + c.getJoinDate() + " ~ " +
@@ -154,7 +167,7 @@ public class WorkerProfileResponseDto {
         }
     }
 
-    // 기존 호환 생성자 (hasSubscription 없는 버전 → true로 처리)
+    // 기존 호환 생성자
     public WorkerProfileResponseDto(
             User worker,
             List<Skill> skills,
@@ -185,6 +198,7 @@ public class WorkerProfileResponseDto {
     public String getWorkerStatus() { return workerStatus; }
     public Boolean getHasSubscription() { return hasSubscription; }
     public Boolean getAvailableAlways() { return availableAlways; }
+    public String getWorkAvailability() { return workAvailability; }
     public Boolean getHasCareer() { return hasCareer; }
     public Integer getAge() { return age; }
     public List<String> getSkills() { return skills; }
@@ -201,4 +215,7 @@ public class WorkerProfileResponseDto {
     public int getReviewCount() { return reviewCount; }
     public int getProfileImageCount() { return profileImageCount; }
     public boolean isTopRecommended() { return isTopRecommended; }
+    public String getEmergencyContactName() { return emergencyContactName; }
+    public String getEmergencyContactPhone() { return emergencyContactPhone; }
+    public String getEmergencyContactRelation() { return emergencyContactRelation; }
 }

@@ -200,13 +200,7 @@ public class AuthController {
         setAccessCookie(response, accessToken);
         setRefreshCookie(response, refreshTokenValue);
 
-        return new LoginResponseDto(
-                user.getRole().name(),
-                user.getName(),
-                user.getEmail(),
-                user.getPhone(),
-                user.getMbti()
-        );
+        return new LoginResponseDto(user);
     }
 
     private User getLoginUser() {

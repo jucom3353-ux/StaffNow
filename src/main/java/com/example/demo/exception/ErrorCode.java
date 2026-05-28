@@ -52,6 +52,8 @@ public enum ErrorCode {
     INVALID_EMAIL(HttpStatus.BAD_REQUEST, "이메일이 존재하지 않습니다."),
     MILEAGE_NOT_ENOUGH(HttpStatus.BAD_REQUEST, "마일리지가 부족합니다."),          // 추가
     ACCOUNT_NOT_REGISTERED(HttpStatus.BAD_REQUEST, "계좌 정보를 먼저 등록해주세요."), // 추가
+    QR_TOO_EARLY(HttpStatus.BAD_REQUEST, "아직 출근 가능 시간이 아닙니다. (근무 시작 30분 전부터 가능)"),
+    QR_CHECKOUT_EXPIRED(HttpStatus.BAD_REQUEST, "퇴근 처리 가능 시간이 지났습니다. (근무 종료 후 1시간 이내)"),
 
     // 401 Unauthorized
     TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "토큰이 만료되었습니다."),
@@ -117,6 +119,7 @@ public enum ErrorCode {
     EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "이벤트를 찾을 수 없습니다."),
     WITHDRAWAL_NOT_FOUND(HttpStatus.NOT_FOUND, "출금 신청을 찾을 수 없습니다."), 
     EXPOSURE_NOT_FOUND(HttpStatus.NOT_FOUND, "노출 신청을 찾을 수 없습니다."),
+    QR_NOT_FOUND(HttpStatus.NOT_FOUND, "QR 코드를 찾을 수 없습니다."),
 
 
 
@@ -144,6 +147,7 @@ public enum ErrorCode {
     BOOST_ALREADY_ACTIVE(HttpStatus.CONFLICT, "이미 활성화된 부스트가 있습니다."),
     WITHDRAWAL_ALREADY_PENDING(HttpStatus.CONFLICT, "이미 대기 중인 출금 신청이 있습니다."), // 추가
     EXPOSURE_ALREADY_ACTIVE(HttpStatus.CONFLICT, "이미 상단 노출 중인 공고입니다."),
+    QR_EXPIRED(HttpStatus.CONFLICT, "비활성화된 QR 코드입니다."),
 
     // 500 Internal Server Error
     FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "파일 업로드에 실패했습니다."),

@@ -5,6 +5,8 @@ import com.example.demo.entity.ApplicationStatus;
 import com.example.demo.entity.JobPost;
 import com.example.demo.entity.JobPostRole;
 import com.example.demo.entity.User;
+import com.example.demo.entity.WorkSession;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,6 +14,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
 import java.util.List;
 
 @Repository
@@ -44,6 +47,13 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     List<Application> findAbsentApplications(@Param("today") String today);
     List<Application> findByJobPostIdAndStatus(Long jobPostId, ApplicationStatus status);
     List<Application> findByJobPostId(Long jobPostId);
+
+    // QR 스캔용: 유저 + WorkSession으로 Application 조회
+        @Query("SELECT a FROM Application a WHERE a.user = :user " +
+           "AND a.workSession = :workSession")
+        Optional<Application> findByUserAndWorkSession(
+            @Param("user") User user,
+            @Param("workSession") WorkSession workSession);
 
     @Query("SELECT COUNT(a) FROM Application a " +
            "WHERE a.jobPostRole = :jobPostRole " +

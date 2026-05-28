@@ -51,6 +51,8 @@ public class JobPostResponseDto {
     private String managerEmail;
     private String managerFax;
     private String imageUrl;
+    private Boolean topExposure;        // 추가
+    private Boolean urgentBadge;        // 추가
 
     public JobPostResponseDto(JobPost jobPost, int currentCount) {
         this.id = jobPost.getId();
@@ -100,10 +102,16 @@ public class JobPostResponseDto {
         this.managerEmail = jobPost.getManagerEmail();
         this.managerFax = jobPost.getManagerFax();
         this.imageUrl = jobPost.getImageUrl();
+        this.topExposure = jobPost.getTopExposure();
+        this.urgentBadge = jobPost.getUrgentBadge();
 
         if (jobPost.getDeadline() != null) {
-            this.isDeadlined = LocalDate.parse(jobPost.getDeadline())
-                    .isBefore(LocalDate.now());
+            try {
+                this.isDeadlined = LocalDate.parse(jobPost.getDeadline())
+                        .isBefore(LocalDate.now());
+            } catch (Exception e) {
+                this.isDeadlined = false;
+            }
         } else {
             this.isDeadlined = false;
         }

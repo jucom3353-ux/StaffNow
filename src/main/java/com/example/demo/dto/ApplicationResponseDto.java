@@ -12,7 +12,8 @@ public class ApplicationResponseDto {
     private Long workerId;
     private String workerName;
     private String status;
-    private String roleName; // 추가
+    private String roleName;
+    private String applyMethod;         // 추가
     private LocalDateTime createdAt;
     private JobPostSummary jobPost;
 
@@ -23,6 +24,8 @@ public class ApplicationResponseDto {
         this.createdAt = application.getCreatedAt();
         this.roleName = application.getJobPostRole() != null
                 ? application.getJobPostRole().getRoleName() : null;
+        this.applyMethod = application.getApplyMethod() != null
+                ? application.getApplyMethod().name() : null;
         this.jobPost = new JobPostSummary(application);
     }
 
@@ -46,6 +49,8 @@ public class ApplicationResponseDto {
         private String wageType;
         private Integer wageAmount;
         private String deadline;
+        private Boolean urgentBadge;    // 추가
+        private Boolean topExposure;    // 추가
 
         public JobPostSummary(Application application) {
             var jobPost = application.getJobPost();
@@ -57,6 +62,8 @@ public class ApplicationResponseDto {
                     ? jobPost.getWageType().name() : null;
             this.wageAmount = jobPost.getWageAmount();
             this.deadline = jobPost.getDeadline();
+            this.urgentBadge = jobPost.getUrgentBadge();
+            this.topExposure = jobPost.getTopExposure();
         }
     }
 }
