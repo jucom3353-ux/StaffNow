@@ -23,7 +23,6 @@ import java.security.SecureRandom;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -31,11 +30,10 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final CompanyInviteService companyInviteService;
 
     private static final String CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int CODE_LENGTH = 6;
-
-    private final CompanyInviteService companyInviteService;
 
     private String generateReferralCode() {
         SecureRandom random = new SecureRandom();
@@ -65,10 +63,8 @@ public class UserService {
         user.setNoShowCount(0);
         user.setMbti(requestDto.getMbti());
 
-        // 추천 코드 자동 생성
         user.setReferralCode(generateReferralCode());
 
-        // 추천인 코드 입력한 경우
         if (requestDto.getReferralCode() != null && !requestDto.getReferralCode().isBlank()) {
             userRepository.findByReferralCode(requestDto.getReferralCode())
                 .ifPresentOrElse(
@@ -100,6 +96,9 @@ public class UserService {
         if (requestDto.getEmergencyContactPhone() != null) loginUser.setEmergencyContactPhone(requestDto.getEmergencyContactPhone());
         if (requestDto.getEmergencyContactRelation() != null) loginUser.setEmergencyContactRelation(requestDto.getEmergencyContactRelation());
         if (requestDto.getWorkAvailability() != null) loginUser.setWorkAvailability(requestDto.getWorkAvailability());
+        if (requestDto.getBankName() != null) loginUser.setBankName(requestDto.getBankName());
+        if (requestDto.getAccountNumber() != null) loginUser.setAccountNumber(requestDto.getAccountNumber());
+        if (requestDto.getAccountHolder() != null) loginUser.setAccountHolder(requestDto.getAccountHolder());
         userRepository.save(loginUser);
     }
 

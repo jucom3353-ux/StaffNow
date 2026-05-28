@@ -38,6 +38,7 @@ public class ApplicationService {
     private final CertificateRepository certificateRepository;
     private final ReviewRepository reviewRepository;
     private final CompanySubscriptionRepository companySubscriptionRepository;
+    private final MileageService mileageService;
 
     public ApplicationService(
             ApplicationRepository applicationRepository,
@@ -52,7 +53,8 @@ public class ApplicationService {
             CareerRepository careerRepository,
             CertificateRepository certificateRepository,
             ReviewRepository reviewRepository,
-            CompanySubscriptionRepository companySubscriptionRepository
+            CompanySubscriptionRepository companySubscriptionRepository,
+            MileageService mileageService
     ) {
         this.applicationRepository = applicationRepository;
         this.jobPostRepository = jobPostRepository;
@@ -67,6 +69,7 @@ public class ApplicationService {
         this.certificateRepository = certificateRepository;
         this.reviewRepository = reviewRepository;
         this.companySubscriptionRepository = companySubscriptionRepository;
+        this.mileageService = mileageService;
     }
 
     private void validateCompanyOrManager(User user) {
@@ -332,6 +335,24 @@ public class ApplicationService {
 
         application.setStatus(ApplicationStatus.COMPLETED);
         applicationRepository.save(application);
+
+        User worker = application.getUser();
+
+        // 근무 완료 마일리지 추후 확정 후 추가 예정
+
+        // 노쇼 없이 10회 완료 보너스 체크
+        long completedCount = applicationRepository
+                .countByUserAndStatus(worker, ApplicationStatus.COMPLETED);
+        if (completedCount > 0 && completedCount % 10 == 0
+                && worker.getNoShowCount() == 0) {
+            mileageService.addMileage(
+                    worker,
+                    MileageType.STREAK_BONUS,
+                    200,
+                    "노쇼 없이 " + completedCount + "회 근무 완료 보너스",
+                    application.getId()
+            );
+        }
     }
 
     @Transactional
@@ -357,6 +378,15 @@ public class ApplicationService {
 
         applicationRepository.save(application);
         userRepository.save(worker);
+
+        // 노쇼 마일리지 차감
+        mileageService.addMileage(
+                worker,
+                MileageType.NO_SHOW,
+                -100,
+                "[" + application.getJobPost().getTitle() + "] 노쇼 패널티",
+                application.getId()
+        );
 
         notificationService.send(
                 worker,

@@ -58,6 +58,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/early-bird").permitAll()
                         .requestMatchers(HttpMethod.GET, "/early-bird/count").permitAll()
                         .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/job-post-exposure/active").permitAll()
                         .requestMatchers("/disputes/*/resolve").hasRole("ADMIN")
                         .requestMatchers("/disputes").hasAnyRole("ADMIN", "COMPANY", "MANAGER", "INDIVIDUAL")
                         .anyRequest().authenticated()

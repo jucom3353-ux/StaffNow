@@ -36,6 +36,11 @@ public class User {
     private String activityRegion;
     private String profileImageUrl;
     private String businessLicenseUrl;
+    private int mileage = 0;
+
+    private String bankName;
+    private String accountNumber;
+    private String accountHolder;
 
     @Enumerated(EnumType.STRING)
     private BusinessLicenseStatus businessLicenseStatus = BusinessLicenseStatus.NONE;
@@ -138,6 +143,11 @@ public class User {
     public String getEmergencyContactRelation() { return emergencyContactRelation; }
     public WorkAvailability getWorkAvailability() { return workAvailability; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public int getMileage() { return mileage; }
+    public String getBankName() { return bankName; }
+    public String getAccountNumber() { return accountNumber; }
+    public String getAccountHolder() { return accountHolder; }
+
 
 
     public void setId(Long id) { this.id = id; }
@@ -174,4 +184,8 @@ public class User {
     public void setEmergencyContactPhone(String emergencyContactPhone) { this.emergencyContactPhone = emergencyContactPhone; }
     public void setEmergencyContactRelation(String emergencyContactRelation) { this.emergencyContactRelation = emergencyContactRelation; }
     public void setWorkAvailability(WorkAvailability workAvailability) { this.workAvailability = workAvailability; }
+    public void setMileage(int mileage) { this.mileage = mileage; }
+    public void setBankName(String bankName) { this.bankName = bankName; }
+    public void setAccountNumber(String accountNumber) { this.accountNumber = accountNumber; }
+    public void setAccountHolder(String accountHolder) { this.accountHolder = accountHolder; }
 }
