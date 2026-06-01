@@ -3,6 +3,7 @@ package com.example.demo.config;
 import com.example.demo.jwt.JwtFilter;
 import com.example.demo.jwt.RateLimitFilter;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -29,6 +30,9 @@ public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
     private final RateLimitFilter rateLimitFilter;
+
+    @Value("${app.cors.allowed-origins:*}")
+    private String allowedOrigins;
 
     public SecurityConfig(JwtFilter jwtFilter, RateLimitFilter rateLimitFilter) {
         this.jwtFilter = jwtFilter;
@@ -57,12 +61,18 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/users").permitAll()
                         .requestMatchers(HttpMethod.POST, "/early-bird").permitAll()
                         .requestMatchers(HttpMethod.GET, "/early-bird/count").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/events").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/events/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/notices").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/notices/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/notices/job-post/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/notices/admin").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/job-post-exposure/active").permitAll()
-                        .requestMatchers("/disputes/*/resolve").hasRole("ADMIN")
-                        .requestMatchers("/disputes").hasAnyRole("ADMIN", "COMPANY", "MANAGER", "INDIVIDUAL")
                         .requestMatchers(HttpMethod.GET, "/job-posts/calendar").permitAll()
                         .requestMatchers(HttpMethod.GET, "/job-posts/calendar/regions").permitAll()
+                        .requestMatchers("/disputes/*/resolve").hasRole("ADMIN")
+                        .requestMatchers("/disputes").hasAnyRole("ADMIN", "COMPANY", "MANAGER", "INDIVIDUAL")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
@@ -74,7 +84,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("*"));
+        config.setAllowedOriginPatterns(List.of(allowedOrigins.split(",")));
         config.setAllowedMethods(List.of(
                 "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
         ));

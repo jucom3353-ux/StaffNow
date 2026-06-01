@@ -30,12 +30,7 @@ public class UserResponseDto {
     private String emergencyContactPhone;
     private String emergencyContactRelation;
     private String workAvailability;
-
-    // 오늘 추가된 필드들
     private int mileage;
-    private String bankName;
-    private String accountNumber;
-    private String accountHolder;
 
     public UserResponseDto(User user) {
         this.id = user.getId();
@@ -63,11 +58,7 @@ public class UserResponseDto {
         this.workAvailability = user.getWorkAvailability() != null
                 ? user.getWorkAvailability().name() : null;
         this.mileage = user.getMileage();
-        this.bankName = user.getBankName();
-        this.accountNumber = user.getAccountNumber();
-        this.accountHolder = user.getAccountHolder();
 
-        // MANAGER인 경우 소속 기업 정보 노출
         if (user.getCompany() != null) {
             this.companyId = user.getCompany().getId();
             this.companyUserName = user.getCompany().getCompanyName();

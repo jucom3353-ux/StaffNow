@@ -4,6 +4,7 @@ import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.PasswordChangeRequestDto;
 import com.example.demo.dto.ReferralInfoResponse;
 import com.example.demo.dto.UserCreateRequestDto;
+import com.example.demo.dto.UserPrivateResponseDto;
 import com.example.demo.dto.UserResponseDto;
 import com.example.demo.dto.UserUpdateRequestDto;
 import com.example.demo.entity.Role;
@@ -43,14 +44,14 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.ok(available));
     }
 
-    @Operation(summary = "내 프로필 조회")
+    @Operation(summary = "내 프로필 조회 (계좌 정보 포함)")
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<?>> getMe() {
         return ResponseEntity.ok(
-                ApiResponse.ok(new UserResponseDto(getLoginUser())));
+                ApiResponse.ok(new UserPrivateResponseDto(getLoginUser())));
     }
 
-    @Operation(summary = "내 추천 코드 조회", description = "내 추천 코드와 추천한 인원 수를 반환합니다.")
+    @Operation(summary = "내 추천 코드 조회")
     @GetMapping("/me/referral")
     public ResponseEntity<ApiResponse<?>> getReferralInfo() {
         User loginUser = getLoginUser();
@@ -65,7 +66,7 @@ public class UserController {
         User loginUser = getLoginUser();
         userService.updateUser(loginUser, requestDto);
         return ResponseEntity.ok(
-                ApiResponse.ok("프로필 수정 완료", new UserResponseDto(loginUser)));
+                ApiResponse.ok("프로필 수정 완료", new UserPrivateResponseDto(loginUser)));
     }
 
     @Operation(summary = "비밀번호 변경")
