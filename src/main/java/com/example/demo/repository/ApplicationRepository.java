@@ -28,6 +28,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     int countByUserAndStatus(User user, ApplicationStatus status);
     List<Application> findByStatus(ApplicationStatus status);
     long countByStatus(ApplicationStatus status);
+    long countByJobPostAndStatus(JobPost jobPost, ApplicationStatus status);
 
     @Query("SELECT COUNT(a) FROM Application a WHERE a.jobPost.user = :company AND a.status = :status")
     int countByCompanyAndStatus(

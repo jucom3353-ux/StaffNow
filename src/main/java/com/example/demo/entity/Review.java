@@ -9,30 +9,30 @@ public class Review {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 평가 대상 작업자 (기업 → 인력 방향일 때)
     @ManyToOne
     @JoinColumn(name = "worker_id")
     private User worker;
 
-    // 평가한 회사 (기업 → 인력 방향일 때)
     @ManyToOne
     @JoinColumn(name = "company_id")
     private User company;
 
-    // 평가 대상 기업 (인력 → 기업 방향일 때)
     @ManyToOne
     @JoinColumn(name = "target_company_id")
     private User targetCompany;
 
-    // 어떤 지원건 기준인지
     @OneToOne
     @JoinColumn(name = "application_id")
     private Application application;
 
-    private int rating;
+    private int rating;             // 종합 별점
     private String comment;
 
-    // 리뷰 방향 구분
+    // 세부 평가 항목 (기업 → 구직자 리뷰에만 적용)
+    private int sincerityRating;    // 성실도
+    private int kindnessRating;     // 친절도
+    private int skillRating;        // 숙련도
+
     @Enumerated(EnumType.STRING)
     private ReviewType reviewType;
 
@@ -43,6 +43,9 @@ public class Review {
     public Application getApplication() { return application; }
     public int getRating() { return rating; }
     public String getComment() { return comment; }
+    public int getSincerityRating() { return sincerityRating; }
+    public int getKindnessRating() { return kindnessRating; }
+    public int getSkillRating() { return skillRating; }
     public ReviewType getReviewType() { return reviewType; }
 
     public void setWorker(User worker) { this.worker = worker; }
@@ -51,5 +54,8 @@ public class Review {
     public void setApplication(Application application) { this.application = application; }
     public void setRating(int rating) { this.rating = rating; }
     public void setComment(String comment) { this.comment = comment; }
+    public void setSincerityRating(int sincerityRating) { this.sincerityRating = sincerityRating; }
+    public void setKindnessRating(int kindnessRating) { this.kindnessRating = kindnessRating; }
+    public void setSkillRating(int skillRating) { this.skillRating = skillRating; }
     public void setReviewType(ReviewType reviewType) { this.reviewType = reviewType; }
 }

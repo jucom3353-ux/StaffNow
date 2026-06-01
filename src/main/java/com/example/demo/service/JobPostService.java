@@ -301,6 +301,16 @@ public class JobPostService {
     }
 
     @Transactional(readOnly = true)
+    public JobPost getJobPostEntity(Long id, User loginUser) {
+        validateCompanyOrManager(loginUser);
+        
+    JobPost post = jobPostRepository.findById(id)
+            .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
+        validateJobPostOwnership(post, loginUser);
+        return post;
+    }
+
+    @Transactional(readOnly = true)
     public List<JobPostResponseDto> getPopularJobPosts(int limit, String region) {
         Pageable pageable = PageRequest.of(0, limit);
         List<JobPost> posts = (region != null && !region.isBlank())

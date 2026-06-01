@@ -2,9 +2,11 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.JobPostCreateRequestDto;
+import com.example.demo.entity.JobPost;
 import com.example.demo.entity.PostStatus;
 import com.example.demo.entity.User;
 import com.example.demo.service.JobPostService;
+import com.example.demo.service.JobPostTemplateService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 public class JobPostController {
 
     private final JobPostService jobPostService;
+    private final JobPostTemplateService jobPostTemplateService;
 
     @Operation(summary = "구직자용 공고 검색 (sort: latest/wage/deadline/popular)")
     @GetMapping("/search")
@@ -84,12 +87,22 @@ public class JobPostController {
         return ResponseEntity.ok(ApiResponse.ok("공고 생성 완료"));
     }
 
-    // ✅ 공고 복사
     @Operation(summary = "공고 복사 (DRAFT로 복사)")
     @PostMapping("/{id}/copy")
     public ResponseEntity<ApiResponse<?>> copyJobPost(@PathVariable Long id) {
         jobPostService.copyJobPost(id, getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("공고 복사 완료"));
+    }
+
+    @Operation(summary = "기존 공고에서 템플릿 저장")
+    @PostMapping("/{id}/save-template")
+    public ResponseEntity<ApiResponse<?>> saveAsTemplate(
+            @PathVariable Long id,
+            @RequestParam String templateName) {
+        JobPost jobPost = jobPostService.getJobPostEntity(id, getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok(
+                jobPostTemplateService.createTemplateFromJobPost(
+                        jobPost, templateName, getLoginUser())));
     }
 
     @Operation(summary = "공고 상태 변경 (DRAFT/OPEN/CLOSED)")

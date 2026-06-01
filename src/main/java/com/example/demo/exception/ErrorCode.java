@@ -123,6 +123,7 @@ public enum ErrorCode {
     EXPOSURE_NOT_FOUND(HttpStatus.NOT_FOUND, "노출 신청을 찾을 수 없습니다."),
     QR_NOT_FOUND(HttpStatus.NOT_FOUND, "QR 코드를 찾을 수 없습니다."),
     PORTFOLIO_NOT_FOUND(HttpStatus.NOT_FOUND, "포트폴리오를 찾을 수 없습니다."),
+    TEMPLATE_NOT_FOUND(HttpStatus.NOT_FOUND, "템플릿을 찾을 수 없습니다."),
 
 
 

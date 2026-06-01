@@ -1,15 +1,14 @@
 package com.example.demo.dto;
 
-import jakarta.validation.constraints.*;
 import lombok.Getter;
+import lombok.Setter;
 
 @Getter
+@Setter
 public class ReviewRequestDto {
-
-    @Min(value = 1, message = "별점은 1점 이상이어야 합니다")
-    @Max(value = 5, message = "별점은 5점 이하여야 합니다")
-    private int rating;
-
-    @Size(max = 500, message = "리뷰는 500자 이하로 작성해주세요")
+    private int rating;             // 종합 별점 (1~5)
     private String comment;
+    private int sincerityRating;    // 성실도 (1~5)
+    private int kindnessRating;     // 친절도 (1~5)
+    private int skillRating;        // 숙련도 (1~5)
 }

@@ -15,6 +15,9 @@ public class ReviewResponseDto {
     private Long applicationId;
     private int rating;
     private String comment;
+    private int sincerityRating;    // 추가
+    private int kindnessRating;     // 추가
+    private int skillRating;        // 추가
     private ReviewType reviewType;
 
     public ReviewResponseDto(Review review) {
@@ -22,9 +25,11 @@ public class ReviewResponseDto {
         this.applicationId = review.getApplication().getId();
         this.rating = review.getRating();
         this.comment = review.getComment();
+        this.sincerityRating = review.getSincerityRating();
+        this.kindnessRating = review.getKindnessRating();
+        this.skillRating = review.getSkillRating();
         this.reviewType = review.getReviewType();
 
-        // COMPANY_TO_WORKER: worker + company 세팅
         if (review.getWorker() != null) {
             this.workerId = review.getWorker().getId();
             this.workerName = review.getWorker().getName();
@@ -33,7 +38,6 @@ public class ReviewResponseDto {
             this.companyId = review.getCompany().getId();
             this.companyName = review.getCompany().getName();
         }
-        // WORKER_TO_COMPANY: targetCompany 세팅
         if (review.getTargetCompany() != null) {
             this.companyId = review.getTargetCompany().getId();
             this.companyName = review.getTargetCompany().getName();

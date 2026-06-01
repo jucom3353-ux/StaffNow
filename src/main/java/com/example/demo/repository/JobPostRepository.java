@@ -163,4 +163,9 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
     List<String> findDistinctRegionsByMonth(
            @Param("startDate") LocalDate startDate,
            @Param("endDate") LocalDate endDate);
+
+    @Query("SELECT j FROM JobPost j WHERE j.user = :user AND j.createdAt >= :startDate")
+    List<JobPost> findByUserAndCreatedAtAfter(
+           @Param("user") User user,
+           @Param("startDate") java.time.LocalDateTime startDate);
 }

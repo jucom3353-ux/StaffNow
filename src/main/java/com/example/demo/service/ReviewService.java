@@ -64,6 +64,9 @@ public class ReviewService {
         review.setCompany(companyUser);
         review.setRating(requestDto.getRating());
         review.setComment(requestDto.getComment());
+        review.setSincerityRating(requestDto.getSincerityRating());
+        review.setKindnessRating(requestDto.getKindnessRating());
+        review.setSkillRating(requestDto.getSkillRating());
         review.setReviewType(ReviewType.COMPANY_TO_WORKER);
         reviewRepository.save(review);
     }
@@ -101,10 +104,25 @@ public class ReviewService {
                 .orElseThrow(() -> new CustomException(ErrorCode.WORKER_NOT_FOUND));
 
         List<Review> reviews = reviewRepository.findByWorker(worker);
-        double average = reviews.stream().mapToInt(Review::getRating).average().orElse(0);
 
-        return new WorkerRatingResponseDto(worker.getId(), average,
-                reviews.size(), worker.getTemperature());
+        double averageRating = reviews.stream()
+                .mapToInt(Review::getRating).average().orElse(0);
+        double avgSincerity = reviews.stream()
+                .mapToInt(Review::getSincerityRating).average().orElse(0);
+        double avgKindness = reviews.stream()
+                .mapToInt(Review::getKindnessRating).average().orElse(0);
+        double avgSkill = reviews.stream()
+                .mapToInt(Review::getSkillRating).average().orElse(0);
+
+        return new WorkerRatingResponseDto(
+                worker.getId(),
+                averageRating,
+                avgSincerity,
+                avgKindness,
+                avgSkill,
+                reviews.size(),
+                worker.getTemperature()
+        );
     }
 
     public List<ReviewResponseDto> getCompanyReviews(Long companyId) {
@@ -121,7 +139,6 @@ public class ReviewService {
         if (loginUser.getRole() == Role.INDIVIDUAL) {
             reviews = reviewRepository.findByWorker(loginUser);
         } else if (loginUser.getRole() == Role.MANAGER) {
-            // MANAGER는 소속 기업 기준으로 리뷰 조회
             User companyUser = loginUser.getCompany();
             reviews = reviewRepository.findByTargetCompany(companyUser);
         } else {
