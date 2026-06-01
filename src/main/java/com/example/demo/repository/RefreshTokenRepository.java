@@ -12,7 +12,9 @@ import java.util.Optional;
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
 
     Optional<RefreshToken> findByRefreshToken(String refreshToken);
-    Optional<RefreshToken> findByUserId(Long userId);
+    @Query("SELECT r FROM RefreshToken r WHERE r.userId = :userId " +
+       "AND r.blacklisted = false ORDER BY r.id DESC")
+    Optional<RefreshToken> findByUserId(@Param("userId") Long userId);
 
     // ✅ 만료 토큰 일괄 삭제 (스케줄러용)
     @Modifying
