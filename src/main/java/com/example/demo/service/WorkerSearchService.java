@@ -30,6 +30,8 @@ public class WorkerSearchService {
             Integer minAge,
             Integer maxAge,
             String timeType,
+            Boolean hasPortfolio,    // 추가
+            Boolean hasCertificate,  // 추가
             String sort,
             int page,
             int size,
@@ -42,7 +44,7 @@ public class WorkerSearchService {
                     Role.INDIVIDUAL, name, minRating, maxNoShow,
                     activityRegion, mbti, availableAlways,
                     gender, minAge, maxAge, timeType,
-                    blockerId, pageable)
+                    blockerId, hasPortfolio, hasCertificate, pageable)
                     .map(WorkerSearchResponseDto::new);
         }
 
@@ -51,7 +53,7 @@ public class WorkerSearchService {
                 Role.INDIVIDUAL, name, minRating, maxNoShow,
                 activityRegion, mbti, availableAlways,
                 gender, minAge, maxAge, timeType,
-                blockerId, pageable)
+                blockerId, hasPortfolio, hasCertificate, pageable)
                 .map(WorkerSearchResponseDto::new);
     }
 
@@ -59,11 +61,9 @@ public class WorkerSearchService {
     public WorkerSearchResponseDto getWorker(Long workerId) {
         User worker = userRepository.findById(workerId)
                 .orElseThrow(() -> new CustomException(ErrorCode.WORKER_NOT_FOUND));
-
         if (worker.getRole() != Role.INDIVIDUAL) {
             throw new CustomException(ErrorCode.WORKER_ONLY);
         }
-
         return new WorkerSearchResponseDto(worker);
     }
 }

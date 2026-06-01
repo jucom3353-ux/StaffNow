@@ -17,10 +17,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import java.time.LocalDateTime;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
@@ -45,6 +41,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
            "AND (:timeType IS NULL OR EXISTS (" +
            "    SELECT p FROM PreferredWorkTime p " +
            "    WHERE p.user = u AND p.timeType = :timeType)) " +
+           "AND (:hasPortfolio IS NULL OR (:hasPortfolio = true AND EXISTS (" +
+           "    SELECT pf FROM Portfolio pf WHERE pf.user = u))) " +
+           "AND (:hasCertificate IS NULL OR (:hasCertificate = true AND EXISTS (" +
+           "    SELECT c FROM Certificate c WHERE c.resume.user = u))) " +
            "AND u.suspended = false " +
            "AND u.id NOT IN " +
            "(SELECT b.blocked.id FROM Block b WHERE b.blocker.id = :blockerId)")
@@ -61,6 +61,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("maxAge") Integer maxAge,
             @Param("timeType") String timeType,
             @Param("blockerId") Long blockerId,
+            @Param("hasPortfolio") Boolean hasPortfolio,
+            @Param("hasCertificate") Boolean hasCertificate,
             Pageable pageable
     );
 
@@ -77,6 +79,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
            "AND (:timeType IS NULL OR EXISTS (" +
            "    SELECT p FROM PreferredWorkTime p " +
            "    WHERE p.user = u AND p.timeType = :timeType)) " +
+           "AND (:hasPortfolio IS NULL OR (:hasPortfolio = true AND EXISTS (" +
+           "    SELECT pf FROM Portfolio pf WHERE pf.user = u))) " +
+           "AND (:hasCertificate IS NULL OR (:hasCertificate = true AND EXISTS (" +
+           "    SELECT c FROM Certificate c WHERE c.resume.user = u))) " +
            "AND u.suspended = false " +
            "AND u.id NOT IN " +
            "(SELECT b.blocked.id FROM Block b WHERE b.blocker.id = :blockerId) " +
@@ -102,22 +108,21 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("maxAge") Integer maxAge,
             @Param("timeType") String timeType,
             @Param("blockerId") Long blockerId,
+            @Param("hasPortfolio") Boolean hasPortfolio,
+            @Param("hasCertificate") Boolean hasCertificate,
             Pageable pageable
     );
 
-    // 추천 코드 관련
     Optional<User> findByReferralCode(String referralCode);
     boolean existsByReferralCode(String referralCode);
 
-    // 기간별 신규 가입자
     @Query("SELECT COUNT(u) FROM User u WHERE u.createdAt >= :start AND u.createdAt < :end")
     long countNewUsers(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
-    // 즉시출근 가능 근로자 조회 (긴급 공고 알림용)
     @Query("SELECT u FROM User u WHERE u.role = :role " +
-       "AND u.workAvailability = :availability " +
-       "AND u.suspended = false")
+           "AND u.workAvailability = :availability " +
+           "AND u.suspended = false")
     List<User> findByRoleAndWorkAvailability(
-        @Param("role") Role role,
-        @Param("availability") WorkAvailability availability);
+            @Param("role") Role role,
+            @Param("availability") WorkAvailability availability);
 }

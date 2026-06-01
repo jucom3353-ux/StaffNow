@@ -72,6 +72,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/job-posts/calendar").permitAll()
                         .requestMatchers(HttpMethod.GET, "/job-posts/calendar/regions").permitAll()
                         .requestMatchers("/disputes/*/resolve").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/job-posts/autocomplete").permitAll()
                         .requestMatchers("/disputes").hasAnyRole("ADMIN", "COMPANY", "MANAGER", "INDIVIDUAL")
                         .anyRequest().authenticated()
                 )

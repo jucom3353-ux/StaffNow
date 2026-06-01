@@ -118,8 +118,7 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
 
     @Query("SELECT DISTINCT j.title FROM JobPost j " +
            "WHERE j.title LIKE %:keyword% " +
-           "AND j.postStatus = 'OPEN' " +
-           "ORDER BY j.viewCount DESC")
+           "AND j.postStatus = 'OPEN' ")
     List<String> findTitleSuggestions(
             @Param("keyword") String keyword,
             Pageable pageable);
