@@ -61,6 +61,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/job-post-exposure/active").permitAll()
                         .requestMatchers("/disputes/*/resolve").hasRole("ADMIN")
                         .requestMatchers("/disputes").hasAnyRole("ADMIN", "COMPANY", "MANAGER", "INDIVIDUAL")
+                        .requestMatchers(HttpMethod.GET, "/job-posts/calendar").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/job-posts/calendar/regions").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)

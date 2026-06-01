@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import com.example.demo.dto.ApplicationResponseDto;
+import com.example.demo.dto.PortfolioResponseDto;
 import com.example.demo.dto.WorkerProfileResponseDto;
 import com.example.demo.entity.*;
 import com.example.demo.exception.CustomException;
@@ -39,6 +40,8 @@ public class ApplicationService {
     private final ReviewRepository reviewRepository;
     private final CompanySubscriptionRepository companySubscriptionRepository;
     private final MileageService mileageService;
+    private final PortfolioRepository portfolioRepository;
+    private final PortfolioImageRepository portfolioImageRepository;
 
     public ApplicationService(
             ApplicationRepository applicationRepository,
@@ -54,7 +57,9 @@ public class ApplicationService {
             CertificateRepository certificateRepository,
             ReviewRepository reviewRepository,
             CompanySubscriptionRepository companySubscriptionRepository,
-            MileageService mileageService
+            MileageService mileageService,
+            PortfolioRepository portfolioRepository,
+            PortfolioImageRepository portfolioImageRepository
     ) {
         this.applicationRepository = applicationRepository;
         this.jobPostRepository = jobPostRepository;
@@ -70,6 +75,8 @@ public class ApplicationService {
         this.reviewRepository = reviewRepository;
         this.companySubscriptionRepository = companySubscriptionRepository;
         this.mileageService = mileageService;
+        this.portfolioRepository = portfolioRepository;
+        this.portfolioImageRepository = portfolioImageRepository;
     }
 
     private void validateCompanyOrManager(User user) {
@@ -105,6 +112,19 @@ public class ApplicationService {
         if (jobPost.getPostStatus() == PostStatus.DRAFT) {
             throw new CustomException(ErrorCode.JOB_POST_DRAFT);
         }
+
+        // 지원 방식 검증
+        if (applyMethod != null) {
+            boolean allowed = switch (applyMethod) {
+                case ONLINE -> Boolean.TRUE.equals(jobPost.getAllowOnline());
+                case PHONE -> Boolean.TRUE.equals(jobPost.getAllowPhone());
+                case MESSAGE -> Boolean.TRUE.equals(jobPost.getAllowSms());
+            };
+            if (!allowed) {
+                throw new CustomException(ErrorCode.INVALID_APPLY_METHOD);
+            }
+        }
+
         if (applicationRepository.existsByUserAndJobPost(loginUser, jobPost)) {
             throw new CustomException(ErrorCode.ALREADY_APPLIED);
         }
@@ -235,9 +255,18 @@ public class ApplicationService {
                 ? certificateRepository.findByResume(resume) : List.of();
         List<Review> reviews = reviewRepository.findByWorker(worker);
 
+        // 포트폴리오 조회
+        List<PortfolioResponseDto> portfolios = portfolioRepository
+                .findByUserOrderByCreatedAtDesc(worker)
+                .stream()
+                .map(p -> new PortfolioResponseDto(p,
+                        portfolioImageRepository.findByPortfolioOrderBySortOrderAsc(p)))
+                .collect(Collectors.toList());
+
         return new WorkerProfileResponseDto(
                 worker, skills, resume, educations,
-                careers, certificates, reviews, true
+                careers, certificates, reviews,
+                portfolios, true
         );
     }
 
@@ -338,8 +367,6 @@ public class ApplicationService {
 
         User worker = application.getUser();
 
-        // 근무 완료 마일리지 추후 확정 후 추가 예정
-
         // 노쇼 없이 10회 완료 보너스 체크
         long completedCount = applicationRepository
                 .countByUserAndStatus(worker, ApplicationStatus.COMPLETED);
@@ -379,7 +406,6 @@ public class ApplicationService {
         applicationRepository.save(application);
         userRepository.save(worker);
 
-        // 노쇼 마일리지 차감
         mileageService.addMileage(
                 worker,
                 MileageType.NO_SHOW,

@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
 @Repository
@@ -137,4 +138,29 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
     // 전체 공고 조회수 합계
     @Query("SELECT COALESCE(SUM(j.viewCount), 0) FROM JobPost j")
     long sumTotalViewCount();
+
+    // 월별 공고 조회 (캘린더용)
+    @Query("SELECT j FROM JobPost j WHERE j.postStatus = 'OPEN' " +
+           "AND j.workStartDate >= :startDate AND j.workStartDate < :endDate " +
+           "ORDER BY j.workStartDate ASC")
+    List<JobPost> findByWorkStartDateBetween(
+           @Param("startDate") LocalDate startDate,
+           @Param("endDate") LocalDate endDate);
+
+    // 월별 + 지역 필터
+    @Query("SELECT j FROM JobPost j WHERE j.postStatus = 'OPEN' " +
+           "AND j.workStartDate >= :startDate AND j.workStartDate < :endDate " +
+           "AND j.workLocation LIKE %:region% " +
+           "ORDER BY j.workStartDate ASC")
+    List<JobPost> findByWorkStartDateBetweenAndRegion(
+           @Param("startDate") LocalDate startDate,
+           @Param("endDate") LocalDate endDate,
+           @Param("region") String region);
+
+    // 이번 달 공고 있는 지역 목록
+    @Query("SELECT DISTINCT j.workLocation FROM JobPost j WHERE j.postStatus = 'OPEN' " +
+           "AND j.workStartDate >= :startDate AND j.workStartDate < :endDate")
+    List<String> findDistinctRegionsByMonth(
+           @Param("startDate") LocalDate startDate,
+           @Param("endDate") LocalDate endDate);
 }

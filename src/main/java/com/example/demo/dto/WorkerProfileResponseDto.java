@@ -28,7 +28,7 @@ public class WorkerProfileResponseDto {
     // ===== 유료 공개 정보 (구독 시) =====
     private String phone;
     private Boolean availableAlways;
-    private String workAvailability;        // 추가: 즉시출근/시간협의
+    private String workAvailability;
     private double temperature;
     private int noShowCount;
     private double averageRating;
@@ -44,11 +44,10 @@ public class WorkerProfileResponseDto {
     private List<String> educations;
     private List<String> careers;
     private List<String> certificates;
-
-    // 비상연락망 (구독 시 공개)
     private String emergencyContactName;
     private String emergencyContactPhone;
     private String emergencyContactRelation;
+    private List<PortfolioResponseDto> portfolios;  // 추가
 
     // 기본 생성자 (기존 호환)
     public WorkerProfileResponseDto(
@@ -91,6 +90,7 @@ public class WorkerProfileResponseDto {
             List<com.example.demo.entity.Career> careers,
             List<com.example.demo.entity.Certificate> certificates,
             List<Review> reviews,
+            List<PortfolioResponseDto> portfolios,
             boolean hasSubscription
     ) {
         // 무료 정보
@@ -109,7 +109,6 @@ public class WorkerProfileResponseDto {
         this.age = worker.getAge();
 
         if (hasSubscription) {
-            // 유료 정보
             this.phone = worker.getPhone();
             this.availableAlways = worker.getAvailableAlways();
             this.workAvailability = worker.getWorkAvailability() != null
@@ -117,18 +116,15 @@ public class WorkerProfileResponseDto {
             this.temperature = worker.getTemperature() != null
                     ? worker.getTemperature() : 36.5;
             this.bio = worker.getBio();
-
-            // 비상연락망 (구독 시 공개)
             this.emergencyContactName = worker.getEmergencyContactName();
             this.emergencyContactPhone = worker.getEmergencyContactPhone();
             this.emergencyContactRelation = worker.getEmergencyContactRelation();
+            this.portfolios = portfolios;
 
-            // 스킬
             this.skills = skills.stream()
                     .map(Skill::getName)
                     .collect(Collectors.toList());
 
-            // 이력서
             if (resume != null) {
                 this.desiredLocation = resume.getDesiredLocation();
                 this.desiredJob = resume.getDesiredJob();
@@ -138,13 +134,11 @@ public class WorkerProfileResponseDto {
                 this.desiredSalary = resume.getDesiredSalary();
             }
 
-            // 학력
             this.educations = educations.stream()
                     .map(e -> e.getSchoolName() + " " + e.getMajor() +
                               " (" + e.getGraduateStatus() + ")")
                     .collect(Collectors.toList());
 
-            // 경력 상세
             this.careers = careers.stream()
                     .map(c -> c.getCompanyName() + " " + c.getJobTitle() +
                               " (" + c.getJoinDate() + " ~ " +
@@ -152,12 +146,10 @@ public class WorkerProfileResponseDto {
                                       ? "재직중" : c.getLeaveDate()) + ")")
                     .collect(Collectors.toList());
 
-            // 자격증
             this.certificates = certificates.stream()
                     .map(c -> c.getName() + " (" + c.getIssuer() + ")")
                     .collect(Collectors.toList());
 
-            // 리뷰 평균 별점
             this.reviewCount = reviews.size();
             this.averageRating = reviews.isEmpty() ? 0.0 :
                     reviews.stream()
@@ -177,7 +169,8 @@ public class WorkerProfileResponseDto {
             List<com.example.demo.entity.Certificate> certificates,
             List<Review> reviews
     ) {
-        this(worker, skills, resume, educations, careers, certificates, reviews, true);
+        this(worker, skills, resume, educations, careers, certificates, reviews,
+                List.of(), true);
     }
 
     private String calcStatus(int noShowCount) {
@@ -218,4 +211,5 @@ public class WorkerProfileResponseDto {
     public String getEmergencyContactName() { return emergencyContactName; }
     public String getEmergencyContactPhone() { return emergencyContactPhone; }
     public String getEmergencyContactRelation() { return emergencyContactRelation; }
+    public List<PortfolioResponseDto> getPortfolios() { return portfolios; }
 }

@@ -78,6 +78,10 @@ public class JobPost {
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
+    private Boolean allowOnline = true;   // 온라인 지원
+    private Boolean allowPhone = false;   // 전화 지원
+    private Boolean allowSms = false;     // 문자 지원
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
@@ -127,6 +131,9 @@ public class JobPost {
     public Double getLatitude() { return latitude; }
     public Double getLongitude() { return longitude; }
     public String getImageUrl() { return imageUrl; }
+    public Boolean getAllowOnline() { return allowOnline; }
+    public Boolean getAllowPhone() { return allowPhone; }
+    public Boolean getAllowSms() { return allowSms; }
 
     public void setId(Long id) { this.id = id; }
     public void setTitle(String title) { this.title = title; }
@@ -167,4 +174,7 @@ public class JobPost {
     public void setLatitude(Double latitude) { this.latitude = latitude; }
     public void setLongitude(Double longitude) { this.longitude = longitude; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+    public void setAllowOnline(Boolean allowOnline) { this.allowOnline = allowOnline; }
+    public void setAllowPhone(Boolean allowPhone) { this.allowPhone = allowPhone; }
+    public void setAllowSms(Boolean allowSms) { this.allowSms = allowSms; }
 }

@@ -70,4 +70,7 @@ public class JobPostCreateRequestDto {
     private String imageUrl;
     private Boolean topExposure = false;
     private Boolean urgentBadge = false;
+    private Boolean allowOnline = true;
+    private Boolean allowPhone = false;
+    private Boolean allowSms = false;
 }

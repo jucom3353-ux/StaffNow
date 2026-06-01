@@ -53,6 +53,9 @@ public class JobPostResponseDto {
     private String imageUrl;
     private Boolean topExposure;        // 추가
     private Boolean urgentBadge;        // 추가
+    private Boolean allowOnline;
+    private Boolean allowPhone;
+    private Boolean allowSms;
 
     public JobPostResponseDto(JobPost jobPost, int currentCount) {
         this.id = jobPost.getId();
@@ -104,6 +107,9 @@ public class JobPostResponseDto {
         this.imageUrl = jobPost.getImageUrl();
         this.topExposure = jobPost.getTopExposure();
         this.urgentBadge = jobPost.getUrgentBadge();
+        this.allowOnline = jobPost.getAllowOnline();
+        this.allowPhone = jobPost.getAllowPhone();
+        this.allowSms = jobPost.getAllowSms();
 
         if (jobPost.getDeadline() != null) {
             try {

@@ -408,6 +408,10 @@ public class JobPostService {
             post.setCategory(category);
         }
 
+        post.setAllowOnline(dto.getAllowOnline() != null ? dto.getAllowOnline() : true);
+        post.setAllowPhone(dto.getAllowPhone() != null ? dto.getAllowPhone() : false);
+        post.setAllowSms(dto.getAllowSms() != null ? dto.getAllowSms() : false);
+        
         if (dto.getWorkLocation() != null && !dto.getWorkLocation().isBlank()) {
             double[] coords = kakaoGeocodingService.getCoordinates(dto.getWorkLocation());
             if (coords != null) {
