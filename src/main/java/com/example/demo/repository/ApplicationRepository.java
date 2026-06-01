@@ -9,6 +9,7 @@ import com.example.demo.entity.WorkSession;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -21,10 +22,19 @@ import java.util.List;
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
 
     boolean existsByUserAndJobPost(User user, JobPost jobPost);
+
+    @EntityGraph(attributePaths = {"user", "jobPost", "jobPost.user", "jobPostRole"})
     int countByJobPost(JobPost jobPost);
+
+    @EntityGraph(attributePaths = {"user", "jobPost", "jobPost.user", "jobPostRole"})
     Page<Application> findByUser(User user, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"user", "jobPost", "jobPost.user", "jobPostRole"})
     List<Application> findByJobPost(JobPost jobPost);
+
+    @EntityGraph(attributePaths = {"user", "jobPost", "jobPost.user", "jobPostRole"})
     List<Application> findByJobPostAndStatus(JobPost jobPost, ApplicationStatus status);
+
     int countByUserAndStatus(User user, ApplicationStatus status);
     List<Application> findByStatus(ApplicationStatus status);
     long countByStatus(ApplicationStatus status);
@@ -46,13 +56,13 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
            "    SELECT w FROM WorkAttendance w WHERE w.application = a" +
            ")")
     List<Application> findAbsentApplications(@Param("today") String today);
+
     List<Application> findByJobPostIdAndStatus(Long jobPostId, ApplicationStatus status);
     List<Application> findByJobPostId(Long jobPostId);
 
-    // QR 스캔용: 유저 + WorkSession으로 Application 조회
-        @Query("SELECT a FROM Application a WHERE a.user = :user " +
+    @Query("SELECT a FROM Application a WHERE a.user = :user " +
            "AND a.workSession = :workSession")
-        Optional<Application> findByUserAndWorkSession(
+    Optional<Application> findByUserAndWorkSession(
             @Param("user") User user,
             @Param("workSession") WorkSession workSession);
 

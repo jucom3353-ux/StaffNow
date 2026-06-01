@@ -5,6 +5,7 @@ import com.example.demo.entity.JobPost;
 import com.example.demo.entity.User;
 import com.example.demo.entity.WorkAttendance;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,8 +17,10 @@ import java.util.Optional;
 public interface WorkAttendanceRepository
         extends JpaRepository<WorkAttendance, Long> {
 
+    @EntityGraph(attributePaths = {"application", "application.user", "application.jobPost"})
     Optional<WorkAttendance> findByApplication(Application application);
 
+    @EntityGraph(attributePaths = {"application", "application.user", "application.jobPost"})
     @Query("SELECT w FROM WorkAttendance w " +
            "WHERE w.application.user = :user " +
            "AND w.checkInTime >= :startOfDay " +
@@ -27,6 +30,7 @@ public interface WorkAttendanceRepository
             @Param("startOfDay") LocalDateTime startOfDay,
             @Param("endOfDay") LocalDateTime endOfDay);
 
+    @EntityGraph(attributePaths = {"application", "application.user", "application.jobPost"})
     @Query("SELECT w FROM WorkAttendance w WHERE w.application.user = :user")
     List<WorkAttendance> findByUser(@Param("user") User user);
 
@@ -42,9 +46,11 @@ public interface WorkAttendanceRepository
             @Param("weekStart") LocalDateTime weekStart,
             @Param("weekEnd") LocalDateTime weekEnd);
 
+    @EntityGraph(attributePaths = {"application", "application.user", "application.jobPost"})
     @Query("SELECT w FROM WorkAttendance w WHERE w.application.jobPost = :jobPost")
     List<WorkAttendance> findByJobPost(@Param("jobPost") JobPost jobPost);
 
+    @EntityGraph(attributePaths = {"application", "application.user", "application.jobPost"})
     @Query("SELECT w FROM WorkAttendance w " +
            "WHERE w.application.jobPost = :jobPost " +
            "AND w.application.user = :worker")
@@ -52,6 +58,7 @@ public interface WorkAttendanceRepository
             @Param("jobPost") JobPost jobPost,
             @Param("worker") User worker);
 
+    @EntityGraph(attributePaths = {"application", "application.user", "application.jobPost"})
     @Query("SELECT w FROM WorkAttendance w " +
            "WHERE w.application.user = :user " +
            "AND w.checkInTime >= :startOfMonth " +
@@ -62,6 +69,7 @@ public interface WorkAttendanceRepository
             @Param("startOfMonth") LocalDateTime startOfMonth,
             @Param("endOfMonth") LocalDateTime endOfMonth);
 
+    @EntityGraph(attributePaths = {"application", "application.user", "application.jobPost"})
     @Query("SELECT w FROM WorkAttendance w " +
            "WHERE w.application.jobPost = :jobPost " +
            "AND w.checkInTime >= :startOfMonth " +
@@ -82,7 +90,6 @@ public interface WorkAttendanceRepository
            "AND w.status = 'ABSENT'")
     List<WorkAttendance> findAbsentByJobPost(@Param("jobPost") JobPost jobPost);
 
-    // ✅ 추가: 최근 90일 내 완료 근무 워커 ID 목록 (자동매칭용)
     @Query("SELECT DISTINCT w.application.user.id FROM WorkAttendance w " +
            "WHERE w.application.user IN :workers " +
            "AND w.checkOutTime IS NOT NULL " +

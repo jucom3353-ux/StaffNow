@@ -5,25 +5,31 @@ import com.example.demo.entity.PostStatus;
 import com.example.demo.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
 public interface JobPostRepository extends JpaRepository<JobPost, Long> {
 
+    @EntityGraph(attributePaths = {"user", "category"})
     List<JobPost> findByUser(User user);
+
+    @EntityGraph(attributePaths = {"user", "category"})
     List<JobPost> findByPostStatus(PostStatus postStatus);
+
     List<JobPost> findByUserAndPostStatus(User user, PostStatus postStatus);
     long countByPostStatus(PostStatus postStatus);
     long countByUserAndPostStatusNot(User user, PostStatus postStatus);
 
+    @EntityGraph(attributePaths = {"user", "category"})
     @Query("SELECT j FROM JobPost j WHERE " +
            "(:title IS NULL OR j.title LIKE %:title%) AND " +
            "(:workLocation IS NULL OR j.workLocation LIKE %:workLocation%) AND " +
@@ -38,6 +44,7 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
             @Param("companyName") String companyName
     );
 
+    @EntityGraph(attributePaths = {"user", "category"})
     @Query("SELECT j FROM JobPost j WHERE " +
            "(:title IS NULL OR j.title LIKE %:title%) AND " +
            "(:workLocation IS NULL OR j.workLocation LIKE %:workLocation%) AND " +
@@ -68,6 +75,7 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
             @Param("threeDaysLater") String threeDaysLater
     );
 
+    @EntityGraph(attributePaths = {"user", "category"})
     @Query("SELECT j FROM JobPost j WHERE j.postStatus = 'OPEN' " +
            "AND j.deadline >= :today " +
            "AND j.deadline <= :threeDaysLater " +
@@ -90,10 +98,12 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
            "AND j.category.id = :categoryId ORDER BY j.createdAt DESC")
     List<JobPost> findOpenByCategory(@Param("categoryId") Long categoryId);
 
+    @EntityGraph(attributePaths = {"user", "category"})
     @Query("SELECT j FROM JobPost j WHERE j.postStatus = 'OPEN' " +
            "ORDER BY j.viewCount DESC")
     List<JobPost> findPopularJobPosts(Pageable pageable);
 
+    @EntityGraph(attributePaths = {"user", "category"})
     @Query("SELECT j FROM JobPost j WHERE j.postStatus = 'OPEN' " +
            "AND (:region IS NULL OR j.workLocation LIKE %:region%) " +
            "ORDER BY j.viewCount DESC")
@@ -106,7 +116,6 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
     @Query("UPDATE JobPost j SET j.viewCount = j.viewCount + 1 WHERE j.id = :id")
     void incrementViewCount(@Param("id") Long id);
 
-    // 자동완성 - 공고명
     @Query("SELECT DISTINCT j.title FROM JobPost j " +
            "WHERE j.title LIKE %:keyword% " +
            "AND j.postStatus = 'OPEN' " +
@@ -115,7 +124,6 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
             @Param("keyword") String keyword,
             Pageable pageable);
 
-    // 자동완성 - 지역
     @Query("SELECT DISTINCT j.workLocation FROM JobPost j " +
            "WHERE j.workLocation LIKE %:keyword% " +
            "AND j.postStatus = 'OPEN'")
@@ -123,7 +131,6 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
             @Param("keyword") String keyword,
             Pageable pageable);
 
-    // 자동완성 - 기업명
     @Query("SELECT DISTINCT j.user.companyName FROM JobPost j " +
            "WHERE j.user.companyName LIKE %:keyword% " +
            "AND j.postStatus = 'OPEN'")
@@ -131,41 +138,44 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
             @Param("keyword") String keyword,
             Pageable pageable);
 
-    // 기간별 공고 등록 수
     @Query("SELECT COUNT(j) FROM JobPost j WHERE j.createdAt >= :start AND j.createdAt < :end")
     long countNewJobPosts(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
-    // 전체 공고 조회수 합계
     @Query("SELECT COALESCE(SUM(j.viewCount), 0) FROM JobPost j")
     long sumTotalViewCount();
 
-    // 월별 공고 조회 (캘린더용)
+    @Query("SELECT j FROM JobPost j WHERE j.user = :user AND j.createdAt >= :startDate")
+    List<JobPost> findByUserAndCreatedAtAfter(
+            @Param("user") User user,
+            @Param("startDate") LocalDateTime startDate);
+
     @Query("SELECT j FROM JobPost j WHERE j.postStatus = 'OPEN' " +
            "AND j.workStartDate >= :startDate AND j.workStartDate < :endDate " +
            "ORDER BY j.workStartDate ASC")
     List<JobPost> findByWorkStartDateBetween(
-           @Param("startDate") LocalDate startDate,
-           @Param("endDate") LocalDate endDate);
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
 
-    // 월별 + 지역 필터
     @Query("SELECT j FROM JobPost j WHERE j.postStatus = 'OPEN' " +
            "AND j.workStartDate >= :startDate AND j.workStartDate < :endDate " +
            "AND j.workLocation LIKE %:region% " +
            "ORDER BY j.workStartDate ASC")
     List<JobPost> findByWorkStartDateBetweenAndRegion(
-           @Param("startDate") LocalDate startDate,
-           @Param("endDate") LocalDate endDate,
-           @Param("region") String region);
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("region") String region);
 
-    // 이번 달 공고 있는 지역 목록
     @Query("SELECT DISTINCT j.workLocation FROM JobPost j WHERE j.postStatus = 'OPEN' " +
            "AND j.workStartDate >= :startDate AND j.workStartDate < :endDate")
     List<String> findDistinctRegionsByMonth(
-           @Param("startDate") LocalDate startDate,
-           @Param("endDate") LocalDate endDate);
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
 
-    @Query("SELECT j FROM JobPost j WHERE j.user = :user AND j.createdAt >= :startDate")
-    List<JobPost> findByUserAndCreatedAtAfter(
-           @Param("user") User user,
-           @Param("startDate") java.time.LocalDateTime startDate);
+    @Query("SELECT u FROM User u WHERE u.role = :role " +
+           "AND u.workAvailability = :availability " +
+           "AND u.suspended = false")
+    List<JobPost> findByWorkStartDateBetweenAndCategoryId(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("categoryId") Long categoryId);
 }
