@@ -64,6 +64,23 @@ public class ReviewController {
                 reviewService.getMyReviews(getLoginUser())));
     }
 
+    // ===== ADMIN 전용 =====
+
+    @Operation(summary = "전체 리뷰 조회 (ADMIN)")
+    @GetMapping("/admin")
+    public ResponseEntity<ApiResponse<?>> getAllReviews() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                reviewService.getAllReviews(getLoginUser())));
+    }
+
+    @Operation(summary = "리뷰 삭제 (ADMIN)")
+    @DeleteMapping("/admin/{reviewId}")
+    public ResponseEntity<ApiResponse<?>> deleteReview(
+            @PathVariable Long reviewId) {
+        reviewService.deleteReview(reviewId, getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("리뷰 삭제 완료"));
+    }
+
     private User getLoginUser() {
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();

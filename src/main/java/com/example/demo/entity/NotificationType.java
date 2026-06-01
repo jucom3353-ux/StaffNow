@@ -66,4 +66,7 @@ public enum NotificationType {
     NOTICE_RECEIVED,  // 공지사항 수신
 
     URGENT_JOB_POST,  // 긴급 구인 알림
+
+    BOOKMARK_DEADLINE_SOON,  // 북마크 공고 마감 임박
+    BOOKMARK_JOB_CLOSED      // 북마크 공고 마감
 }

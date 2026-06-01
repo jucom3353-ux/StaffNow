@@ -147,4 +147,21 @@ public class ReviewService {
 
         return reviews.stream().map(ReviewResponseDto::new).collect(Collectors.toList());
     }
+
+    public List<ReviewResponseDto> getAllReviews(User loginUser) {
+    if (loginUser.getRole() != Role.ADMIN) {
+        throw new CustomException(ErrorCode.ADMIN_ONLY);
+        }
+    return reviewRepository.findAll()
+            .stream().map(ReviewResponseDto::new).collect(Collectors.toList());
+    }
+
+    public void deleteReview(Long reviewId, User loginUser) {
+        if (loginUser.getRole() != Role.ADMIN) {
+            throw new CustomException(ErrorCode.ADMIN_ONLY);
+        }
+        reviewRepository.findById(reviewId)
+            .orElseThrow(() -> new CustomException(ErrorCode.REVIEW_NOT_FOUND));
+        reviewRepository.deleteById(reviewId);
+    }
 }

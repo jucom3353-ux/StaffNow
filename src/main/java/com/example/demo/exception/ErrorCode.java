@@ -124,6 +124,7 @@ public enum ErrorCode {
     QR_NOT_FOUND(HttpStatus.NOT_FOUND, "QR 코드를 찾을 수 없습니다."),
     PORTFOLIO_NOT_FOUND(HttpStatus.NOT_FOUND, "포트폴리오를 찾을 수 없습니다."),
     TEMPLATE_NOT_FOUND(HttpStatus.NOT_FOUND, "템플릿을 찾을 수 없습니다."),
+    REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "리뷰를 찾을 수 없습니다."),
 
 
 
