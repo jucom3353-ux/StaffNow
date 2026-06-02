@@ -2,6 +2,7 @@ package com.example.demo.scheduler;
 
 import com.example.demo.entity.*;
 import com.example.demo.repository.*;
+import com.example.demo.service.MileageService;
 import com.example.demo.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +25,7 @@ public class PayrollScheduler {
     private final WorkAttendanceRepository workAttendanceRepository;
     private final PayrollRepository payrollRepository;
     private final NotificationService notificationService;
+    private final MileageService mileageService;
 
     // 매주 월요일 자정
     @Scheduled(cron = "0 0 0 * * MON")
@@ -62,6 +64,15 @@ public class PayrollScheduler {
                 payroll.setStatus(PayrollStatus.CONFIRMED);
                 payroll.setConfirmedAt(LocalDateTime.now());
                 payrollRepository.save(payroll);
+
+                mileageService.addMileage(
+                payroll.getWorker(),
+                MileageType.WORK_COMPLETED,
+                payroll.getNetPay(),
+                "[" + payroll.getJobPost().getTitle() + "] " +
+                payroll.getWorkWeekStart() + " 주차 정산 지급",
+                payroll.getId()
+        );
 
                 notificationService.send(
                         payroll.getWorker(),

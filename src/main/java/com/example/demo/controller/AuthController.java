@@ -20,6 +20,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,6 +28,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Tag(name = "인증 API", description = "로그인 및 JWT 토큰 관리 기능")
@@ -177,18 +179,16 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.ok("로그아웃 완료"));
     }
 
-    // ===== private 헬퍼 =====
-
     private LoginResponseDto issueTokens(User user, HttpServletResponse response) {
-
         String accessToken = JwtUtil.createToken(user.getId(), user.getRole().name());
         String refreshTokenValue = UUID.randomUUID().toString();
 
-        refreshTokenRepository.findByUserId(user.getId())
-                .ifPresent(existing -> {
-                    existing.setBlacklisted(true);
-                    refreshTokenRepository.save(existing);
-                });
+        List<RefreshToken> existingTokens = refreshTokenRepository
+                .findByUserId(user.getId(), PageRequest.of(0, 1));
+        if (!existingTokens.isEmpty()) {
+            existingTokens.get(0).setBlacklisted(true);
+            refreshTokenRepository.save(existingTokens.get(0));
+        }
 
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setUserId(user.getId());
@@ -196,6 +196,10 @@ public class AuthController {
         refreshToken.setExpiredAt(LocalDateTime.now().plusDays(7));
         refreshToken.setBlacklisted(false);
         refreshTokenRepository.save(refreshToken);
+
+        // lastLoginAt 갱신
+        user.setLastLoginAt(LocalDateTime.now());
+        userRepository.save(user);
 
         setAccessCookie(response, accessToken);
         setRefreshCookie(response, refreshTokenValue);

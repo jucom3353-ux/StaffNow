@@ -2,7 +2,9 @@ package com.example.demo.scheduler;
 
 import com.example.demo.entity.*;
 import com.example.demo.repository.ApplicationRepository;
+import com.example.demo.repository.UserRepository;
 import com.example.demo.repository.WorkAttendanceRepository;
+import com.example.demo.service.MileageService;
 import com.example.demo.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,11 +23,13 @@ public class AbsentScheduler {
     private final ApplicationRepository applicationRepository;
     private final WorkAttendanceRepository workAttendanceRepository;
     private final NotificationService notificationService;
+    private final UserRepository userRepository;         // 추가
+    private final MileageService mileageService;         // 추가
 
+    // 기존 메서드 그대로 유지
     @Scheduled(cron = "0 0 1 * * *")
     @Transactional
     public void processAbsentApplications() {
-
         String today = LocalDate.now().toString();
         List<Application> absentApplications =
                 applicationRepository.findAbsentApplications(today);
@@ -40,13 +44,11 @@ public class AbsentScheduler {
 
                 application.setStatus(ApplicationStatus.ABSENT);
 
-                // 온도 차감
                 User worker = application.getUser();
                 double newTemp = Math.max(worker.getTemperature() - 0.5, 0.0);
                 worker.setTemperature(newTemp);
                 applicationRepository.save(application);
 
-                // 근로자 알림 (ABSENT 타입으로 수정)
                 notificationService.send(
                         worker,
                         NotificationType.APPLICATION_ABSENT,
@@ -56,7 +58,6 @@ public class AbsentScheduler {
                         application.getId()
                 );
 
-                // 기업 알림
                 notificationService.send(
                         application.getJobPost().getUser(),
                         NotificationType.APPLICATION_ABSENT,
@@ -73,6 +74,79 @@ public class AbsentScheduler {
                 log.error("결근 처리 실패: applicationId={}, error={}",
                         application.getId(), e.getMessage());
             }
+        }
+    }
+
+    // ↓ 여기부터 새로 추가된 메서드
+    @Scheduled(cron = "0 0 2 * * *")
+    @Transactional
+    public void processNoShowQuality() {
+        List<User> workers = userRepository.findByRole(Role.INDIVIDUAL);
+
+        for (User worker : workers) {
+            try {
+                long totalCompleted = workAttendanceRepository
+                        .countByUserAndStatusIn(worker,
+                                    List.of(AttendanceStatus.NORMAL,
+                                    AttendanceStatus.LATE,
+                                    AttendanceStatus.ABSENT));
+
+                if (totalCompleted < 5) continue;
+
+                long absentCount = workAttendanceRepository
+                        .countByUserAndStatus(worker, AttendanceStatus.ABSENT);
+
+                double noShowRate = (double) absentCount / totalCompleted;
+
+                if (noShowRate >= 0.5 && !Boolean.TRUE.equals(worker.getSuspended())) {
+                    worker.setSuspended(true);
+                    worker.setSuspendReason("노쇼율 50% 초과 자동 이용제한");
+                    userRepository.save(worker);
+
+                    notificationService.send(
+                            worker,
+                            NotificationType.ACCOUNT_SUSPENDED,
+                            "노쇼율이 50%를 초과하여 계정이 자동 이용제한 되었습니다.",
+                            worker.getId()
+                    );
+
+                    notifyAdmins("⚠️ 자동 이용제한: " + worker.getName() +
+                            "님 노쇼율 " + String.format("%.0f%%", noShowRate * 100));
+
+                    log.info("자동 이용제한: userId={}, noShowRate={}",
+                            worker.getId(), noShowRate);
+
+                } else if (noShowRate >= 0.3 && worker.getWarningLevel() < 1) {
+                    worker.setWarningLevel(1);
+                    userRepository.save(worker);
+
+                    notificationService.send(
+                            worker,
+                            NotificationType.ACCOUNT_WARNING,
+                            "노쇼율이 30%를 초과하였습니다. 반복 시 이용이 제한될 수 있습니다.",
+                            worker.getId()
+                    );
+
+                    log.info("주의 플래그: userId={}, noShowRate={}",
+                            worker.getId(), noShowRate);
+                }
+
+            } catch (Exception e) {
+                log.error("노쇼 품질관리 실패: userId={}, error={}",
+                        worker.getId(), e.getMessage());
+            }
+        }
+    }
+
+    private void notifyAdmins(String message) {
+        List<User> admins = userRepository.findByRole(Role.ADMIN);
+        for (User admin : admins) {
+            notificationService.send(
+                    admin,
+                    NotificationType.ADMIN_ALERT,
+                    message,
+                    null
+            );
         }
     }
 }

@@ -12,10 +12,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Tag(name = "소셜 로그인 API", description = "카카오/구글/네이버 OAuth2 로그인")
@@ -33,8 +35,7 @@ public class OAuthController {
     public ResponseEntity<ApiResponse<?>> kakaoCallback(
             @RequestParam String code,
             HttpServletResponse response) {
-        return processOAuthLogin(
-                oAuthService.loginWithKakao(code), response);
+        return processOAuthLogin(oAuthService.loginWithKakao(code), response);
     }
 
     @Operation(summary = "구글 로그인 콜백")
@@ -42,8 +43,7 @@ public class OAuthController {
     public ResponseEntity<ApiResponse<?>> googleCallback(
             @RequestParam String code,
             HttpServletResponse response) {
-        return processOAuthLogin(
-                oAuthService.loginWithGoogle(code), response);
+        return processOAuthLogin(oAuthService.loginWithGoogle(code), response);
     }
 
     @Operation(summary = "네이버 로그인 콜백")
@@ -52,23 +52,21 @@ public class OAuthController {
             @RequestParam String code,
             @RequestParam String state,
             HttpServletResponse response) {
-        return processOAuthLogin(
-                oAuthService.loginWithNaver(code, state), response);
+        return processOAuthLogin(oAuthService.loginWithNaver(code, state), response);
     }
 
     private ResponseEntity<ApiResponse<?>> processOAuthLogin(
             User user, HttpServletResponse response) {
 
-        String accessToken = JwtUtil.createToken(
-                user.getId(), user.getRole().name());
+        String accessToken = JwtUtil.createToken(user.getId(), user.getRole().name());
         String refreshTokenValue = UUID.randomUUID().toString();
 
-        // 기존 토큰 블랙리스트 처리
-        refreshTokenRepository.findByUserId(user.getId())
-                .ifPresent(existing -> {
-                    existing.setBlacklisted(true);
-                    refreshTokenRepository.save(existing);
-                });
+        List<RefreshToken> existingTokens = refreshTokenRepository
+                .findByUserId(user.getId(), PageRequest.of(0, 1));
+        if (!existingTokens.isEmpty()) {
+            existingTokens.get(0).setBlacklisted(true);
+            refreshTokenRepository.save(existingTokens.get(0));
+        }
 
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setUserId(user.getId());

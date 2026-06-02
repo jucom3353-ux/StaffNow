@@ -28,4 +28,10 @@ public interface ContractRepository extends JpaRepository<Contract, Long> {
            "AND c.workerSignedAt < :expiredTime")
     List<Contract> findDownloadExpiredContracts(
             @Param("expiredTime") LocalDateTime expiredTime);
+
+    @Query("SELECT c FROM Contract c WHERE c.status = 'PENDING' " +
+           "AND c.createdAt >= :from AND c.createdAt <= :to")
+    List<Contract> findPendingContractsCreatedAt(
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to);
 }

@@ -5,7 +5,6 @@ import com.example.demo.entity.Gender;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
 import com.example.demo.entity.WorkAvailability;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -125,4 +124,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findByRoleAndWorkAvailability(
             @Param("role") Role role,
             @Param("availability") WorkAvailability availability);
+
+    @Query("SELECT u FROM User u WHERE u.role = :role " +
+           "AND u.suspended = false " +
+           "AND (u.lastLoginAt IS NULL OR u.lastLoginAt < :before)")
+    List<User> findInactiveUsers(
+            @Param("role") Role role,
+            @Param("before") LocalDateTime before);
 }

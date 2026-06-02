@@ -1,6 +1,7 @@
 package com.example.demo.controller;
 
 import com.example.demo.dto.ApiResponse;
+import com.example.demo.entity.MileageWithdrawalStatus;
 import com.example.demo.entity.User;
 import com.example.demo.service.MileageService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -55,6 +56,14 @@ public class MileageController {
     public ResponseEntity<ApiResponse<?>> getMyWithdrawals() {
         return ResponseEntity.ok(ApiResponse.ok(
                 mileageService.getMyWithdrawals(getLoginUser())));
+    }
+
+    @Operation(summary = "출금 목록 전체/상태별 조회 (ADMIN) - ?status=PENDING|APPROVED|REJECTED|CANCELLED")
+    @GetMapping("/withdrawal/admin")
+    public ResponseEntity<ApiResponse<?>> getAllWithdrawals(
+            @RequestParam(required = false) MileageWithdrawalStatus status) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                mileageService.getAllWithdrawals(status, getLoginUser())));
     }
 
     @Operation(summary = "출금 대기 목록 (ADMIN)")

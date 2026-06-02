@@ -68,5 +68,12 @@ public enum NotificationType {
     URGENT_JOB_POST,  // 긴급 구인 알림
 
     BOOKMARK_DEADLINE_SOON,  // 북마크 공고 마감 임박
-    BOOKMARK_JOB_CLOSED      // 북마크 공고 마감
+    BOOKMARK_JOB_CLOSED,      // 북마크 공고 마감
+
+    // 계정 관리 관련
+    ACCOUNT_SUSPENDED,       // 계정 자동 이용제한
+    ACCOUNT_WARNING,         // 노쇼율 주의 경고
+
+    // 관리자 알림
+    ADMIN_ALERT              // 관리자 시스템 알림
 }

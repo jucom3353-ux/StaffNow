@@ -1,4 +1,5 @@
 package com.example.demo.entity;
+import com.example.demo.entity.MileageWithdrawalStatus;
 
 public enum MileageWithdrawalStatus {
     PENDING,    // 승인 대기

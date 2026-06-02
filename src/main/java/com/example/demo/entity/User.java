@@ -71,6 +71,12 @@ public class User {
     @Column(name = "suspended")
     private Boolean suspended = false;
 
+    @Column(name = "suspend_reason")
+    private String suspendReason;
+
+    @Column(name = "warning_level", columnDefinition = "int default 0")
+    private int warningLevel = 0;
+
     @Column(unique = true, length = 10)
     private String referralCode;
 
@@ -103,6 +109,9 @@ public class User {
 
     @Column(updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "last_login_at")
+    private LocalDateTime lastLoginAt;
 
     @PrePersist
     public void prePersist() {
@@ -147,8 +156,9 @@ public class User {
     public String getBankName() { return bankName; }
     public String getAccountNumber() { return accountNumber; }
     public String getAccountHolder() { return accountHolder; }
-
-
+    public String getSuspendReason() { return suspendReason; }
+    public int getWarningLevel() { return warningLevel; }
+    public LocalDateTime getLastLoginAt() { return lastLoginAt; }
 
     public void setId(Long id) { this.id = id; }
     public void setEmail(String email) { this.email = email; }
@@ -188,4 +198,7 @@ public class User {
     public void setBankName(String bankName) { this.bankName = bankName; }
     public void setAccountNumber(String accountNumber) { this.accountNumber = accountNumber; }
     public void setAccountHolder(String accountHolder) { this.accountHolder = accountHolder; }
+    public void setSuspendReason(String suspendReason) { this.suspendReason = suspendReason; }
+    public void setWarningLevel(int warningLevel) { this.warningLevel = warningLevel; }
+    public void setLastLoginAt(LocalDateTime lastLoginAt) { this.lastLoginAt = lastLoginAt; }
 }

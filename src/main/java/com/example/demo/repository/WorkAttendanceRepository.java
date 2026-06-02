@@ -13,6 +13,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import com.example.demo.entity.AttendanceStatus;
 
 public interface WorkAttendanceRepository
         extends JpaRepository<WorkAttendance, Long> {
@@ -97,4 +98,18 @@ public interface WorkAttendanceRepository
     List<Long> findRecentlyWorkedUserIds(
             @Param("workers") List<User> workers,
             @Param("since") LocalDateTime since);
+
+    @Query("SELECT COUNT(w) FROM WorkAttendance w " +
+           "WHERE w.application.user = :user " +
+           "AND w.status = :status")
+         long countByUserAndStatus(
+            @Param("user") User user,
+            @Param("status") AttendanceStatus status);
+
+    @Query("SELECT COUNT(w) FROM WorkAttendance w " +
+           "WHERE w.application.user = :user " +
+           "AND w.status IN :statuses")
+         long countByUserAndStatusIn(
+            @Param("user") User user,
+            @Param("statuses") List<AttendanceStatus> statuses);
 }

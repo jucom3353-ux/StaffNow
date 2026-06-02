@@ -13,4 +13,5 @@ public interface MileageWithdrawalRepository extends JpaRepository<MileageWithdr
     List<MileageWithdrawal> findByUserOrderByCreatedAtDesc(User user);
     List<MileageWithdrawal> findByStatus(MileageWithdrawalStatus status);
     boolean existsByUserAndStatus(User user, MileageWithdrawalStatus status);
+    List<MileageWithdrawal> findAllByOrderByCreatedAtDesc();
 }

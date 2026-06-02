@@ -6,6 +6,7 @@ import com.example.demo.dto.UserCreateRequestDto;
 import com.example.demo.dto.UserResponseDto;
 import com.example.demo.dto.UserUpdateRequestDto;
 import com.example.demo.entity.BusinessLicenseStatus;
+import com.example.demo.entity.RefreshToken;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
 import com.example.demo.exception.CustomException;
@@ -15,6 +16,7 @@ import com.example.demo.repository.UserRepository;
 import com.example.demo.service.CompanyInviteService;
 import com.example.demo.entity.CompanyInviteCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -118,8 +120,11 @@ public class UserService {
 
     @Transactional
     public void deleteUser(User loginUser) {
-        refreshTokenRepository.findByUserId(loginUser.getId())
-                .ifPresent(refreshTokenRepository::delete);
+        List<RefreshToken> tokens = refreshTokenRepository
+                .findByUserId(loginUser.getId(), PageRequest.of(0, 1));
+        if (!tokens.isEmpty()) {
+            refreshTokenRepository.delete(tokens.get(0));
+        }
         userRepository.delete(loginUser);
     }
 
@@ -226,8 +231,11 @@ public class UserService {
             throw new CustomException(ErrorCode.ADMIN_DELETE_NOT_ALLOWED);
         }
 
-        refreshTokenRepository.findByUserId(target.getId())
-                .ifPresent(refreshTokenRepository::delete);
+        List<RefreshToken> tokens = refreshTokenRepository
+                .findByUserId(target.getId(), PageRequest.of(0, 1));
+        if (!tokens.isEmpty()) {
+            refreshTokenRepository.delete(tokens.get(0));
+        }
         userRepository.delete(target);
     }
 
