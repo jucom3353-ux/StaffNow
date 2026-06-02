@@ -25,6 +25,8 @@ public class ApplicationService {
     private static final double NO_SHOW_TEMPERATURE_PENALTY = 1.0;
     private static final double ABSENT_TEMPERATURE_PENALTY = 0.5;
     private static final double MIN_TEMPERATURE = 0.0;
+    private static final double MAX_TEMPERATURE = 5.0;
+    private static final double COMPLETE_TEMPERATURE_BONUS = 0.1;
 
     private final ApplicationRepository applicationRepository;
     private final JobPostRepository jobPostRepository;
@@ -42,6 +44,7 @@ public class ApplicationService {
     private final MileageService mileageService;
     private final PortfolioRepository portfolioRepository;
     private final PortfolioImageRepository portfolioImageRepository;
+    private final BadgeService badgeService;
 
     public ApplicationService(
             ApplicationRepository applicationRepository,
@@ -59,7 +62,8 @@ public class ApplicationService {
             CompanySubscriptionRepository companySubscriptionRepository,
             MileageService mileageService,
             PortfolioRepository portfolioRepository,
-            PortfolioImageRepository portfolioImageRepository
+            PortfolioImageRepository portfolioImageRepository,
+            BadgeService badgeService
     ) {
         this.applicationRepository = applicationRepository;
         this.jobPostRepository = jobPostRepository;
@@ -77,6 +81,7 @@ public class ApplicationService {
         this.mileageService = mileageService;
         this.portfolioRepository = portfolioRepository;
         this.portfolioImageRepository = portfolioImageRepository;
+        this.badgeService = badgeService;
     }
 
     private void validateCompanyOrManager(User user) {
@@ -113,7 +118,6 @@ public class ApplicationService {
             throw new CustomException(ErrorCode.JOB_POST_DRAFT);
         }
 
-        // 지원 방식 검증
         if (applyMethod != null) {
             boolean allowed = switch (applyMethod) {
                 case ONLINE -> Boolean.TRUE.equals(jobPost.getAllowOnline());
@@ -255,7 +259,6 @@ public class ApplicationService {
                 ? certificateRepository.findByResume(resume) : List.of();
         List<Review> reviews = reviewRepository.findByWorker(worker);
 
-        // 포트폴리오 조회
         List<PortfolioResponseDto> portfolios = portfolioRepository
                 .findByUserOrderByCreatedAtDesc(worker)
                 .stream()
@@ -367,7 +370,14 @@ public class ApplicationService {
 
         User worker = application.getUser();
 
-        // 노쇼 없이 10회 완료 보너스 체크
+        // 별점 상승 (근무 완료 시 +0.1, 최대 5.0)
+        double newTemp = Math.min(
+                worker.getTemperature() + COMPLETE_TEMPERATURE_BONUS,
+                MAX_TEMPERATURE);
+        worker.setTemperature(newTemp);
+        userRepository.save(worker);
+
+        // 노쇼 없이 10회 완료 보너스
         long completedCount = applicationRepository
                 .countByUserAndStatus(worker, ApplicationStatus.COMPLETED);
         if (completedCount > 0 && completedCount % 10 == 0
@@ -380,6 +390,9 @@ public class ApplicationService {
                     application.getId()
             );
         }
+
+        // 직종 뱃지 업데이트
+        badgeService.updateSpecialtyBadge(worker);
     }
 
     @Transactional

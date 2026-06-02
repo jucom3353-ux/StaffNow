@@ -10,6 +10,7 @@ import com.example.demo.exception.ErrorCode;
 import com.example.demo.jwt.JwtUtil;
 import com.example.demo.repository.RefreshTokenRepository;
 import com.example.demo.repository.UserRepository;
+import com.example.demo.service.FcmTokenService;
 import com.example.demo.service.TwoFactorAuthService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Tag(name = "인증 API", description = "로그인 및 JWT 토큰 관리 기능")
@@ -40,6 +42,7 @@ public class AuthController {
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final TwoFactorAuthService twoFactorAuthService;
+    private final FcmTokenService fcmTokenService;
 
     @Value("${app.cookie.secure:false}")
     private boolean cookieSecure;
@@ -48,12 +51,14 @@ public class AuthController {
             UserRepository userRepository,
             RefreshTokenRepository refreshTokenRepository,
             PasswordEncoder passwordEncoder,
-            TwoFactorAuthService twoFactorAuthService
+            TwoFactorAuthService twoFactorAuthService,
+            FcmTokenService fcmTokenService
     ) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.twoFactorAuthService = twoFactorAuthService;
+        this.fcmTokenService = fcmTokenService;
     }
 
     @Operation(summary = "로그인")
@@ -163,6 +168,7 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<?>> logout(
             @CookieValue(name = "refresh_token", required = false) String refreshTokenValue,
+            @RequestBody(required = false) Map<String, String> body,
             HttpServletResponse response
     ) {
         if (refreshTokenValue != null) {
@@ -171,6 +177,11 @@ public class AuthController {
                         rt.setBlacklisted(true);
                         refreshTokenRepository.save(rt);
                     });
+        }
+
+        // FCM 토큰 삭제 (앱 로그아웃 시)
+        if (body != null && body.get("fcmToken") != null) {
+            fcmTokenService.removeToken(body.get("fcmToken"));
         }
 
         clearCookie(response, "access_token");

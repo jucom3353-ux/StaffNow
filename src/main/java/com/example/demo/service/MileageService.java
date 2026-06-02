@@ -200,7 +200,6 @@ public class MileageService {
                 .stream().map(MileageWithdrawalResponseDto::new).collect(Collectors.toList());
     }
 
-    // 전체 출금 목록 상태별 조회 (ADMIN)
     @Transactional(readOnly = true)
     public List<MileageWithdrawalResponseDto> getAllWithdrawals(
             MileageWithdrawalStatus status, User loginUser) {
@@ -213,5 +212,24 @@ public class MileageService {
         return list.stream()
                 .map(MileageWithdrawalResponseDto::new)
                 .collect(Collectors.toList());
+    }
+
+    // 마일리지 수동 지급/차감 (ADMIN)
+    @Transactional
+    public void adjustMileage(Long targetUserId, int amount,
+            String description, User loginUser) {
+        if (loginUser.getRole() != Role.ADMIN) {
+            throw new CustomException(ErrorCode.ADMIN_ONLY);
+        }
+        User target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        addMileage(
+                target,
+                amount > 0 ? MileageType.REFERRAL_BONUS : MileageType.NO_SHOW,
+                amount,
+                "[관리자 지급] " + description,
+                null
+        );
     }
 }

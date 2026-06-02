@@ -9,9 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "어드민 통계 API")
 @RestController
@@ -26,6 +24,14 @@ public class AdminStatsController {
     public ResponseEntity<ApiResponse<?>> getStats() {
         return ResponseEntity.ok(ApiResponse.ok(
                 adminStatsService.getStats(getLoginUser())));
+    }
+
+    @Operation(summary = "기간별 통계 조회 (관리자) - ?period=daily|weekly|monthly")
+    @GetMapping("/period")
+    public ResponseEntity<ApiResponse<?>> getStatsByPeriod(
+            @RequestParam(defaultValue = "daily") String period) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                adminStatsService.getStatsByPeriod(period, getLoginUser())));
     }
 
     private User getLoginUser() {

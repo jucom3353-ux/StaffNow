@@ -95,6 +95,12 @@ public class User {
     @Column(length = 20)
     private String emergencyContactRelation;
 
+    @Column(name = "grade")
+    private String grade = "아마추어"; // 아마추어/스탭/프로/프로모터
+
+    @Column(name = "specialty_badge")
+    private String specialtyBadge; // 마트, 경호 등 직종 뱃지
+
     @Enumerated(EnumType.STRING)
     private AuthProvider provider = AuthProvider.LOCAL;
     private String providerId;
@@ -159,6 +165,8 @@ public class User {
     public String getSuspendReason() { return suspendReason; }
     public int getWarningLevel() { return warningLevel; }
     public LocalDateTime getLastLoginAt() { return lastLoginAt; }
+    public String getGrade() { return grade; }
+    public String getSpecialtyBadge() { return specialtyBadge; }
 
     public void setId(Long id) { this.id = id; }
     public void setEmail(String email) { this.email = email; }
@@ -201,4 +209,6 @@ public class User {
     public void setSuspendReason(String suspendReason) { this.suspendReason = suspendReason; }
     public void setWarningLevel(int warningLevel) { this.warningLevel = warningLevel; }
     public void setLastLoginAt(LocalDateTime lastLoginAt) { this.lastLoginAt = lastLoginAt; }
+    public void setGrade(String grade) { this.grade = grade; }
+    public void setSpecialtyBadge(String specialtyBadge) { this.specialtyBadge = specialtyBadge; }
 }

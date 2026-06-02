@@ -9,6 +9,7 @@ import com.example.demo.dto.UserResponseDto;
 import com.example.demo.dto.UserUpdateRequestDto;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
+import com.example.demo.service.MileageService;
 import com.example.demo.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,6 +29,7 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final MileageService mileageService;
 
     @Operation(summary = "회원가입")
     @PostMapping
@@ -151,4 +153,22 @@ public class UserController {
                 SecurityContextHolder.getContext().getAuthentication();
         return (User) authentication.getPrincipal();
     }
+
+    @Operation(summary = "노쇼 플래그 회원 목록 (관리자)")
+    @GetMapping("/admin/flagged")
+    public ResponseEntity<ApiResponse<?>> getFlaggedUsers() {
+        return ResponseEntity.ok(ApiResponse.ok(
+            userService.getFlaggedUsers(getLoginUser())));
+    }
+
+    @Operation(summary = "마일리지 수동 지급/차감 (관리자)")
+    @PostMapping("/admin/{userId}/mileage")
+    public ResponseEntity<ApiResponse<?>> adjustMileage(
+        @PathVariable Long userId,
+        @RequestParam int amount,
+        @RequestParam String description) {
+    mileageService.adjustMileage(userId, amount, description, getLoginUser());
+    return ResponseEntity.ok(ApiResponse.ok("마일리지 " +
+            (amount > 0 ? "지급" : "차감") + " 완료 (" + amount + ")"));
+}
 }

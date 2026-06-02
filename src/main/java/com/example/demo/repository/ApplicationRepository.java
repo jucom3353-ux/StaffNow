@@ -16,6 +16,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -73,4 +74,13 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
             @Param("jobPostRole") JobPostRole jobPostRole,
             @Param("status") ApplicationStatus status
     );
+    @Query("SELECT COUNT(a) FROM Application a WHERE a.createdAt >= :start AND a.createdAt < :end")
+    long countNewApplications(
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
+    @Query("SELECT a.jobPost.category.name, COUNT(a) FROM Application a " +
+           "WHERE a.user = :user AND a.status = 'COMPLETED' " +
+           "GROUP BY a.jobPost.category.name " +
+           "ORDER BY COUNT(a) DESC")
+    List<Object[]> findTopCategoryByUser(@Param("user") User user);
 }

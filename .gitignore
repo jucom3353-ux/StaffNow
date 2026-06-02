@@ -65,4 +65,5 @@ everything-claude-code/
 *.njsproj
 *.sln
 *.sw?
+src/main/resources/firebase-service-account.json
 >>>>>>> 70124a115b9077ed3de3396f4616620aeb40b4f7

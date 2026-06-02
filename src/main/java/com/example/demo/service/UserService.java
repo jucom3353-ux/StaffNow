@@ -33,6 +33,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenRepository refreshTokenRepository;
     private final CompanyInviteService companyInviteService;
+    private final FcmTokenService fcmTokenService;
 
     private static final String CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int CODE_LENGTH = 6;
@@ -120,11 +121,12 @@ public class UserService {
 
     @Transactional
     public void deleteUser(User loginUser) {
-        List<RefreshToken> tokens = refreshTokenRepository
-                .findByUserId(loginUser.getId(), PageRequest.of(0, 1));
+    List<RefreshToken> tokens = refreshTokenRepository
+            .findByUserId(loginUser.getId(), PageRequest.of(0, 1));
         if (!tokens.isEmpty()) {
             refreshTokenRepository.delete(tokens.get(0));
         }
+        fcmTokenService.removeAllTokens(loginUser); // 추가
         userRepository.delete(loginUser);
     }
 
@@ -244,5 +246,15 @@ public class UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
         return new ReferralInfoResponse(user.getReferralCode(), user.getReferralCount());
+    }
+    @Transactional(readOnly = true)
+    public List<UserResponseDto> getFlaggedUsers(User loginUser) {
+        if (loginUser.getRole() != Role.ADMIN) {
+            throw new CustomException(ErrorCode.ADMIN_ONLY);
+        }
+        return userRepository.findFlaggedUsers()
+                .stream()
+                .map(UserResponseDto::new)
+                .collect(Collectors.toList());
     }
 }

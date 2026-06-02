@@ -92,6 +92,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
            "    AND pb.startAt <= CURRENT_TIMESTAMP " +
            "    AND pb.endAt >= CURRENT_TIMESTAMP" +
            ") THEN 0 ELSE 1 END ASC, " +
+           "CASE WHEN u.profileImageUrl IS NOT NULL THEN 0 ELSE 1 END ASC, " +
            "CASE WHEN u.profileImageCount >= 5 THEN 0 ELSE 1 END ASC, " +
            "u.temperature DESC")
     Page<User> findWorkersWithTopRecommended(
@@ -125,10 +126,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("role") Role role,
             @Param("availability") WorkAvailability availability);
 
-    @Query("SELECT u FROM User u WHERE u.role = :role " +
+    @Query("SELECT u FROM User u WHERE u.role = 'INDIVIDUAL' " +
            "AND u.suspended = false " +
            "AND (u.lastLoginAt IS NULL OR u.lastLoginAt < :before)")
     List<User> findInactiveUsers(
             @Param("role") Role role,
             @Param("before") LocalDateTime before);
+
+    @Query("SELECT u FROM User u WHERE u.role = 'INDIVIDUAL' " +
+           "AND u.suspended = false " +
+           "AND (u.warningLevel >= 1 OR u.noShowCount >= 3)")
+    List<User> findFlaggedUsers();
 }

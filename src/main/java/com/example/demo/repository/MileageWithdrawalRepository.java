@@ -4,6 +4,8 @@ import com.example.demo.entity.MileageWithdrawal;
 import com.example.demo.entity.MileageWithdrawalStatus;
 import com.example.demo.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -14,4 +16,6 @@ public interface MileageWithdrawalRepository extends JpaRepository<MileageWithdr
     List<MileageWithdrawal> findByStatus(MileageWithdrawalStatus status);
     boolean existsByUserAndStatus(User user, MileageWithdrawalStatus status);
     List<MileageWithdrawal> findAllByOrderByCreatedAtDesc();
+    @Query("SELECT COALESCE(SUM(w.requestAmount), 0) FROM MileageWithdrawal w WHERE w.status = :status")
+    long sumAmountByStatus(@Param("status") MileageWithdrawalStatus status);
 }
