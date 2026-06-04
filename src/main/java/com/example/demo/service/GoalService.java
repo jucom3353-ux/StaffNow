@@ -111,7 +111,7 @@ public class GoalService {
                 // 알림 발송
                 notificationService.send(
                         worker,
-                        NotificationType.PAYROLL_PAID,
+                        NotificationType.GOAL_ACHIEVED,
                         "목표 금액 " + goal.getTargetAmount() +
                         "원을 달성했습니다! 보너스 " + GOAL_BONUS_MILEAGE + " 마일리지가 지급되었습니다.",
                         goal.getId()

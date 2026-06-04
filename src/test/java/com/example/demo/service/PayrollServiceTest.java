@@ -15,13 +15,9 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.ArgumentMatchers.anyInt;
 
 @ExtendWith(MockitoExtension.class)
 class PayrollServiceTest {
@@ -35,6 +31,7 @@ class PayrollServiceTest {
     @Mock private JobPostRepository jobPostRepository;
     @Mock private UserRepository userRepository;
     @Mock private NotificationService notificationService;
+    @Mock private GoalService goalService;
 
     private User company;
     private User worker;
@@ -77,8 +74,6 @@ class PayrollServiceTest {
     }
 
     // ===== confirmPayroll() 테스트 =====
-
-    @Mock private GoalService goalService;
 
     @Test
     @DisplayName("정산 확정 성공")
@@ -135,7 +130,7 @@ class PayrollServiceTest {
         payroll.setStatus(PayrollStatus.CONFIRMED);
         given(payrollRepository.findById(1L)).willReturn(Optional.of(payroll));
         given(payrollRepository.save(any())).willReturn(payroll);
-        doNothing().when(goalService).addToGoal(any(), anyInt()); // 추가
+        doNothing().when(goalService).addToGoal(any(), anyInt());
 
         payrollService.payPayroll(1L, company);
 
@@ -143,6 +138,19 @@ class PayrollServiceTest {
         assertThat(payroll.getPaidAt()).isNotNull();
         verify(notificationService, times(1)).send(
                 eq(worker), eq(NotificationType.PAYROLL_PAID), any(), any());
+    }
+
+    @Test
+    @DisplayName("급여 지급 시 목표 누적 호출")
+    void payPayroll_callsAddToGoal() {
+        payroll.setStatus(PayrollStatus.CONFIRMED);
+        given(payrollRepository.findById(1L)).willReturn(Optional.of(payroll));
+        given(payrollRepository.save(any())).willReturn(payroll);
+        doNothing().when(goalService).addToGoal(any(), anyInt());
+
+        payrollService.payPayroll(1L, company);
+
+        verify(goalService, times(1)).addToGoal(eq(worker), eq(payroll.getNetPay()));
     }
 
     @Test
