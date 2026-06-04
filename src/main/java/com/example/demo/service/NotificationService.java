@@ -24,6 +24,7 @@ public class NotificationService {
     private final SimpMessagingTemplate messagingTemplate;
     private final FcmTokenRepository fcmTokenRepository;
     private final FcmService fcmService;
+    private final SmsService smsService;
 
     @Transactional
     public void send(User receiver, NotificationType type, String message, Long referenceId) {
@@ -55,6 +56,16 @@ public class NotificationService {
         } catch (Exception e) {
             log.error("FCM 발송 실패: userId={}, error={}",
                     receiver.getId(), e.getMessage());
+        }
+
+        // 4. SMS 발송 (전화번호 있는 경우)
+        if (receiver.getPhone() != null && !receiver.getPhone().isBlank()) {
+            try {
+                smsService.send(receiver.getPhone(), message);
+            } catch (Exception e) {
+                log.error("SMS 발송 실패: userId={}, error={}",
+                        receiver.getId(), e.getMessage());
+            }
         }
     }
 
