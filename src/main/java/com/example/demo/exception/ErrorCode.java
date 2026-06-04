@@ -56,6 +56,7 @@ public enum ErrorCode {
     QR_CHECKOUT_EXPIRED(HttpStatus.BAD_REQUEST, "퇴근 처리 가능 시간이 지났습니다. (근무 종료 후 1시간 이내)"),
     INVALID_APPLY_METHOD(HttpStatus.BAD_REQUEST, "해당 공고에서 허용하지 않는 지원 방식입니다."),
     PORTFOLIO_IMAGE_LIMIT(HttpStatus.BAD_REQUEST, "포트폴리오 이미지는 최대 10장까지 등록 가능합니다."),
+    GOAL_ALREADY_EXISTS(HttpStatus.BAD_REQUEST, "진행 중인 목표가 이미 존재합니다."),
 
     // 401 Unauthorized
     TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "토큰이 만료되었습니다."),
@@ -125,6 +126,7 @@ public enum ErrorCode {
     PORTFOLIO_NOT_FOUND(HttpStatus.NOT_FOUND, "포트폴리오를 찾을 수 없습니다."),
     TEMPLATE_NOT_FOUND(HttpStatus.NOT_FOUND, "템플릿을 찾을 수 없습니다."),
     REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "리뷰를 찾을 수 없습니다."),
+    GOAL_NOT_FOUND(HttpStatus.NOT_FOUND, "목표를 찾을 수 없습니다."),
 
 
 

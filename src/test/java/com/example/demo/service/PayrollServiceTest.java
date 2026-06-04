@@ -16,8 +16,12 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.ArgumentMatchers.anyInt;
 
 @ExtendWith(MockitoExtension.class)
 class PayrollServiceTest {
@@ -74,6 +78,8 @@ class PayrollServiceTest {
 
     // ===== confirmPayroll() 테스트 =====
 
+    @Mock private GoalService goalService;
+
     @Test
     @DisplayName("정산 확정 성공")
     void confirmPayroll_success() {
@@ -129,6 +135,7 @@ class PayrollServiceTest {
         payroll.setStatus(PayrollStatus.CONFIRMED);
         given(payrollRepository.findById(1L)).willReturn(Optional.of(payroll));
         given(payrollRepository.save(any())).willReturn(payroll);
+        doNothing().when(goalService).addToGoal(any(), anyInt()); // 추가
 
         payrollService.payPayroll(1L, company);
 

@@ -26,6 +26,7 @@ public class PayrollService {
     private final JobPostRepository jobPostRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final GoalService goalService;
 
     private void validateCompanyOrManager(User user) {
         if (user.getRole() != Role.COMPANY && user.getRole() != Role.MANAGER) {
@@ -173,6 +174,9 @@ public class PayrollService {
 
         payroll.setStatus(PayrollStatus.PAID);
         payroll.setPaidAt(LocalDateTime.now());
+
+        // 목표 누적 - 실제 급여 지급 시점에 호출
+        goalService.addToGoal(payroll.getWorker(), payroll.getNetPay());
 
         notificationService.send(
                 payroll.getWorker(),

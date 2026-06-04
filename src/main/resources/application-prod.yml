@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: jdbc:mysql://실제서버주소:3306/jucompany?useSSL=true&serverTimezone=Asia/Seoul
+    
+  jpa:
+    show-sql: false  # 운영에서 SQL 로그 끄기
+
+app:
+  cookie:
+    secure: true  # HTTPS 필수
+  cors:
+    allowed-origins: https://jucompany.com  # 실제 도메인
+
+springdoc:
+  swagger-ui:
+    enabled: false  # 운영에서 Swagger 비활성화
+  api-docs:
+    enabled: false
+
+logging:
+  level:
+    com.example.demo: INFO  # DEBUG → INFO로 변경

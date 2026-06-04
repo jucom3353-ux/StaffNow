@@ -75,5 +75,8 @@ public enum NotificationType {
     ACCOUNT_WARNING,         // 노쇼율 주의 경고
 
     // 관리자 알림
-    ADMIN_ALERT              // 관리자 시스템 알림
+    ADMIN_ALERT,              // 관리자 시스템 알림
+
+    // 목표 달성 알림
+    GOAL_ACHIEVED 
 }

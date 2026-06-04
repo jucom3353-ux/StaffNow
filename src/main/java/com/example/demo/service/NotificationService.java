@@ -1,9 +1,7 @@
 package com.example.demo.service;
 
 import com.example.demo.dto.NotificationResponseDto;
-import com.example.demo.entity.Notification;
-import com.example.demo.entity.NotificationType;
-import com.example.demo.entity.User;
+import com.example.demo.entity.*;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.FcmTokenRepository;
@@ -105,6 +103,7 @@ public class NotificationService {
             case ACCOUNT_SUSPENDED -> "계정 이용제한";
             case ACCOUNT_WARNING -> "계정 주의";
             case ADMIN_ALERT -> "관리자 알림";
+            case GOAL_ACHIEVED -> "목표 달성";
         };
     }
 
