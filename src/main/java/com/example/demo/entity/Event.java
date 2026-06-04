@@ -36,6 +36,9 @@ public class Event {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    @Enumerated(EnumType.STRING)
+    private EventType eventType = EventType.NOTICE; // 기본값 NOTICE
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
@@ -60,6 +63,7 @@ public class Event {
     public int getViewCount() { return viewCount; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public EventType getEventType() { return eventType; }
 
     public void setTitle(String title) { this.title = title; }
     public void setContent(String content) { this.content = content; }
@@ -71,4 +75,5 @@ public class Event {
     public void setWinnerContent(String winnerContent) { this.winnerContent = winnerContent; }
     public void setWinnerAnnounced(boolean winnerAnnounced) { this.winnerAnnounced = winnerAnnounced; }
     public void setViewCount(int viewCount) { this.viewCount = viewCount; }
+    public void setEventType(EventType eventType) { this.eventType = eventType; }
 }

@@ -4,6 +4,7 @@ import com.example.demo.dto.EventRequestDto;
 import com.example.demo.dto.EventResponseDto;
 import com.example.demo.entity.Event;
 import com.example.demo.entity.EventStatus;
+import com.example.demo.entity.EventType;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
 import com.example.demo.exception.CustomException;
@@ -22,21 +23,18 @@ public class EventService {
 
     private final EventRepository eventRepository;
 
-    // 전체 목록 조회 (비회원 가능)
     @Transactional(readOnly = true)
     public List<EventResponseDto> getAll() {
         return eventRepository.findAllByOrderByCreatedAtDesc()
                 .stream().map(EventResponseDto::new).collect(Collectors.toList());
     }
 
-    // 진행중/종료 필터 조회 (비회원 가능)
     @Transactional(readOnly = true)
     public List<EventResponseDto> getByStatus(EventStatus status) {
         return eventRepository.findByStatusOrderByCreatedAtDesc(status)
                 .stream().map(EventResponseDto::new).collect(Collectors.toList());
     }
 
-    // 단건 조회 + 조회수 증가 (비회원 가능)
     @Transactional
     public EventResponseDto getEvent(Long id) {
         Event event = eventRepository.findById(id)
@@ -46,7 +44,6 @@ public class EventService {
         return new EventResponseDto(event);
     }
 
-    // 이벤트 등록 (ADMIN)
     @Transactional
     public EventResponseDto createEvent(EventRequestDto requestDto, User loginUser) {
         if (loginUser.getRole() != Role.ADMIN) {
@@ -64,11 +61,12 @@ public class EventService {
         event.setEndDate(requestDto.getEndDate());
         event.setWinnerContent(requestDto.getWinnerContent());
         event.setWinnerAnnounced(requestDto.isWinnerAnnounced());
+        event.setEventType(requestDto.getEventType() != null
+                ? requestDto.getEventType() : EventType.NOTICE); // 추가
 
         return new EventResponseDto(eventRepository.save(event));
     }
 
-    // 이벤트 수정 (ADMIN)
     @Transactional
     public EventResponseDto updateEvent(Long id, EventRequestDto requestDto, User loginUser) {
         if (loginUser.getRole() != Role.ADMIN) {
@@ -87,11 +85,13 @@ public class EventService {
         event.setEndDate(requestDto.getEndDate());
         event.setWinnerContent(requestDto.getWinnerContent());
         event.setWinnerAnnounced(requestDto.isWinnerAnnounced());
+        if (requestDto.getEventType() != null) {
+            event.setEventType(requestDto.getEventType()); // 추가
+        }
 
         return new EventResponseDto(eventRepository.save(event));
     }
 
-    // 당첨자 발표 (ADMIN)
     @Transactional
     public EventResponseDto announceWinner(Long id, String winnerContent, User loginUser) {
         if (loginUser.getRole() != Role.ADMIN) {
@@ -107,7 +107,6 @@ public class EventService {
         return new EventResponseDto(eventRepository.save(event));
     }
 
-    // 이벤트 삭제 (ADMIN)
     @Transactional
     public void deleteEvent(Long id, User loginUser) {
         if (loginUser.getRole() != Role.ADMIN) {
