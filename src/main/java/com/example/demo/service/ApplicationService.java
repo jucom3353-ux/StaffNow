@@ -393,6 +393,7 @@ public class ApplicationService {
 
         // 직종 뱃지 업데이트
         badgeService.updateSpecialtyBadge(worker);
+        userRepository.save(worker);
     }
 
     @Transactional

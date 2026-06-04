@@ -83,4 +83,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
            "GROUP BY a.jobPost.category.name " +
            "ORDER BY COUNT(a) DESC")
     List<Object[]> findTopCategoryByUser(@Param("user") User user);
+
+    Optional<Application> findFirstByUserAndStatusOrderByCreatedAtAsc(
+        User user, ApplicationStatus status);
 }

@@ -17,17 +17,22 @@ public class BadgeService {
 
     private final ApplicationRepository applicationRepository;
     private final UserRepository userRepository;
+    private final GradeService gradeService;
 
-    // 직종 뱃지 업데이트 (근무 완료 시 호출)
     @Transactional
     public void updateSpecialtyBadge(User user) {
+        // 직종 뱃지 업데이트
         List<Object[]> result = applicationRepository.findTopCategoryByUser(user);
         if (result != null && !result.isEmpty()) {
             String topCategory = (String) result.get(0)[0];
             user.setSpecialtyBadge(topCategory);
-            userRepository.save(user);
-            log.info("직종 뱃지 업데이트: userId={}, badge={}", 
+            log.info("직종 뱃지 업데이트: userId={}, badge={}",
                     user.getId(), topCategory);
         }
+
+        // 등급 업데이트
+        gradeService.updateGrade(user);
+
+        userRepository.save(user);
     }
 }
