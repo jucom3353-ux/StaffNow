@@ -25,7 +25,7 @@ public class ApplicationService {
     private static final double NO_SHOW_TEMPERATURE_PENALTY = 1.0;
     private static final double ABSENT_TEMPERATURE_PENALTY = 0.5;
     private static final double MIN_TEMPERATURE = 0.0;
-    private static final double MAX_TEMPERATURE = 5.0;
+    private static final double MAX_TEMPERATURE = 100.0;
     private static final double COMPLETE_TEMPERATURE_BONUS = 0.1;
 
     private final ApplicationRepository applicationRepository;
@@ -378,7 +378,7 @@ public class ApplicationService {
         userRepository.save(worker);
 
         // 노쇼 없이 10회 완료 보너스
-        long completedCount = applicationRepository
+        int completedCount = applicationRepository
                 .countByUserAndStatus(worker, ApplicationStatus.COMPLETED);
         if (completedCount > 0 && completedCount % 10 == 0
                 && worker.getNoShowCount() == 0) {

@@ -47,11 +47,17 @@ public class JwtFilter extends OncePerRequestFilter {
         if (path.startsWith("/uploads")) return true;
         if (path.startsWith("/ws")) return true;
 
-        // 비회원 허용 경로
         if (path.equals("/users") && method.equals("POST")) return true;
         if (path.equals("/early-bird") && method.equals("POST")) return true;
         if (path.equals("/early-bird/count") && method.equals("GET")) return true;
+
         if (path.startsWith("/notices") && method.equals("GET")) return true;
+        if (path.startsWith("/events") && method.equals("GET")) return true;
+        if (path.startsWith("/faqs") && method.equals("GET")) return true;
+        if (path.startsWith("/banners") && method.equals("GET")) return true;
+        if (path.startsWith("/popups") && method.equals("GET")) return true;
+        if (path.startsWith("/job-posts/search") && method.equals("GET")) return true;
+        if (path.startsWith("/categories") && method.equals("GET")) return true;
 
         return false;
     }

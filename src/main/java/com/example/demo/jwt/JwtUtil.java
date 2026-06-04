@@ -19,11 +19,16 @@ public class JwtUtil {
     @Value("${jwt.secret}")
     private String secret;
 
+    @Value("${jwt.expiration:3600000}")
+    private long expiration;
+
     private static Key signingKey;
+    private static long staticExpiration;
 
     @PostConstruct
     public void init() {
         signingKey = Keys.hmacShaKeyFor(secret.getBytes());
+        staticExpiration = expiration;
     }
 
     public static String createToken(Long userId, String role) {
@@ -32,7 +37,7 @@ public class JwtUtil {
                 .claim("role", role)
                 .setIssuedAt(new Date())
                 .setExpiration(
-                        new Date(System.currentTimeMillis() + 1000 * 60 * 60)
+                        new Date(System.currentTimeMillis() + staticExpiration)
                 )
                 .signWith(signingKey, SignatureAlgorithm.HS256)
                 .compact();
