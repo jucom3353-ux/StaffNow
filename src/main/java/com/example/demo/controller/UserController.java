@@ -137,9 +137,8 @@ public class UserController {
     )
     @GetMapping("/admin")
     public ResponseEntity<ApiResponse<?>> getAllUsers(
-            @Parameter(description = "역할 필터 (INDIVIDUAL/COMPANY/MANAGER/ADMIN)")
             @RequestParam(required = false) Role role) {
-        List<UserResponseDto> users = userService.getAllUsers(role, getLoginUser());
+        List<UserPrivateResponseDto> users = userService.getAllUsers(role, getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok(users));
     }
 
@@ -220,7 +219,7 @@ public class UserController {
     @GetMapping("/admin/flagged")
     public ResponseEntity<ApiResponse<?>> getFlaggedUsers() {
         return ResponseEntity.ok(ApiResponse.ok(
-                userService.getFlaggedUsers(getLoginUser())));
+            userService.getFlaggedUsers(getLoginUser())));
     }
 
     @Operation(

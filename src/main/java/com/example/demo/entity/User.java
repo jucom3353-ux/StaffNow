@@ -119,6 +119,12 @@ public class User {
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Column(name = "anonymized")
+    private Boolean anonymized = false;
+
     @PrePersist
     public void prePersist() {
     this.createdAt = LocalDateTime.now();
@@ -167,6 +173,8 @@ public class User {
     public LocalDateTime getLastLoginAt() { return lastLoginAt; }
     public String getGrade() { return grade; }
     public String getSpecialtyBadge() { return specialtyBadge; }
+    public LocalDateTime getDeletedAt() { return deletedAt; }
+    public Boolean getAnonymized() { return anonymized; }
 
     public void setId(Long id) { this.id = id; }
     public void setEmail(String email) { this.email = email; }
@@ -211,4 +219,6 @@ public class User {
     public void setLastLoginAt(LocalDateTime lastLoginAt) { this.lastLoginAt = lastLoginAt; }
     public void setGrade(String grade) { this.grade = grade; }
     public void setSpecialtyBadge(String specialtyBadge) { this.specialtyBadge = specialtyBadge; }
+    public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
+    public void setAnonymized(Boolean anonymized) { this.anonymized = anonymized; }
 }

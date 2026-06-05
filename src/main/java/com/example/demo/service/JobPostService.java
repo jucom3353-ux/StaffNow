@@ -11,6 +11,7 @@ import com.example.demo.repository.JobCategoryRepository;
 import com.example.demo.repository.JobPostRepository;
 import com.example.demo.repository.JobPostViewHistoryRepository;
 import com.example.demo.repository.UserRepository;
+import com.example.demo.util.AuthorizationUtil;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,28 +52,17 @@ public class JobPostService {
         this.userRepository = userRepository;
     }
 
-    private void validateCompanyOrManager(User user) {
-        if (user.getRole() != Role.COMPANY && user.getRole() != Role.MANAGER) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
-    }
-
     private void validateJobPostOwnership(JobPost post, User loginUser) {
-        Long companyId = loginUser.getRole() == Role.MANAGER
-                ? loginUser.getCompany().getId()
-                : loginUser.getId();
-        if (!post.getUser().getId().equals(companyId) &&
-                !post.getUser().getId().equals(loginUser.getId())) {
+        if (!AuthorizationUtil.isMyJobPost(post, loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
     }
 
     @Transactional
     public void createJobPost(JobPostCreateRequestDto requestDto, User loginUser) {
-        validateCompanyOrManager(loginUser);
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
 
-        User companyUser = loginUser.getRole() == Role.MANAGER
-                ? loginUser.getCompany() : loginUser;
+        User companyUser = AuthorizationUtil.getCompanyUser(loginUser);
 
         if (!subscriptionService.canPostJob(companyUser)) {
             throw new CustomException(ErrorCode.JOB_POST_LIMIT_EXCEEDED);
@@ -88,7 +78,6 @@ public class JobPostService {
         jobPost.setUser(loginUser);
         JobPost saved = jobPostRepository.save(jobPost);
 
-        // 긴급 공고 등록 시 즉시출근 가능 근로자에게 알림 발송
         if (Boolean.TRUE.equals(saved.getUrgentBadge())
                 && saved.getPostStatus() == PostStatus.OPEN) {
             sendUrgentNotification(saved);
@@ -190,10 +179,9 @@ public class JobPostService {
 
     @Transactional(readOnly = true)
     public List<JobPostResponseDto> getMyJobPosts(User loginUser, PostStatus postStatus) {
-        validateCompanyOrManager(loginUser);
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
 
-        User companyUser = loginUser.getRole() == Role.MANAGER
-                ? loginUser.getCompany() : loginUser;
+        User companyUser = AuthorizationUtil.getCompanyUser(loginUser);
 
         List<JobPost> posts = postStatus != null
                 ? jobPostRepository.findByUserAndPostStatus(companyUser, postStatus)
@@ -207,7 +195,7 @@ public class JobPostService {
 
     @Transactional
     public void changePostStatus(Long id, PostStatus postStatus, User loginUser) {
-        validateCompanyOrManager(loginUser);
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
 
         JobPost post = jobPostRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
@@ -216,7 +204,6 @@ public class JobPostService {
         post.setPostStatus(postStatus);
         jobPostRepository.save(post);
 
-        // DRAFT → OPEN 전환 시 긴급 공고면 알림 발송
         if (postStatus == PostStatus.OPEN && Boolean.TRUE.equals(post.getUrgentBadge())) {
             sendUrgentNotification(post);
         }
@@ -224,7 +211,7 @@ public class JobPostService {
 
     @Transactional
     public void updateJobPost(Long id, JobPostCreateRequestDto requestDto, User loginUser) {
-        validateCompanyOrManager(loginUser);
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
 
         JobPost post = jobPostRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
@@ -242,7 +229,7 @@ public class JobPostService {
 
     @Transactional
     public void copyJobPost(Long id, User loginUser) {
-        validateCompanyOrManager(loginUser);
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
 
         JobPost original = jobPostRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
@@ -291,7 +278,7 @@ public class JobPostService {
 
     @Transactional
     public void deleteJobPost(Long id, User loginUser) {
-        validateCompanyOrManager(loginUser);
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
 
         JobPost post = jobPostRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
@@ -302,10 +289,10 @@ public class JobPostService {
 
     @Transactional(readOnly = true)
     public JobPost getJobPostEntity(Long id, User loginUser) {
-        validateCompanyOrManager(loginUser);
-        
-    JobPost post = jobPostRepository.findById(id)
-            .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
+
+        JobPost post = jobPostRepository.findById(id)
+                .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
         validateJobPostOwnership(post, loginUser);
         return post;
     }
@@ -364,7 +351,6 @@ public class JobPostService {
         jobPostRepository.deleteById(id);
     }
 
-    // 긴급 공고 알림 발송
     private void sendUrgentNotification(JobPost jobPost) {
         List<User> immediateWorkers = userRepository.findByRoleAndWorkAvailability(
                 Role.INDIVIDUAL, WorkAvailability.IMMEDIATE);
@@ -421,7 +407,7 @@ public class JobPostService {
         post.setAllowOnline(dto.getAllowOnline() != null ? dto.getAllowOnline() : true);
         post.setAllowPhone(dto.getAllowPhone() != null ? dto.getAllowPhone() : false);
         post.setAllowSms(dto.getAllowSms() != null ? dto.getAllowSms() : false);
-        
+
         if (dto.getWorkLocation() != null && !dto.getWorkLocation().isBlank()) {
             double[] coords = kakaoGeocodingService.getCoordinates(dto.getWorkLocation());
             if (coords != null) {

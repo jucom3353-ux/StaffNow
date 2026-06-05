@@ -49,7 +49,18 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/uploads/**").permitAll()
+                        // 공개 파일 (프로필 이미지, 공고 이미지 등)
+                        .requestMatchers("/uploads/profiles/**").permitAll()
+                        .requestMatchers("/uploads/portfolios/**").permitAll()
+                        .requestMatchers("/uploads/job-posts/**").permitAll()
+                        .requestMatchers("/uploads/banners/**").permitAll()
+                        .requestMatchers("/uploads/popups/**").permitAll()
+                        // 민감 파일 (계약서, 급여명세서, 도장, 사업자등록증) → 인증 필요
+                        .requestMatchers("/uploads/contracts/**").authenticated()
+                        .requestMatchers("/uploads/payrolls/**").authenticated()
+                        .requestMatchers("/uploads/stamps/**").authenticated()
+                        .requestMatchers("/uploads/licenses/**").authenticated()
+                        // Swagger (운영환경에서는 application-prod.yml로 비활성화)
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
@@ -57,6 +68,7 @@ public class SecurityConfig {
                                 "/swagger-resources/**",
                                 "/webjars/**"
                         ).permitAll()
+                        // 인증 불필요 API
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/users").permitAll()
                         .requestMatchers(HttpMethod.POST, "/early-bird").permitAll()
@@ -71,8 +83,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/job-post-exposure/active").permitAll()
                         .requestMatchers(HttpMethod.GET, "/job-posts/calendar").permitAll()
                         .requestMatchers(HttpMethod.GET, "/job-posts/calendar/regions").permitAll()
-                        .requestMatchers("/disputes/*/resolve").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/job-posts/autocomplete").permitAll()
+                        // 분쟁
+                        .requestMatchers("/disputes/*/resolve").hasRole("ADMIN")
                         .requestMatchers("/disputes").hasAnyRole("ADMIN", "COMPANY", "MANAGER", "INDIVIDUAL")
                         .anyRequest().authenticated()
                 )

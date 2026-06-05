@@ -7,6 +7,7 @@ import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.InvitationRepository;
 import com.example.demo.repository.JobPostRepository;
 import com.example.demo.repository.UserRepository;
+import com.example.demo.util.AuthorizationUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,28 +24,14 @@ public class InvitationService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
-    private void validateCompanyOrManager(User user) {
-        if (user.getRole() != Role.COMPANY && user.getRole() != Role.MANAGER) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
-    }
-
-    private boolean isMyJobPost(JobPost post, User loginUser) {
-        Long companyId = loginUser.getRole() == Role.MANAGER
-                ? loginUser.getCompany().getId()
-                : loginUser.getId();
-        return post.getUser().getId().equals(companyId) ||
-               post.getUser().getId().equals(loginUser.getId());
-    }
-
     @Transactional
     public void sendInvitation(Long jobPostId, Long workerId, User loginUser) {
-        validateCompanyOrManager(loginUser);
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
 
         JobPost jobPost = jobPostRepository.findById(jobPostId)
                 .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
-        if (!isMyJobPost(jobPost, loginUser)) {
+        if (!AuthorizationUtil.isMyJobPost(jobPost, loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
@@ -55,8 +42,7 @@ public class InvitationService {
             throw new CustomException(ErrorCode.WORKER_ONLY);
         }
 
-        User companyUser = loginUser.getRole() == Role.MANAGER
-                ? loginUser.getCompany() : loginUser;
+        User companyUser = AuthorizationUtil.getCompanyUser(loginUser);
 
         if (invitationRepository.existsByCompanyAndWorkerAndJobPost(companyUser, worker, jobPost)) {
             throw new CustomException(ErrorCode.ALREADY_INVITED);
@@ -80,9 +66,8 @@ public class InvitationService {
 
     @Transactional(readOnly = true)
     public List<InvitationResponseDto> getSentInvitations(User loginUser) {
-        validateCompanyOrManager(loginUser);
-        User companyUser = loginUser.getRole() == Role.MANAGER
-                ? loginUser.getCompany() : loginUser;
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
+        User companyUser = AuthorizationUtil.getCompanyUser(loginUser);
         return invitationRepository.findByCompany(companyUser).stream()
                 .map(InvitationResponseDto::new).collect(Collectors.toList());
     }
@@ -92,8 +77,7 @@ public class InvitationService {
         Invitation invitation = invitationRepository.findById(invitationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.INVITATION_NOT_FOUND));
 
-        User companyUser = loginUser.getRole() == Role.MANAGER
-                ? loginUser.getCompany() : loginUser;
+        User companyUser = AuthorizationUtil.getCompanyUser(loginUser);
 
         if (!invitation.getCompany().getId().equals(companyUser.getId()) &&
             !invitation.getWorker().getId().equals(loginUser.getId())) {
@@ -149,8 +133,7 @@ public class InvitationService {
         Invitation invitation = invitationRepository.findById(invitationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.INVITATION_NOT_FOUND));
 
-        User companyUser = loginUser.getRole() == Role.MANAGER
-                ? loginUser.getCompany() : loginUser;
+        User companyUser = AuthorizationUtil.getCompanyUser(loginUser);
 
         if (!invitation.getCompany().getId().equals(companyUser.getId())) {
             throw new CustomException(ErrorCode.ACCESS_DENIED);

@@ -27,6 +27,27 @@ public class PayrollScheduler {
     private final NotificationService notificationService;
     private final MileageService mileageService;
 
+    /**
+     * 근로기준법 기준 휴게시간 자동 공제
+     * - 4시간 이상 ~ 8시간 미만: 30분 공제
+     * - 8시간 이상: 1시간 공제
+     */
+    private double calculateNetWorkHours(List<WorkAttendance> attendances) {
+        double total = 0.0;
+        for (WorkAttendance a : attendances) {
+            if (a.getCheckInTime() == null || a.getCheckOutTime() == null) continue;
+            double workMinutes = Duration.between(
+                    a.getCheckInTime(), a.getCheckOutTime()).toMinutes();
+            if (workMinutes >= 480) {
+                workMinutes -= 60;
+            } else if (workMinutes >= 240) {
+                workMinutes -= 30;
+            }
+            total += workMinutes;
+        }
+        return total / 60.0;
+    }
+
     // 매주 월요일 자정
     @Scheduled(cron = "0 0 0 * * MON")
     @Transactional
@@ -66,13 +87,13 @@ public class PayrollScheduler {
                 payrollRepository.save(payroll);
 
                 mileageService.addMileage(
-                payroll.getWorker(),
-                MileageType.WORK_COMPLETED,
-                payroll.getNetPay(),
-                "[" + payroll.getJobPost().getTitle() + "] " +
-                payroll.getWorkWeekStart() + " 주차 정산 지급",
-                payroll.getId()
-        );
+                        payroll.getWorker(),
+                        MileageType.WORK_COMPLETED,
+                        payroll.getNetPay(),
+                        "[" + payroll.getJobPost().getTitle() + "] " +
+                        payroll.getWorkWeekStart() + " 주차 정산 지급",
+                        payroll.getId()
+                );
 
                 notificationService.send(
                         payroll.getWorker(),
@@ -108,17 +129,11 @@ public class PayrollScheduler {
 
         if (attendances.isEmpty()) return;
 
-        // NPE 방어: checkOutTime null 제외
-        double totalWorkHours = attendances.stream()
-                .filter(a -> a.getCheckInTime() != null && a.getCheckOutTime() != null)
-                .mapToLong(a -> Duration.between(
-                        a.getCheckInTime(), a.getCheckOutTime()).toMinutes())
-                .sum() / 60.0;
+        double totalWorkHours = calculateNetWorkHours(attendances);
 
         int hourlyWage = jobPost.getWageAmount();
         int basicPay;
 
-        // 임금 타입별 계산
         switch (jobPost.getWageType()) {
             case HOURLY -> basicPay = (int) (totalWorkHours * hourlyWage);
             case DAILY -> {
@@ -137,14 +152,13 @@ public class PayrollScheduler {
             }
         }
 
-        // 주휴수당: HOURLY + 15시간 이상만 적용
         boolean holidayPayApplied = jobPost.getWageType() == WageType.HOURLY
                 && totalWorkHours >= 15;
         int holidayPay = holidayPayApplied
                 ? (int) ((totalWorkHours / 40.0) * 8 * hourlyWage) : 0;
 
         int totalPay = basicPay + holidayPay;
-        int netPay = (int) Math.floor(totalPay * 0.967); // 3.3% 공제
+        int netPay = (int) Math.floor(totalPay * 0.967);
 
         Payroll payroll = new Payroll();
         payroll.setWorker(worker);

@@ -70,14 +70,13 @@ public class ContractPdfService {
         String fontPath = getClass().getClassLoader()
                 .getResource("fonts/NanumGothic.ttf").toExternalForm();
 
-        // 서명 이미지 HTML 생성
         String companySignatureHtml = contract.getCompanySignatureUrl() != null
-                ? "<img src='" + contract.getCompanySignatureUrl()
+                ? "<img src='" + toLocalPath(contract.getCompanySignatureUrl())
                   + "' style='height:60px; object-fit:contain;'/>"
                 : "미서명";
 
         String workerSignatureHtml = contract.getWorkerSignatureUrl() != null
-                ? "<img src='" + contract.getWorkerSignatureUrl()
+                ? "<img src='" + toLocalPath(contract.getWorkerSignatureUrl())
                   + "' style='height:60px; object-fit:contain;'/>"
                 : "미서명";
 
@@ -163,6 +162,14 @@ public class ContractPdfService {
                 contract.getWorkerSignedAt() != null
                         ? contract.getWorkerSignedAt().toString() : "미서명"
         );
+    }
+
+    private String toLocalPath(String url) {
+        if (url == null) return "";
+        if (url.startsWith("http://") || url.startsWith("https://")) return url;
+        String localPath = System.getProperty("user.dir") + "/" + uploadDir + "/"
+                + url.replace(fileBaseUrl + "/uploads/", "");
+        return "file:///" + localPath.replace("\\", "/");
     }
 
     private String nullSafe(String value) {

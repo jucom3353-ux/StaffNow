@@ -12,6 +12,7 @@ import com.example.demo.repository.JobPostRepository;
 import com.example.demo.repository.PayrollRepository;
 import com.example.demo.repository.UserRepository;
 import com.example.demo.repository.WorkAttendanceRepository;
+import com.example.demo.util.AuthorizationUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -43,20 +44,6 @@ public class WorkAttendanceService {
     private static final double EARLY_TEMPERATURE_BONUS = 0.1;
     private static final double MAX_TEMPERATURE = 100.0;
     private static final double ALLOWED_RADIUS_METERS = 300.0;
-
-    private void validateCompanyOrManager(User user) {
-        if (user.getRole() != Role.COMPANY && user.getRole() != Role.MANAGER) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
-    }
-
-    private boolean isMyJobPost(JobPost post, User loginUser) {
-        Long companyId = loginUser.getRole() == Role.MANAGER
-                ? loginUser.getCompany().getId()
-                : loginUser.getId();
-        return post.getUser().getId().equals(companyId) ||
-               post.getUser().getId().equals(loginUser.getId());
-    }
 
     @Transactional
     public WorkAttendanceResponseDto checkIn(
@@ -118,6 +105,15 @@ public class WorkAttendanceService {
                     "[" + application.getJobPost().getTitle() + "] 지각 처리되었습니다.",
                     saved.getId()
             );
+             // 기업/매니저한테도 지각 알림
+            notificationService.send(
+                application.getJobPost().getUser(),
+                    NotificationType.ATTENDANCE_LATE,
+                    "[" + application.getJobPost().getTitle() + "] "
+                    + loginUser.getName() + "님이 지각했습니다.",
+                    saved.getId()
+    );
+
         } else {
             notificationService.send(
                     loginUser,
@@ -164,6 +160,15 @@ public class WorkAttendanceService {
                 saved.getId()
         );
 
+                // 기업/매니저한테도 퇴근 알림
+        notificationService.send(
+                application.getJobPost().getUser(),
+                NotificationType.ATTENDANCE_CHECKED_OUT,
+                "[" + application.getJobPost().getTitle() + "] "
+                + loginUser.getName() + "님이 퇴근했습니다.",
+                saved.getId()
+    );
+
         autoGeneratePayroll(saved, loginUser);
 
         return new WorkAttendanceResponseDto(saved);
@@ -171,12 +176,12 @@ public class WorkAttendanceService {
 
     @Transactional
     public void markAbsent(Long applicationId, User loginUser) {
-        validateCompanyOrManager(loginUser);
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
 
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        if (!isMyJobPost(application.getJobPost(), loginUser)) {
+        if (!AuthorizationUtil.isMyJobPost(application.getJobPost(), loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
@@ -242,12 +247,12 @@ public class WorkAttendanceService {
     public List<WorkAttendanceResponseDto> getAttendancesByJobPost(
             Long jobPostId, User loginUser) {
 
-        validateCompanyOrManager(loginUser);
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
 
         JobPost jobPost = jobPostRepository.findById(jobPostId)
                 .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
-        if (!isMyJobPost(jobPost, loginUser)) {
+        if (!AuthorizationUtil.isMyJobPost(jobPost, loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
@@ -261,12 +266,12 @@ public class WorkAttendanceService {
     public List<WorkAttendanceResponseDto> getAttendancesByJobPostAndWorker(
             Long jobPostId, Long workerId, User loginUser) {
 
-        validateCompanyOrManager(loginUser);
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
 
         JobPost jobPost = jobPostRepository.findById(jobPostId)
                 .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
-        if (!isMyJobPost(jobPost, loginUser)) {
+        if (!AuthorizationUtil.isMyJobPost(jobPost, loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
@@ -283,12 +288,12 @@ public class WorkAttendanceService {
     public CalendarAttendanceResponseDto getJobPostAttendanceCalendar(
             Long jobPostId, User loginUser, int year, int month) {
 
-        validateCompanyOrManager(loginUser);
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
 
         JobPost jobPost = jobPostRepository.findById(jobPostId)
                 .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
-        if (!isMyJobPost(jobPost, loginUser)) {
+        if (!AuthorizationUtil.isMyJobPost(jobPost, loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 

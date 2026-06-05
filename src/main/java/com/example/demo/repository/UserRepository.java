@@ -126,15 +126,18 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("role") Role role,
             @Param("availability") WorkAvailability availability);
 
-    @Query("SELECT u FROM User u WHERE u.role = 'INDIVIDUAL' " +
+    @Query("SELECT u FROM User u WHERE u.role = :role " +
            "AND u.suspended = false " +
            "AND (u.lastLoginAt IS NULL OR u.lastLoginAt < :before)")
-    List<User> findInactiveUsers(
-            @Param("role") Role role,
-            @Param("before") LocalDateTime before);
+       List<User> findInactiveUsers(
+                @Param("role") Role role,
+                @Param("before") LocalDateTime before);
 
     @Query("SELECT u FROM User u WHERE u.role = 'INDIVIDUAL' " +
            "AND u.suspended = false " +
            "AND (u.warningLevel >= 1 OR u.noShowCount >= 3)")
     List<User> findFlaggedUsers();
+
+    @Query("SELECT u FROM User u WHERE u.deletedAt < :cutoff AND u.anonymized = false")
+    List<User> findByDeletedAtBeforeAndAnonymizedFalse(@Param("cutoff") LocalDateTime cutoff);
 }

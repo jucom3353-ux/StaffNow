@@ -7,6 +7,7 @@ import com.example.demo.entity.*;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.*;
+import com.example.demo.util.AuthorizationUtil;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -84,20 +85,6 @@ public class ApplicationService {
         this.badgeService = badgeService;
     }
 
-    private void validateCompanyOrManager(User user) {
-        if (user.getRole() != Role.COMPANY && user.getRole() != Role.MANAGER) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
-    }
-
-    private boolean isMyJobPost(JobPost post, User loginUser) {
-        Long companyId = loginUser.getRole() == Role.MANAGER
-                ? loginUser.getCompany().getId()
-                : loginUser.getId();
-        return post.getUser().getId().equals(companyId) ||
-               post.getUser().getId().equals(loginUser.getId());
-    }
-
     @Transactional
     public void apply(Long jobPostId, Long jobPostRoleId, ApplyMethod applyMethod, User loginUser) {
         if (loginUser.getRole() != Role.INDIVIDUAL) {
@@ -165,8 +152,7 @@ public class ApplicationService {
     }
 
     @Transactional
-    public Page<ApplicationResponseDto> getMyApplications(
-            User loginUser, int page, int size) {
+    public Page<ApplicationResponseDto> getMyApplications(User loginUser, int page, int size) {
         Pageable pageable = PageRequest.of(page, size,
                 Sort.by(Sort.Direction.DESC, "createdAt"));
         return applicationRepository.findByUser(loginUser, pageable)
@@ -188,8 +174,7 @@ public class ApplicationService {
 
         if (application.getCreatedAt() != null) {
             long hoursElapsed = Duration.between(
-                    application.getCreatedAt(),
-                    LocalDateTime.now()).toHours();
+                    application.getCreatedAt(), LocalDateTime.now()).toHours();
             if (hoursElapsed > 48) {
                 throw new CustomException(ErrorCode.APPLICATION_CANCEL_TIME_EXCEEDED);
             }
@@ -205,7 +190,7 @@ public class ApplicationService {
         JobPost jobPost = jobPostRepository.findById(jobPostId)
                 .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
-        if (!isMyJobPost(jobPost, loginUser)) {
+        if (!AuthorizationUtil.isMyJobPost(jobPost, loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
@@ -219,20 +204,18 @@ public class ApplicationService {
                         a.getUser().getName(),
                         a.getUser().getId(),
                         a.getStatus().name(),
-                        a.getJobPostRole() != null
-                                ? a.getJobPostRole().getRoleName() : null
+                        a.getJobPostRole() != null ? a.getJobPostRole().getRoleName() : null
                 ))
                 .collect(Collectors.toList());
     }
 
     @Transactional
-    public WorkerProfileResponseDto getWorkerProfile(
-            Long applicationId, User loginUser) {
+    public WorkerProfileResponseDto getWorkerProfile(Long applicationId, User loginUser) {
 
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        if (!isMyJobPost(application.getJobPost(), loginUser)) {
+        if (!AuthorizationUtil.isMyJobPost(application.getJobPost(), loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
@@ -241,8 +224,7 @@ public class ApplicationService {
         List<Career> careers = resume != null
                 ? careerRepository.findByResume(resume) : List.of();
 
-        User companyUser = loginUser.getRole() == Role.MANAGER
-                ? loginUser.getCompany() : loginUser;
+        User companyUser = AuthorizationUtil.getCompanyUser(loginUser);
 
         boolean hasSubscription = companySubscriptionRepository
                 .findByCompanyAndStatus(companyUser, SubscriptionStatus.ACTIVE)
@@ -278,7 +260,7 @@ public class ApplicationService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        if (!isMyJobPost(application.getJobPost(), loginUser)) {
+        if (!AuthorizationUtil.isMyJobPost(application.getJobPost(), loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
         if (application.getStatus() != ApplicationStatus.APPLIED) {
@@ -304,8 +286,7 @@ public class ApplicationService {
 
         if (!contractExists) {
             JobPost jobPost = application.getJobPost();
-            User companyUser = loginUser.getRole() == Role.MANAGER
-                    ? loginUser.getCompany() : loginUser;
+            User companyUser = AuthorizationUtil.getCompanyUser(loginUser);
 
             Contract contract = new Contract();
             contract.setJobPost(jobPost);
@@ -334,7 +315,7 @@ public class ApplicationService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        if (!isMyJobPost(application.getJobPost(), loginUser)) {
+        if (!AuthorizationUtil.isMyJobPost(application.getJobPost(), loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
         if (application.getStatus() != ApplicationStatus.APPLIED) {
@@ -358,7 +339,7 @@ public class ApplicationService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        if (!isMyJobPost(application.getJobPost(), loginUser)) {
+        if (!AuthorizationUtil.isMyJobPost(application.getJobPost(), loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
         if (application.getStatus() == ApplicationStatus.COMPLETED) {
@@ -369,15 +350,11 @@ public class ApplicationService {
         applicationRepository.save(application);
 
         User worker = application.getUser();
-
-        // 별점 상승 (근무 완료 시 +0.1, 최대 5.0)
         double newTemp = Math.min(
-                worker.getTemperature() + COMPLETE_TEMPERATURE_BONUS,
-                MAX_TEMPERATURE);
+                worker.getTemperature() + COMPLETE_TEMPERATURE_BONUS, MAX_TEMPERATURE);
         worker.setTemperature(newTemp);
         userRepository.save(worker);
 
-        // 노쇼 없이 10회 완료 보너스
         int completedCount = applicationRepository
                 .countByUserAndStatus(worker, ApplicationStatus.COMPLETED);
         if (completedCount > 0 && completedCount % 10 == 0
@@ -391,7 +368,6 @@ public class ApplicationService {
             );
         }
 
-        // 직종 뱃지 업데이트
         badgeService.updateSpecialtyBadge(worker);
         userRepository.save(worker);
     }
@@ -401,7 +377,7 @@ public class ApplicationService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        if (!isMyJobPost(application.getJobPost(), loginUser)) {
+        if (!AuthorizationUtil.isMyJobPost(application.getJobPost(), loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
         if (application.getStatus() == ApplicationStatus.NO_SHOW) {
@@ -413,8 +389,7 @@ public class ApplicationService {
         User worker = application.getUser();
         worker.setNoShowCount(worker.getNoShowCount() + 1);
         double newTemp = Math.max(
-                worker.getTemperature() - NO_SHOW_TEMPERATURE_PENALTY,
-                MIN_TEMPERATURE);
+                worker.getTemperature() - NO_SHOW_TEMPERATURE_PENALTY, MIN_TEMPERATURE);
         worker.setTemperature(newTemp);
 
         applicationRepository.save(application);
@@ -442,7 +417,7 @@ public class ApplicationService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        if (!isMyJobPost(application.getJobPost(), loginUser)) {
+        if (!AuthorizationUtil.isMyJobPost(application.getJobPost(), loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
         if (application.getStatus() == ApplicationStatus.ABSENT) {
@@ -453,8 +428,7 @@ public class ApplicationService {
 
         User worker = application.getUser();
         double newTemp = Math.max(
-                worker.getTemperature() - ABSENT_TEMPERATURE_PENALTY,
-                MIN_TEMPERATURE);
+                worker.getTemperature() - ABSENT_TEMPERATURE_PENALTY, MIN_TEMPERATURE);
         worker.setTemperature(newTemp);
 
         applicationRepository.save(application);

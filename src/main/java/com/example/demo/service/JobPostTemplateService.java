@@ -8,6 +8,7 @@ import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.JobCategoryRepository;
 import com.example.demo.repository.JobPostTemplateRepository;
+import com.example.demo.util.AuthorizationUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,17 +24,10 @@ public class JobPostTemplateService {
     private final JobCategoryRepository jobCategoryRepository;
     private final JobPostService jobPostService;
 
-    private void validateCompanyOrManager(User user) {
-        if (user.getRole() != Role.COMPANY && user.getRole() != Role.MANAGER) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
-    }
-
-    // 템플릿 저장
     @Transactional
     public JobPostTemplateResponseDto createTemplate(
             JobPostTemplateRequestDto requestDto, User loginUser) {
-        validateCompanyOrManager(loginUser);
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
 
         JobPostTemplate template = new JobPostTemplate();
         applyFields(template, requestDto, loginUser);
@@ -42,11 +36,10 @@ public class JobPostTemplateService {
                 jobPostTemplateRepository.save(template));
     }
 
-    // 기존 공고에서 템플릿 저장
     @Transactional
     public JobPostTemplateResponseDto createTemplateFromJobPost(
             JobPost jobPost, String templateName, User loginUser) {
-        validateCompanyOrManager(loginUser);
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
 
         JobPostTemplate template = new JobPostTemplate();
         template.setUser(loginUser);
@@ -79,11 +72,10 @@ public class JobPostTemplateService {
                 jobPostTemplateRepository.save(template));
     }
 
-    // 템플릿 수정
     @Transactional
     public JobPostTemplateResponseDto updateTemplate(
             Long templateId, JobPostTemplateRequestDto requestDto, User loginUser) {
-        validateCompanyOrManager(loginUser);
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
 
         JobPostTemplate template = jobPostTemplateRepository.findById(templateId)
                 .orElseThrow(() -> new CustomException(ErrorCode.TEMPLATE_NOT_FOUND));
@@ -98,19 +90,16 @@ public class JobPostTemplateService {
                 jobPostTemplateRepository.save(template));
     }
 
-    // 내 템플릿 목록 조회
     @Transactional(readOnly = true)
     public List<JobPostTemplateResponseDto> getMyTemplates(User loginUser) {
-        validateCompanyOrManager(loginUser);
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
         return jobPostTemplateRepository.findByUserOrderByCreatedAtDesc(loginUser)
                 .stream().map(JobPostTemplateResponseDto::new).collect(Collectors.toList());
     }
 
-    // 템플릿으로 공고 생성
     @Transactional
-    public void createJobPostFromTemplate(
-            Long templateId, User loginUser) {
-        validateCompanyOrManager(loginUser);
+    public void createJobPostFromTemplate(Long templateId, User loginUser) {
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
 
         JobPostTemplate template = jobPostTemplateRepository.findById(templateId)
                 .orElseThrow(() -> new CustomException(ErrorCode.TEMPLATE_NOT_FOUND));
@@ -149,10 +138,9 @@ public class JobPostTemplateService {
         jobPostService.createJobPost(requestDto, loginUser);
     }
 
-    // 템플릿 삭제
     @Transactional
     public void deleteTemplate(Long templateId, User loginUser) {
-        validateCompanyOrManager(loginUser);
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
 
         JobPostTemplate template = jobPostTemplateRepository.findById(templateId)
                 .orElseThrow(() -> new CustomException(ErrorCode.TEMPLATE_NOT_FOUND));

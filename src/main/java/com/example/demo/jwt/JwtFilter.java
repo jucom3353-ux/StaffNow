@@ -102,7 +102,12 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         if (Boolean.TRUE.equals(user.getSuspended())) {
-            writeError(response, 403, "ACCOUNT_SUSPENDED", "정지된 계정입니다.");
+            // 탈퇴 신청한 유저와 일반 정지 유저 구분
+            if (user.getDeletedAt() != null) {
+                writeError(response, 403, "ACCOUNT_DELETED", "탈퇴 처리된 계정입니다.");
+            } else {
+                writeError(response, 403, "ACCOUNT_SUSPENDED", "정지된 계정입니다.");
+            }
             return;
         }
 

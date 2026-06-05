@@ -14,18 +14,24 @@ public class PreferredWorkTime {
     @JoinColumn(name = "user_id")
     private User user;
 
-    private String timeType; // 주말, 평일, 새벽, 오전, 오후, 저녁
+    @Column(name = "day_type")
+    private String dayType;   // 평일, 주말, 요일무관
 
-    private String startTime; // nullable, 나중에 시간 추가될 때 사용
-    private String endTime;   // nullable, 나중에 시간 추가될 때 사용
+    @Column(name = "time_type")
+    private String timeType;  // 새벽, 오전, 오후, 저녁, 시간무관
+
+    private String startTime;
+    private String endTime;
 
     public Long getId() { return id; }
     public User getUser() { return user; }
+    public String getDayType() { return dayType; }
     public String getTimeType() { return timeType; }
     public String getStartTime() { return startTime; }
     public String getEndTime() { return endTime; }
 
     public void setUser(User user) { this.user = user; }
+    public void setDayType(String dayType) { this.dayType = dayType; }
     public void setTimeType(String timeType) { this.timeType = timeType; }
     public void setStartTime(String startTime) { this.startTime = startTime; }
     public void setEndTime(String endTime) { this.endTime = endTime; }

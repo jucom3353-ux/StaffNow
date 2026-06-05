@@ -9,6 +9,7 @@ import com.example.demo.repository.CompanyStampRepository;
 import com.example.demo.repository.ContractRepository;
 import com.example.demo.repository.JobPostRepository;
 import com.example.demo.repository.UserRepository;
+import com.example.demo.util.AuthorizationUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,28 +28,14 @@ public class ContractService {
     private final NotificationService notificationService;
     private final CompanyStampRepository companyStampRepository;
 
-    private void validateCompanyOrManager(User user) {
-        if (user.getRole() != Role.COMPANY && user.getRole() != Role.MANAGER) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
-    }
-
-    private boolean isMyJobPost(JobPost post, User loginUser) {
-        Long companyId = loginUser.getRole() == Role.MANAGER
-                ? loginUser.getCompany().getId()
-                : loginUser.getId();
-        return post.getUser().getId().equals(companyId) ||
-               post.getUser().getId().equals(loginUser.getId());
-    }
-
     @Transactional
     public void createContract(ContractCreateRequestDto requestDto, User loginUser) {
-        validateCompanyOrManager(loginUser);
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
 
         JobPost jobPost = jobPostRepository.findById(requestDto.getJobPostId())
                 .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
-        if (!isMyJobPost(jobPost, loginUser)) {
+        if (!AuthorizationUtil.isMyJobPost(jobPost, loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
@@ -59,8 +46,7 @@ public class ContractService {
             throw new CustomException(ErrorCode.WORKER_ONLY);
         }
 
-        User companyUser = loginUser.getRole() == Role.MANAGER
-                ? loginUser.getCompany() : loginUser;
+        User companyUser = AuthorizationUtil.getCompanyUser(loginUser);
 
         Contract contract = new Contract();
         contract.setJobPost(jobPost);
@@ -79,8 +65,7 @@ public class ContractService {
     @Transactional(readOnly = true)
     public List<ContractResponseDto> getMyContracts(User loginUser) {
         if (loginUser.getRole() == Role.COMPANY || loginUser.getRole() == Role.MANAGER) {
-            User companyUser = loginUser.getRole() == Role.MANAGER
-                    ? loginUser.getCompany() : loginUser;
+            User companyUser = AuthorizationUtil.getCompanyUser(loginUser);
             return contractRepository.findByCompany(companyUser).stream()
                     .map(ContractResponseDto::new).collect(Collectors.toList());
         }
@@ -93,8 +78,7 @@ public class ContractService {
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
 
-        User companyUser = loginUser.getRole() == Role.MANAGER
-                ? loginUser.getCompany() : loginUser;
+        User companyUser = AuthorizationUtil.getCompanyUser(loginUser);
 
         if (!contract.getCompany().getId().equals(companyUser.getId()) &&
             !contract.getWorker().getId().equals(loginUser.getId())) {
@@ -124,21 +108,19 @@ public class ContractService {
                     "다운로드 기간이 만료된 계약서입니다.");
         }
 
-        User companyUser = loginUser.getRole() == Role.MANAGER
-                ? loginUser.getCompany() : loginUser;
+        User companyUser = AuthorizationUtil.getCompanyUser(loginUser);
 
         if (companyUser.getId().equals(contract.getCompany().getId())) {
-            // 기업 서명
             if (contract.getCompanySignedAt() != null) {
                 throw new CustomException(ErrorCode.CONTRACT_ALREADY_SIGNED);
             }
 
-            // 서명 이미지: 파라미터 우선, 없으면 등록된 도장 자동 적용
             if (signatureUrl != null && !signatureUrl.isBlank()) {
                 contract.setCompanySignatureUrl(signatureUrl);
             } else {
                 companyStampRepository.findByUser(companyUser)
-                        .ifPresent(stamp -> contract.setCompanySignatureUrl(stamp.getStampUrl()));
+                        .ifPresent(stamp ->
+                                contract.setCompanySignatureUrl(stamp.getStampUrl()));
             }
 
             contract.setCompanySignedAt(LocalDateTime.now());
@@ -147,12 +129,10 @@ public class ContractService {
                     contract.getId());
 
         } else if (loginUser.getId().equals(contract.getWorker().getId())) {
-            // 근로자 서명
             if (contract.getWorkerSignedAt() != null) {
                 throw new CustomException(ErrorCode.CONTRACT_ALREADY_SIGNED);
             }
 
-            // 서명 이미지 저장 (선택)
             if (signatureUrl != null && !signatureUrl.isBlank()) {
                 contract.setWorkerSignatureUrl(signatureUrl);
             }
@@ -165,13 +145,14 @@ public class ContractService {
             throw new CustomException(ErrorCode.NOT_MY_CONTRACT);
         }
 
-        // 양측 서명 완료 시 SIGNED 처리
         if (contract.getCompanySignedAt() != null && contract.getWorkerSignedAt() != null) {
             contract.setStatus(ContractStatus.SIGNED);
             notificationService.send(contract.getCompany(), NotificationType.CONTRACT_COMPLETED,
-                    "[" + contract.getJobPost().getTitle() + "] 계약이 체결되었습니다.", contract.getId());
+                    "[" + contract.getJobPost().getTitle() + "] 계약이 체결되었습니다.",
+                    contract.getId());
             notificationService.send(contract.getWorker(), NotificationType.CONTRACT_COMPLETED,
-                    "[" + contract.getJobPost().getTitle() + "] 계약이 체결되었습니다.", contract.getId());
+                    "[" + contract.getJobPost().getTitle() + "] 계약이 체결되었습니다.",
+                    contract.getId());
         }
 
         contractRepository.save(contract);
@@ -179,13 +160,12 @@ public class ContractService {
 
     @Transactional
     public void cancelContract(Long contractId, User loginUser) {
-        validateCompanyOrManager(loginUser);
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
 
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
 
-        User companyUser = loginUser.getRole() == Role.MANAGER
-                ? loginUser.getCompany() : loginUser;
+        User companyUser = AuthorizationUtil.getCompanyUser(loginUser);
 
         if (!contract.getCompany().getId().equals(companyUser.getId())) {
             throw new CustomException(ErrorCode.NOT_MY_CONTRACT);
@@ -198,7 +178,8 @@ public class ContractService {
         contractRepository.save(contract);
 
         notificationService.send(contract.getWorker(), NotificationType.CONTRACT_CANCELLED,
-                "[" + contract.getJobPost().getTitle() + "] 계약서가 취소되었습니다.", contract.getId());
+                "[" + contract.getJobPost().getTitle() + "] 계약서가 취소되었습니다.",
+                contract.getId());
     }
 
     @Transactional(readOnly = true)
@@ -206,8 +187,7 @@ public class ContractService {
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CONTRACT_NOT_FOUND));
 
-        User companyUser = loginUser.getRole() == Role.MANAGER
-                ? loginUser.getCompany() : loginUser;
+        User companyUser = AuthorizationUtil.getCompanyUser(loginUser);
 
         if (!contract.getCompany().getId().equals(companyUser.getId()) &&
             !contract.getWorker().getId().equals(loginUser.getId())) {

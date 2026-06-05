@@ -3,25 +3,23 @@ package com.example.demo.service;
 import com.example.demo.dto.PasswordChangeRequestDto;
 import com.example.demo.dto.ReferralInfoResponse;
 import com.example.demo.dto.UserCreateRequestDto;
+import com.example.demo.dto.UserPrivateResponseDto;
 import com.example.demo.dto.UserResponseDto;
 import com.example.demo.dto.UserUpdateRequestDto;
 import com.example.demo.entity.BusinessLicenseStatus;
-import com.example.demo.entity.RefreshToken;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.RefreshTokenRepository;
 import com.example.demo.repository.UserRepository;
-import com.example.demo.service.CompanyInviteService;
-import com.example.demo.entity.CompanyInviteCode;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,7 +30,6 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final CompanyInviteService companyInviteService;
     private final FcmTokenService fcmTokenService;
 
     private static final String CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -117,17 +114,25 @@ public class UserService {
 
         loginUser.setPassword(passwordEncoder.encode(requestDto.getNewPassword()));
         userRepository.save(loginUser);
+
+        // 비밀번호 변경 시 기존 RefreshToken 전체 무효화
+        refreshTokenRepository.deleteAllByUserId(loginUser.getId());
     }
 
     @Transactional
     public void deleteUser(User loginUser) {
-    List<RefreshToken> tokens = refreshTokenRepository
-            .findByUserId(loginUser.getId(), PageRequest.of(0, 1));
-        if (!tokens.isEmpty()) {
-            refreshTokenRepository.delete(tokens.get(0));
-        }
-        fcmTokenService.removeAllTokens(loginUser); // 추가
-        userRepository.delete(loginUser);
+        // 즉시 삭제 대신 탈퇴 신청 처리 (30일 후 익명화)
+        loginUser.setDeletedAt(LocalDateTime.now());
+        loginUser.setSuspended(true);
+        loginUser.setSuspendReason("탈퇴 신청");
+
+        // RefreshToken 즉시 무효화
+        refreshTokenRepository.deleteAllByUserId(loginUser.getId());
+
+        // FCM 토큰 제거
+        fcmTokenService.removeAllTokens(loginUser);
+
+        userRepository.save(loginUser);
     }
 
     @Transactional
@@ -178,16 +183,18 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public List<UserResponseDto> getAllUsers(Role role, User loginUser) {
+    public List<UserPrivateResponseDto> getAllUsers(Role role, User loginUser) {
         if (loginUser.getRole() != Role.ADMIN) {
             throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
 
         List<User> users = role != null
-                ? userRepository.findByRole(role)
-                : userRepository.findAll();
+            ? userRepository.findByRole(role)
+            : userRepository.findAll();
 
-        return users.stream().map(UserResponseDto::new).collect(Collectors.toList());
+        return users.stream()
+                .map(UserPrivateResponseDto::new)
+                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -205,6 +212,9 @@ public class UserService {
 
         target.setSuspended(true);
         userRepository.save(target);
+
+        // 정지 시 기존 토큰 즉시 무효화
+        refreshTokenRepository.deleteAllByUserId(target.getId());
     }
 
     @Transactional
@@ -233,11 +243,7 @@ public class UserService {
             throw new CustomException(ErrorCode.ADMIN_DELETE_NOT_ALLOWED);
         }
 
-        List<RefreshToken> tokens = refreshTokenRepository
-                .findByUserId(target.getId(), PageRequest.of(0, 1));
-        if (!tokens.isEmpty()) {
-            refreshTokenRepository.delete(tokens.get(0));
-        }
+        refreshTokenRepository.deleteAllByUserId(target.getId());
         userRepository.delete(target);
     }
 
@@ -247,14 +253,15 @@ public class UserService {
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
         return new ReferralInfoResponse(user.getReferralCode(), user.getReferralCount());
     }
+
     @Transactional(readOnly = true)
-    public List<UserResponseDto> getFlaggedUsers(User loginUser) {
-        if (loginUser.getRole() != Role.ADMIN) {
-            throw new CustomException(ErrorCode.ADMIN_ONLY);
+    public List<UserPrivateResponseDto> getFlaggedUsers(User loginUser) {
+    if (loginUser.getRole() != Role.ADMIN) {
+        throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
-        return userRepository.findFlaggedUsers()
-                .stream()
-                .map(UserResponseDto::new)
-                .collect(Collectors.toList());
+    return userRepository.findFlaggedUsers()
+            .stream()
+            .map(UserPrivateResponseDto::new)
+            .collect(Collectors.toList());
     }
 }

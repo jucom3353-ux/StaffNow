@@ -1,49 +1,73 @@
 package com.example.demo.aspect;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import com.example.demo.entity.User;
+
+@Slf4j
 @Aspect
 @Component
 public class LoggingAspect {
 
-    private static final Logger log = LoggerFactory.getLogger(LoggingAspect.class);
+    @Around("execution(* com.example.demo.controller..*(..))")
+    public Object logRequest(ProceedingJoinPoint joinPoint) throws Throwable {
 
-    @Around("execution(* com.example.demo.controller.*.*(..))")
-    public Object logController(ProceedingJoinPoint joinPoint) throws Throwable {
+        long startTime = System.currentTimeMillis();
 
-        HttpServletRequest request = null;
-        try {
-            ServletRequestAttributes attrs =
-                    (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-            if (attrs != null) {
-                request = attrs.getRequest();
-            }
-        } catch (Exception ignored) {}
+        // 요청 정보 추출
+        String method = "";
+        String uri = "";
+        String clientIp = "";
 
-        String method = request != null ? request.getMethod() : "UNKNOWN";
-        String uri = request != null ? request.getRequestURI() : "UNKNOWN";
-        String controllerMethod = joinPoint.getSignature().toShortString();
+        ServletRequestAttributes attrs =
+                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attrs != null) {
+            HttpServletRequest request = attrs.getRequest();
+            method = request.getMethod();
+            uri = request.getRequestURI();
+            clientIp = getClientIp(request);
+        }
 
-        long start = System.currentTimeMillis();
+        // 로그인 유저 추출
+        String userInfo = "비로그인";
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof User user) {
+            userInfo = "userId=" + user.getId() + " role=" + user.getRole();
+        }
 
         try {
             Object result = joinPoint.proceed();
-            long elapsed = System.currentTimeMillis() - start;
-            log.info("[{}] {} → {} ({}ms)", method, uri, controllerMethod, elapsed);
+            long duration = System.currentTimeMillis() - startTime;
+
+            log.info("[API] {} {} | {} | {}ms | 성공",
+                    method, uri, userInfo, duration);
+
             return result;
+
         } catch (Exception e) {
-            long elapsed = System.currentTimeMillis() - start;
-            log.error("[{}] {} → {} ({}ms) ERROR: {}",
-                    method, uri, controllerMethod, elapsed, e.getMessage());
+            long duration = System.currentTimeMillis() - startTime;
+
+            log.warn("[API] {} {} | {} | {}ms | 실패: {}",
+                    method, uri, userInfo, duration, e.getMessage());
+
             throw e;
         }
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isBlank()) {
+            ip = request.getRemoteAddr();
+        }
+        return ip;
     }
 }

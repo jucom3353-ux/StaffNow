@@ -5,6 +5,7 @@ import com.example.demo.entity.*;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.*;
+import com.example.demo.util.AuthorizationUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,28 +29,32 @@ public class PayrollService {
     private final NotificationService notificationService;
     private final GoalService goalService;
 
-    private void validateCompanyOrManager(User user) {
-        if (user.getRole() != Role.COMPANY && user.getRole() != Role.MANAGER) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
+    private double calculateNetWorkHours(List<WorkAttendance> attendances) {
+        double total = 0.0;
+        for (WorkAttendance a : attendances) {
+            if (a.getCheckInTime() == null || a.getCheckOutTime() == null) continue;
+            double workMinutes = Duration.between(
+                    a.getCheckInTime(), a.getCheckOutTime()).toMinutes();
+            if (workMinutes >= 480) {
+                workMinutes -= 60;
+            } else if (workMinutes >= 240) {
+                workMinutes -= 30;
+            }
+            total += workMinutes;
         }
-    }
-
-    private boolean isMyJobPost(JobPost post, User loginUser) {
-        Long companyId = loginUser.getRole() == Role.MANAGER
-                ? loginUser.getCompany().getId()
-                : loginUser.getId();
-        return post.getUser().getId().equals(companyId) ||
-               post.getUser().getId().equals(loginUser.getId());
+        return total / 60.0;
     }
 
     @Transactional
     public PayrollResponseDto createPayroll(
             Long applicationId, String weekStart, User loginUser) {
 
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
+
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        if (!isMyJobPost(application.getJobPost(), loginUser)) {
+        if (!AuthorizationUtil.isMyJobPost(application.getJobPost(), loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
@@ -70,11 +75,7 @@ public class PayrollService {
         List<WorkAttendance> attendances = workAttendanceRepository
                 .findByUserAndJobPostAndWeek(worker, jobPost, weekStartDt, weekEndDt);
 
-        double totalWorkHours = attendances.stream()
-                .filter(a -> a.getCheckInTime() != null && a.getCheckOutTime() != null)
-                .mapToLong(a -> Duration.between(
-                        a.getCheckInTime(), a.getCheckOutTime()).toMinutes())
-                .sum() / 60.0;
+        double totalWorkHours = calculateNetWorkHours(attendances);
 
         int hourlyWage = jobPost.getWageAmount();
         int basicPay;
@@ -130,12 +131,12 @@ public class PayrollService {
 
     @Transactional
     public PayrollResponseDto confirmPayroll(Long payrollId, User loginUser) {
-        validateCompanyOrManager(loginUser);
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
 
         Payroll payroll = payrollRepository.findById(payrollId)
                 .orElseThrow(() -> new CustomException(ErrorCode.PAYROLL_NOT_FOUND));
 
-        if (!isMyJobPost(payroll.getJobPost(), loginUser)) {
+        if (!AuthorizationUtil.isMyJobPost(payroll.getJobPost(), loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
@@ -159,12 +160,12 @@ public class PayrollService {
 
     @Transactional
     public PayrollResponseDto payPayroll(Long payrollId, User loginUser) {
-        validateCompanyOrManager(loginUser);
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
 
         Payroll payroll = payrollRepository.findById(payrollId)
                 .orElseThrow(() -> new CustomException(ErrorCode.PAYROLL_NOT_FOUND));
 
-        if (!isMyJobPost(payroll.getJobPost(), loginUser)) {
+        if (!AuthorizationUtil.isMyJobPost(payroll.getJobPost(), loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
@@ -175,7 +176,6 @@ public class PayrollService {
         payroll.setStatus(PayrollStatus.PAID);
         payroll.setPaidAt(LocalDateTime.now());
 
-        // 목표 누적 - 실제 급여 지급 시점에 호출
         goalService.addToGoal(payroll.getWorker(), payroll.getNetPay());
 
         notificationService.send(
@@ -193,12 +193,12 @@ public class PayrollService {
     @Transactional
     public PayrollResponseDto rejectPayroll(
             Long payrollId, String rejectReason, User loginUser) {
-        validateCompanyOrManager(loginUser);
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
 
         Payroll payroll = payrollRepository.findById(payrollId)
                 .orElseThrow(() -> new CustomException(ErrorCode.PAYROLL_NOT_FOUND));
 
-        if (!isMyJobPost(payroll.getJobPost(), loginUser)) {
+        if (!AuthorizationUtil.isMyJobPost(payroll.getJobPost(), loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
@@ -291,10 +291,9 @@ public class PayrollService {
     public Map<String, Object> getCompanyPayrollSummary(
             User loginUser, Long jobPostId, String yearMonth) {
 
-        validateCompanyOrManager(loginUser);
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
 
-        User companyUser = loginUser.getRole() == Role.MANAGER
-                ? loginUser.getCompany() : loginUser;
+        User companyUser = AuthorizationUtil.getCompanyUser(loginUser);
 
         List<JobPost> jobPosts = jobPostRepository.findByUser(companyUser);
 
@@ -331,14 +330,14 @@ public class PayrollService {
         if (jobPostId != null && yearMonth != null) {
             JobPost jobPost = jobPostRepository.findById(jobPostId)
                     .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
-            if (!isMyJobPost(jobPost, loginUser)) {
+            if (!AuthorizationUtil.isMyJobPost(jobPost, loginUser)) {
                 throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
             }
             filtered = payrollRepository.findByJobPostAndMonth(jobPost, yearMonth);
         } else if (jobPostId != null) {
             JobPost jobPost = jobPostRepository.findById(jobPostId)
                     .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
-            if (!isMyJobPost(jobPost, loginUser)) {
+            if (!AuthorizationUtil.isMyJobPost(jobPost, loginUser)) {
                 throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
             }
             filtered = payrollRepository.findByJobPost(jobPost);

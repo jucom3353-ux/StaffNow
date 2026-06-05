@@ -16,7 +16,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "선호 근무 시간 API", description = "개인 회원 선호 근무 시간 설정")
+@Tag(name = "선호 근무 조건 API", description = "개인 회원 선호 근무 요일/시간대 설정")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/users/me/preferred-work-time")

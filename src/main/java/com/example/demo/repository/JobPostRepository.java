@@ -169,15 +169,7 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
     List<String> findDistinctRegionsByMonth(
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
-
-    @Query("SELECT u FROM User u WHERE u.role = :role " +
-           "AND u.workAvailability = :availability " +
-           "AND u.suspended = false")
-    List<JobPost> findByWorkStartDateBetweenAndCategoryId(
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate,
-            @Param("categoryId") Long categoryId);
-
+            
     @Query("SELECT j FROM JobPost j WHERE j.postStatus = 'OPEN' " +
            "AND j.deadline = :tomorrow")
     List<JobPost> findJobPostsDeadlineTomorrow(@Param("tomorrow") String tomorrow);
