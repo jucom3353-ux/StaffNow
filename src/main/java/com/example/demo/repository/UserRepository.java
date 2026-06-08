@@ -129,9 +129,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u WHERE u.role = :role " +
            "AND u.suspended = false " +
            "AND (u.lastLoginAt IS NULL OR u.lastLoginAt < :before)")
-       List<User> findInactiveUsers(
-                @Param("role") Role role,
-                @Param("before") LocalDateTime before);
+    List<User> findInactiveUsers(
+            @Param("role") Role role,
+            @Param("before") LocalDateTime before);
 
     @Query("SELECT u FROM User u WHERE u.role = 'INDIVIDUAL' " +
            "AND u.suspended = false " +
@@ -140,4 +140,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT u FROM User u WHERE u.deletedAt < :cutoff AND u.anonymized = false")
     List<User> findByDeletedAtBeforeAndAnonymizedFalse(@Param("cutoff") LocalDateTime cutoff);
+
+    // 부스트 팝업용: 특정 카테고리 ID 목록을 선호하는 OPEN 공고 보유 기업 조회
+    @Query("SELECT DISTINCT jp.user FROM JobPost jp " +
+           "WHERE jp.postStatus = 'OPEN' " +
+           "AND jp.category.id IN :categoryIds " +
+           "AND jp.user.suspended = false")
+    List<User> findCompaniesWithOpenPostsByCategories(
+            @Param("categoryIds") List<Long> categoryIds);
 }

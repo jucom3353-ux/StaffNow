@@ -29,7 +29,6 @@ public class NotificationService {
     @Transactional
     public void send(User receiver, NotificationType type, String message, Long referenceId) {
 
-        // 1. DB 저장
         Notification notification = new Notification();
         notification.setUser(receiver);
         notification.setType(type);
@@ -37,13 +36,11 @@ public class NotificationService {
         notification.setReferenceId(referenceId);
         notificationRepository.save(notification);
 
-        // 2. WebSocket 실시간 발송
         messagingTemplate.convertAndSend(
                 "/topic/notification." + receiver.getId(),
                 new NotificationResponseDto(notification)
         );
 
-        // 3. FCM 푸시 알림 발송
         try {
             List<String> tokens = fcmTokenRepository.findByUser(receiver)
                     .stream()
@@ -58,7 +55,6 @@ public class NotificationService {
                     receiver.getId(), e.getMessage());
         }
 
-        // 4. SMS 발송 (전화번호 있는 경우)
         if (receiver.getPhone() != null && !receiver.getPhone().isBlank()) {
             try {
                 smsService.send(receiver.getPhone(), message);
@@ -67,6 +63,24 @@ public class NotificationService {
                         receiver.getId(), e.getMessage());
             }
         }
+    }
+
+    /**
+     * 팝업 전용 발송 — DB 저장 없이 WebSocket만 발송
+     * 출퇴근 사진 팝업, 새 공고 팝업, 부스트 팝업에 사용
+     */
+    public void sendPopup(User receiver, NotificationType type,
+                          String message, Long referenceId) {
+        Notification notification = new Notification();
+        notification.setUser(receiver);
+        notification.setType(type);
+        notification.setMessage(message);
+        notification.setReferenceId(referenceId);
+
+        messagingTemplate.convertAndSend(
+                "/topic/popup." + receiver.getId(),
+                new NotificationResponseDto(notification)
+        );
     }
 
     private String getTitle(NotificationType type) {
@@ -93,6 +107,7 @@ public class NotificationService {
             case ATTENDANCE_CHECKED_IN -> "출근 완료";
             case ATTENDANCE_CHECKED_OUT -> "퇴근 완료";
             case ATTENDANCE_LATE -> "지각 처리";
+            case ATTENDANCE_PHOTO -> "출퇴근 사진";
             case REPORT_APPROVED -> "신고 승인";
             case REPORT_DISMISSED -> "신고 기각";
             case SUBSCRIPTION_EXPIRING_SOON -> "구독 만료 임박";
@@ -100,6 +115,7 @@ public class NotificationService {
             case SUBSCRIPTION_RENEWED -> "구독 갱신";
             case SUBSCRIPTION_RENEWAL_FAILED -> "구독 갱신 실패";
             case JOB_POST_CLOSED -> "공고 마감";
+            case NEW_JOB_POST -> "새 공고";
             case LATE_APPEAL_RECEIVED -> "소명 접수";
             case LATE_APPEAL_APPROVED -> "소명 승인";
             case LATE_APPEAL_REJECTED -> "소명 반려";
@@ -115,6 +131,7 @@ public class NotificationService {
             case ACCOUNT_WARNING -> "계정 주의";
             case ADMIN_ALERT -> "관리자 알림";
             case GOAL_ACHIEVED -> "목표 달성";
+            case BOOST_ACTIVATED -> "부스트 알림";
         };
     }
 

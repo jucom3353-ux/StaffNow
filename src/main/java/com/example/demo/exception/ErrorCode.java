@@ -50,13 +50,14 @@ public enum ErrorCode {
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 요청입니다."),
     INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "비밀번호가 틀렸습니다."),
     INVALID_EMAIL(HttpStatus.BAD_REQUEST, "이메일이 존재하지 않습니다."),
-    MILEAGE_NOT_ENOUGH(HttpStatus.BAD_REQUEST, "마일리지가 부족합니다."),          // 추가
-    ACCOUNT_NOT_REGISTERED(HttpStatus.BAD_REQUEST, "계좌 정보를 먼저 등록해주세요."), // 추가
+    MILEAGE_NOT_ENOUGH(HttpStatus.BAD_REQUEST, "마일리지가 부족합니다."),
+    ACCOUNT_NOT_REGISTERED(HttpStatus.BAD_REQUEST, "계좌 정보를 먼저 등록해주세요."),
     QR_TOO_EARLY(HttpStatus.BAD_REQUEST, "아직 출근 가능 시간이 아닙니다. (근무 시작 30분 전부터 가능)"),
     QR_CHECKOUT_EXPIRED(HttpStatus.BAD_REQUEST, "퇴근 처리 가능 시간이 지났습니다. (근무 종료 후 1시간 이내)"),
     INVALID_APPLY_METHOD(HttpStatus.BAD_REQUEST, "해당 공고에서 허용하지 않는 지원 방식입니다."),
     PORTFOLIO_IMAGE_LIMIT(HttpStatus.BAD_REQUEST, "포트폴리오 이미지는 최대 10장까지 등록 가능합니다."),
     GOAL_ALREADY_EXISTS(HttpStatus.BAD_REQUEST, "진행 중인 목표가 이미 존재합니다."),
+    PREFERRED_CATEGORY_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "선호 카테고리는 최대 5개까지 등록 가능합니다."),
 
     // 401 Unauthorized
     TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "토큰이 만료되었습니다."),
@@ -108,7 +109,6 @@ public enum ErrorCode {
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "댓글을 찾을 수 없습니다."),
     BANNER_NOT_FOUND(HttpStatus.NOT_FOUND, "배너를 찾을 수 없습니다."),
     POPUP_NOT_FOUND(HttpStatus.NOT_FOUND, "팝업을 찾을 수 없습니다."),
-    ALREADY_SCRAPPED(HttpStatus.CONFLICT, "이미 스크랩한 인재입니다."),
     SCRAP_NOT_FOUND(HttpStatus.NOT_FOUND, "스크랩을 찾을 수 없습니다."),
     MEMO_NOT_FOUND(HttpStatus.NOT_FOUND, "메모를 찾을 수 없습니다."),
     QUESTION_NOT_FOUND(HttpStatus.NOT_FOUND, "사전질문을 찾을 수 없습니다."),
@@ -120,15 +120,14 @@ public enum ErrorCode {
     STAMP_NOT_FOUND(HttpStatus.NOT_FOUND, "도장을 찾을 수 없습니다."),
     BOOST_NOT_FOUND(HttpStatus.NOT_FOUND, "활성화된 부스트를 찾을 수 없습니다."),
     EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "이벤트를 찾을 수 없습니다."),
-    WITHDRAWAL_NOT_FOUND(HttpStatus.NOT_FOUND, "출금 신청을 찾을 수 없습니다."), 
+    WITHDRAWAL_NOT_FOUND(HttpStatus.NOT_FOUND, "출금 신청을 찾을 수 없습니다."),
     EXPOSURE_NOT_FOUND(HttpStatus.NOT_FOUND, "노출 신청을 찾을 수 없습니다."),
     QR_NOT_FOUND(HttpStatus.NOT_FOUND, "QR 코드를 찾을 수 없습니다."),
     PORTFOLIO_NOT_FOUND(HttpStatus.NOT_FOUND, "포트폴리오를 찾을 수 없습니다."),
     TEMPLATE_NOT_FOUND(HttpStatus.NOT_FOUND, "템플릿을 찾을 수 없습니다."),
     REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "리뷰를 찾을 수 없습니다."),
     GOAL_NOT_FOUND(HttpStatus.NOT_FOUND, "목표를 찾을 수 없습니다."),
-
-
+    NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 리소스를 찾을 수 없습니다."),
 
     // 409 Conflict
     EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
@@ -152,14 +151,15 @@ public enum ErrorCode {
     ALREADY_DISPUTED_ATTENDANCE(HttpStatus.CONFLICT, "이미 분쟁을 신청한 출퇴근 기록입니다."),
     APPLICATION_CANCEL_TIME_EXCEEDED(HttpStatus.BAD_REQUEST, "지원 후 48시간이 초과되어 취소할 수 없습니다."),
     BOOST_ALREADY_ACTIVE(HttpStatus.CONFLICT, "이미 활성화된 부스트가 있습니다."),
-    WITHDRAWAL_ALREADY_PENDING(HttpStatus.CONFLICT, "이미 대기 중인 출금 신청이 있습니다."), // 추가
+    WITHDRAWAL_ALREADY_PENDING(HttpStatus.CONFLICT, "이미 대기 중인 출금 신청이 있습니다."),
     EXPOSURE_ALREADY_ACTIVE(HttpStatus.CONFLICT, "이미 상단 노출 중인 공고입니다."),
     QR_EXPIRED(HttpStatus.CONFLICT, "비활성화된 QR 코드입니다."),
+    ALREADY_SCRAPPED(HttpStatus.CONFLICT, "이미 스크랩한 인재입니다."),
+    ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 등록된 항목입니다."),
 
     // 500 Internal Server Error
     FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "파일 업로드에 실패했습니다."),
     PDF_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "PDF 생성에 실패했습니다.");
-    
 
     private final HttpStatus httpStatus;
     private final String message;

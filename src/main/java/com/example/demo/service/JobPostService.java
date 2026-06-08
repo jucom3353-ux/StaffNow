@@ -10,8 +10,10 @@ import com.example.demo.repository.ApplicationRepository;
 import com.example.demo.repository.JobCategoryRepository;
 import com.example.demo.repository.JobPostRepository;
 import com.example.demo.repository.JobPostViewHistoryRepository;
+import com.example.demo.repository.PreferredCategoryRepository;
 import com.example.demo.repository.UserRepository;
 import com.example.demo.util.AuthorizationUtil;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,35 +24,18 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class JobPostService {
 
     private final JobPostRepository jobPostRepository;
     private final ApplicationRepository applicationRepository;
     private final JobCategoryRepository jobCategoryRepository;
     private final JobPostViewHistoryRepository jobPostViewHistoryRepository;
+    private final PreferredCategoryRepository preferredCategoryRepository;
     private final SubscriptionService subscriptionService;
     private final KakaoGeocodingService kakaoGeocodingService;
     private final NotificationService notificationService;
     private final UserRepository userRepository;
-
-    public JobPostService(
-            JobPostRepository jobPostRepository,
-            ApplicationRepository applicationRepository,
-            JobCategoryRepository jobCategoryRepository,
-            JobPostViewHistoryRepository jobPostViewHistoryRepository,
-            SubscriptionService subscriptionService,
-            KakaoGeocodingService kakaoGeocodingService,
-            NotificationService notificationService,
-            UserRepository userRepository) {
-        this.jobPostRepository = jobPostRepository;
-        this.applicationRepository = applicationRepository;
-        this.jobCategoryRepository = jobCategoryRepository;
-        this.jobPostViewHistoryRepository = jobPostViewHistoryRepository;
-        this.subscriptionService = subscriptionService;
-        this.kakaoGeocodingService = kakaoGeocodingService;
-        this.notificationService = notificationService;
-        this.userRepository = userRepository;
-    }
 
     private void validateJobPostOwnership(JobPost post, User loginUser) {
         if (!AuthorizationUtil.isMyJobPost(post, loginUser)) {
@@ -78,9 +63,15 @@ public class JobPostService {
         jobPost.setUser(loginUser);
         JobPost saved = jobPostRepository.save(jobPost);
 
-        if (Boolean.TRUE.equals(saved.getUrgentBadge())
-                && saved.getPostStatus() == PostStatus.OPEN) {
-            sendUrgentNotification(saved);
+        if (saved.getPostStatus() == PostStatus.OPEN) {
+            // 새 공고 팝업: 해당 카테고리 선호 구직자에게 발송
+            if (saved.getCategory() != null) {
+                sendNewJobPostPopup(saved);
+            }
+            // 긴급 공고 알림
+            if (Boolean.TRUE.equals(saved.getUrgentBadge())) {
+                sendUrgentNotification(saved);
+            }
         }
     }
 
@@ -204,8 +195,13 @@ public class JobPostService {
         post.setPostStatus(postStatus);
         jobPostRepository.save(post);
 
-        if (postStatus == PostStatus.OPEN && Boolean.TRUE.equals(post.getUrgentBadge())) {
-            sendUrgentNotification(post);
+        if (postStatus == PostStatus.OPEN) {
+            if (post.getCategory() != null) {
+                sendNewJobPostPopup(post);
+            }
+            if (Boolean.TRUE.equals(post.getUrgentBadge())) {
+                sendUrgentNotification(post);
+            }
         }
     }
 
@@ -349,6 +345,24 @@ public class JobPostService {
                 .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
         jobPostRepository.deleteById(id);
+    }
+
+    // 새 공고 팝업: 해당 카테고리 선호 구직자에게 WebSocket 팝업 발송
+    private void sendNewJobPostPopup(JobPost jobPost) {
+        try {
+            List<User> workers = preferredCategoryRepository
+                    .findWorkersByCategory(jobPost.getCategory());
+            workers.forEach(worker ->
+                    notificationService.sendPopup(
+                            worker,
+                            NotificationType.NEW_JOB_POST,
+                            "[새 공고] " + jobPost.getTitle() + " - 지금 확인해보세요!",
+                            jobPost.getId()
+                    )
+            );
+        } catch (Exception e) {
+            // 팝업 발송 실패해도 공고 등록은 정상 처리
+        }
     }
 
     private void sendUrgentNotification(JobPost jobPost) {

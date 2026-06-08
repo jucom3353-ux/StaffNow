@@ -44,10 +44,8 @@ public class WorkAttendanceService {
     private static final int    EARLY_THRESHOLD_MINUTES = 10;
     private static final double EARLY_TEMPERATURE_BONUS = 0.1;
     private static final double MAX_TEMPERATURE         = 100.0;
-
-    // 출근: 300m, 퇴근: 200m (회의 확정)
-    private static final double CHECKIN_RADIUS_METERS  = 300.0;
-    private static final double CHECKOUT_RADIUS_METERS = 200.0;
+    private static final double CHECKIN_RADIUS_METERS   = 300.0;
+    private static final double CHECKOUT_RADIUS_METERS  = 200.0;
 
     @Transactional
     public WorkAttendanceResponseDto checkIn(
@@ -126,6 +124,16 @@ public class WorkAttendanceService {
             );
         }
 
+        // 출근 사진 팝업 (기업/매니저에게)
+        if (requestDto.getPhotoUrl() != null && !requestDto.getPhotoUrl().isBlank()) {
+            notificationService.sendPopup(
+                    application.getJobPost().getUser(),
+                    NotificationType.ATTENDANCE_PHOTO,
+                    "[출근 사진] " + loginUser.getName() + "님의 출근 사진을 확인하세요.",
+                    saved.getId()
+            );
+        }
+
         return new WorkAttendanceResponseDto(saved);
     }
 
@@ -147,7 +155,6 @@ public class WorkAttendanceService {
             throw new CustomException(ErrorCode.ALREADY_CHECKED_OUT);
         }
 
-        // 퇴근 GPS 200m 검증 (회의 확정)
         WorkSession workSession = application.getWorkSession();
         if (workSession != null
                 && requestDto.getLatitude() != null
@@ -181,6 +188,16 @@ public class WorkAttendanceService {
                 + loginUser.getName() + "님이 퇴근했습니다.",
                 saved.getId()
         );
+
+        // 퇴근 사진 팝업 (기업/매니저에게)
+        if (requestDto.getPhotoUrl() != null && !requestDto.getPhotoUrl().isBlank()) {
+            notificationService.sendPopup(
+                    application.getJobPost().getUser(),
+                    NotificationType.ATTENDANCE_PHOTO,
+                    "[퇴근 사진] " + loginUser.getName() + "님의 퇴근 사진을 확인하세요.",
+                    saved.getId()
+            );
+        }
 
         autoGeneratePayroll(saved, loginUser);
 

@@ -78,5 +78,14 @@ public enum NotificationType {
     ADMIN_ALERT,              // 관리자 시스템 알림
 
     // 목표 달성 알림
-    GOAL_ACHIEVED 
+    GOAL_ACHIEVED,
+
+    // 출퇴근 사진 팝업
+    ATTENDANCE_PHOTO,
+
+    // 새 공고 팝업
+    NEW_JOB_POST,
+
+    // 부스트 팝업
+    BOOST_ACTIVATED,
 }
