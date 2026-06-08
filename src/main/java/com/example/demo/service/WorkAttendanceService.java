@@ -41,11 +41,10 @@ public class WorkAttendanceService {
     private final PayrollRepository payrollRepository;
     private final GradeService gradeService;
 
-    private static final int    EARLY_THRESHOLD_MINUTES = 10;
-    private static final double EARLY_TEMPERATURE_BONUS = 0.1;
-    private static final double MAX_TEMPERATURE         = 100.0;
     private static final double CHECKIN_RADIUS_METERS   = 300.0;
     private static final double CHECKOUT_RADIUS_METERS  = 200.0;
+    private static final DateTimeFormatter DT_FMT =
+            DateTimeFormatter.ofPattern("MM/dd HH:mm");
 
     @Transactional
     public WorkAttendanceResponseDto checkIn(
@@ -96,35 +95,52 @@ public class WorkAttendanceService {
 
         if (workSession != null) {
             attendance.setWorkSession(workSession);
-            applyEarlyBonus(loginUser, workSession);
         }
 
         WorkAttendance saved = workAttendanceRepository.save(attendance);
+
+        String jobTitle = application.getJobPost().getTitle();
+        String checkInTime = saved.getCheckInTime().format(DT_FMT);
+        String checkInAddr = saved.getCheckInAddress() != null
+                ? saved.getCheckInAddress() : "-";
 
         if (attendanceStatus == AttendanceStatus.LATE) {
             notificationService.send(
                     loginUser,
                     NotificationType.ATTENDANCE_LATE,
-                    "[" + application.getJobPost().getTitle() + "] 지각 처리되었습니다.",
+                    "[Promoter] " + jobTitle + " 지각 처리되었습니다.\n"
+                            + "▶ 출근 시각: " + checkInTime + "\n"
+                            + "▶ 출근 위치: " + checkInAddr,
                     saved.getId()
             );
             notificationService.send(
                     application.getJobPost().getUser(),
                     NotificationType.ATTENDANCE_LATE,
-                    "[" + application.getJobPost().getTitle() + "] "
-                    + loginUser.getName() + "님이 지각했습니다.",
+                    "[Promoter] " + loginUser.getName() + "님이 지각했습니다.\n"
+                            + "▶ 출근 시각: " + checkInTime + "\n"
+                            + "▶ 출근 위치: " + checkInAddr,
                     saved.getId()
             );
         } else {
             notificationService.send(
                     loginUser,
                     NotificationType.ATTENDANCE_CHECKED_IN,
-                    "[" + application.getJobPost().getTitle() + "] 출근이 확인되었습니다.",
+                    "[Promoter] " + jobTitle + " 출근이 확인되었습니다.\n"
+                            + "▶ 출근 시각: " + checkInTime + "\n"
+                            + "▶ 출근 위치: " + checkInAddr,
+                    saved.getId()
+            );
+            notificationService.send(
+                    application.getJobPost().getUser(),
+                    NotificationType.ATTENDANCE_CHECKED_IN,
+                    "[Promoter] " + loginUser.getName() + "님이 출근했습니다.\n"
+                            + "▶ 출근 시각: " + checkInTime + "\n"
+                            + "▶ 출근 위치: " + checkInAddr,
                     saved.getId()
             );
         }
 
-        // 출근 사진 팝업 (기업/매니저에게)
+        // 출근 사진 팝업 (기업/매니저)
         if (requestDto.getPhotoUrl() != null && !requestDto.getPhotoUrl().isBlank()) {
             notificationService.sendPopup(
                     application.getJobPost().getUser(),
@@ -175,21 +191,39 @@ public class WorkAttendanceService {
 
         WorkAttendance saved = workAttendanceRepository.save(attendance);
 
+        String jobTitle = application.getJobPost().getTitle();
+        String checkOutTime = saved.getCheckOutTime().format(DT_FMT);
+        String checkOutAddr = saved.getCheckOutAddress() != null
+                ? saved.getCheckOutAddress() : "-";
+
+        // 실근무시간 계산
+        String workHours = "-";
+        if (saved.getCheckInTime() != null) {
+            long minutes = Duration.between(
+                    saved.getCheckInTime(), saved.getCheckOutTime()).toMinutes();
+            workHours = (minutes / 60) + "시간 " + (minutes % 60) + "분";
+        }
+
         notificationService.send(
                 loginUser,
                 NotificationType.ATTENDANCE_CHECKED_OUT,
-                "[" + application.getJobPost().getTitle() + "] 퇴근이 확인되었습니다.",
+                "[Promoter] " + jobTitle + " 퇴근이 확인되었습니다.\n"
+                        + "▶ 퇴근 시각: " + checkOutTime + "\n"
+                        + "▶ 퇴근 위치: " + checkOutAddr + "\n"
+                        + "▶ 총 근무시간: " + workHours,
                 saved.getId()
         );
         notificationService.send(
                 application.getJobPost().getUser(),
                 NotificationType.ATTENDANCE_CHECKED_OUT,
-                "[" + application.getJobPost().getTitle() + "] "
-                + loginUser.getName() + "님이 퇴근했습니다.",
+                "[Promoter] " + loginUser.getName() + "님이 퇴근했습니다.\n"
+                        + "▶ 퇴근 시각: " + checkOutTime + "\n"
+                        + "▶ 퇴근 위치: " + checkOutAddr + "\n"
+                        + "▶ 총 근무시간: " + workHours,
                 saved.getId()
         );
 
-        // 퇴근 사진 팝업 (기업/매니저에게)
+        // 퇴근 사진 팝업 (기업/매니저)
         if (requestDto.getPhotoUrl() != null && !requestDto.getPhotoUrl().isBlank()) {
             notificationService.sendPopup(
                     application.getJobPost().getUser(),
@@ -229,8 +263,6 @@ public class WorkAttendanceService {
         }
 
         workAttendanceRepository.save(attendance);
-
-        // 노쇼 → 등급 점수 0으로 초기화
         gradeService.applyNoShow(application.getUser());
     }
 
@@ -359,27 +391,6 @@ public class WorkAttendanceService {
         }
     }
 
-    private void applyEarlyBonus(User worker, WorkSession workSession) {
-        if (workSession.getStartTime() == null) return;
-        try {
-            LocalTime shiftStart = LocalTime.parse(
-                    workSession.getStartTime(),
-                    DateTimeFormatter.ofPattern("HH:mm"));
-            LocalTime checkInTime = LocalTime.now();
-            LocalTime threshold = shiftStart.minusMinutes(EARLY_THRESHOLD_MINUTES);
-
-            if (!checkInTime.isAfter(shiftStart) && !checkInTime.isBefore(threshold)) {
-                double newTemp = Math.min(
-                        worker.getTemperature() + EARLY_TEMPERATURE_BONUS,
-                        MAX_TEMPERATURE);
-                worker.setTemperature(newTemp);
-                userRepository.save(worker);
-            }
-        } catch (Exception e) {
-            // 파싱 실패 시 스킵
-        }
-    }
-
     private void validateGpsLocation(
             double userLat, double userLng,
             String workLocation, double allowedRadius) {
@@ -478,9 +489,13 @@ public class WorkAttendanceService {
             notificationService.send(
                     worker,
                     NotificationType.PAYROLL_CREATED,
-                    "[" + jobPost.getTitle() + "] 정산이 자동 생성되었습니다. " +
-                    "총 " + basicPay + "원 (실수령 " + netPay + "원)" +
-                    (breakMinutes > 0 ? " [휴게 " + breakMinutes + "분 차감]" : ""),
+                    "[Promoter] '" + jobPost.getTitle() + "' " + weekStart
+                            + " 주차 급여 정산이 생성되었습니다.\n"
+                            + "▶ 총 급여: " + basicPay + "원\n"
+                            + "▶ 실수령액: " + netPay + "원\n"
+                            + (breakMinutes > 0
+                                    ? "[휴게 " + breakMinutes + "분 차감]\n" : "")
+                            + "Promoter 앱에서 정산 내역을 확인해 주세요.",
                     payroll.getId()
             );
 
