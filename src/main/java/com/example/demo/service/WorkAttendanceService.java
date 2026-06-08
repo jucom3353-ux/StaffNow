@@ -41,7 +41,6 @@ public class WorkAttendanceService {
     private final PayrollRepository payrollRepository;
     private final GradeService gradeService;
 
-    private static final double CHECKIN_RADIUS_METERS   = 300.0;
     private static final double CHECKOUT_RADIUS_METERS  = 200.0;
     private static final DateTimeFormatter DT_FMT =
             DateTimeFormatter.ofPattern("MM/dd HH:mm");
@@ -66,17 +65,6 @@ public class WorkAttendanceService {
                     throw new CustomException(ErrorCode.ALREADY_CHECKED_IN);
                 });
 
-        WorkSession workSession = application.getWorkSession();
-        if (workSession != null
-                && requestDto.getLatitude() != null
-                && requestDto.getLongitude() != null) {
-            validateGpsLocation(
-                    requestDto.getLatitude(),
-                    requestDto.getLongitude(),
-                    workSession.getJobPost().getWorkLocation(),
-                    CHECKIN_RADIUS_METERS);
-        }
-
         WorkAttendance attendance = new WorkAttendance();
         attendance.setApplication(application);
         attendance.setCheckInTime(LocalDateTime.now());
@@ -86,6 +74,7 @@ public class WorkAttendanceService {
         attendance.setCheckInPhotoTakenAt(requestDto.getPhotoTakenAt());
         attendance.setCheckInAddress(requestDto.getAddress());
 
+        WorkSession workSession = application.getWorkSession();
         AttendanceStatus attendanceStatus = AttendanceStatus.NORMAL;
         if (workSession != null && workSession.getStartTime() != null) {
             attendanceStatus = judgeAttendanceStatus(
@@ -140,7 +129,6 @@ public class WorkAttendanceService {
             );
         }
 
-        // 출근 사진 팝업 (기업/매니저)
         if (requestDto.getPhotoUrl() != null && !requestDto.getPhotoUrl().isBlank()) {
             notificationService.sendPopup(
                     application.getJobPost().getUser(),
@@ -171,6 +159,7 @@ public class WorkAttendanceService {
             throw new CustomException(ErrorCode.ALREADY_CHECKED_OUT);
         }
 
+        // 퇴근만 GPS 200m 검증
         WorkSession workSession = application.getWorkSession();
         if (workSession != null
                 && requestDto.getLatitude() != null
@@ -196,7 +185,6 @@ public class WorkAttendanceService {
         String checkOutAddr = saved.getCheckOutAddress() != null
                 ? saved.getCheckOutAddress() : "-";
 
-        // 실근무시간 계산
         String workHours = "-";
         if (saved.getCheckInTime() != null) {
             long minutes = Duration.between(
@@ -223,7 +211,6 @@ public class WorkAttendanceService {
                 saved.getId()
         );
 
-        // 퇴근 사진 팝업 (기업/매니저)
         if (requestDto.getPhotoUrl() != null && !requestDto.getPhotoUrl().isBlank()) {
             notificationService.sendPopup(
                     application.getJobPost().getUser(),
