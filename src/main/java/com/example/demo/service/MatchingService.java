@@ -1,9 +1,11 @@
 package com.example.demo.service;
 
+import com.example.demo.dto.JobPostResponseDto;
 import com.example.demo.entity.*;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.*;
+import com.example.demo.util.AuthorizationUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,22 +29,29 @@ public class MatchingService {
     private final CompanySubscriptionRepository companySubscriptionRepository;
     private final JobCategoryRepository jobCategoryRepository;
     private final WorkAttendanceRepository workAttendanceRepository;
+    private final PreferredCategoryRepository preferredCategoryRepository;
+    private final ApplicationRepository applicationRepository;
 
+    // ===== 기업/매니저 → 구직자 추천 =====
     @Transactional(readOnly = true)
     public List<Map<String, Object>> autoMatch(Long jobPostId, User loginUser) {
 
-        if (loginUser.getRole() != Role.COMPANY) {
-            throw new CustomException(ErrorCode.COMPANY_ONLY);
-        }
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
 
         JobPost jobPost = jobPostRepository.findById(jobPostId)
                 .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
 
-        if (!jobPost.getUser().getId().equals(loginUser.getId())) {
+        if (!AuthorizationUtil.isMyJobPost(jobPost, loginUser)) {
             throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
         }
 
-        int matchingLimit = getMatchingLimit(loginUser);
+        // 완료된 공고는 매칭 불가
+        if (jobPost.getPostStatus() == PostStatus.CLOSED) {
+        throw new CustomException(ErrorCode.JOB_POST_CLOSED);
+        }
+
+        int matchingLimit = getMatchingLimit(
+                AuthorizationUtil.getCompanyUser(loginUser));
         if (matchingLimit == 0) {
             throw new CustomException(ErrorCode.SUBSCRIPTION_REQUIRED);
         }
@@ -61,9 +70,7 @@ public class MatchingService {
                 .filter(w -> !Boolean.TRUE.equals(w.getSuspended()))
                 .collect(Collectors.toList());
 
-        if (allWorkers.isEmpty()) {
-            return Collections.emptyList();
-        }
+        if (allWorkers.isEmpty()) return Collections.emptyList();
 
         Map<Long, List<Skill>> skillMap = skillRepository.findByUserIn(allWorkers)
                 .stream()
@@ -93,12 +100,13 @@ public class MatchingService {
                 ? Collections.emptyMap()
                 : careerRepository.findByResumeIn(allResumes)
                         .stream()
-                        .collect(Collectors.groupingBy(c -> c.getResume().getId()));
+                        .collect(Collectors.groupingBy(
+                                c -> c.getResume().getId()));
 
         LocalDateTime ninetyDaysAgo = LocalDateTime.now().minusDays(90);
         Set<Long> recentlyWorkedIds = new HashSet<>(
-                workAttendanceRepository.findRecentlyWorkedUserIds(allWorkers, ninetyDaysAgo)
-        );
+                workAttendanceRepository.findRecentlyWorkedUserIds(
+                        allWorkers, ninetyDaysAgo));
 
         List<Map<String, Object>> scored = new ArrayList<>();
 
@@ -106,8 +114,9 @@ public class MatchingService {
 
             int score = 0;
 
-            // 1. 카테고리 매칭 - 40점
-            List<Skill> skills = skillMap.getOrDefault(worker.getId(), Collections.emptyList());
+            // 1. 카테고리 매칭 - 40점 (필수)
+            List<Skill> skills = skillMap.getOrDefault(
+                    worker.getId(), Collections.emptyList());
             boolean categoryMatch = skills.stream()
                     .anyMatch(s -> s.getCategory() != null
                             && s.getCategory().getId().equals(jobCategory.getId()));
@@ -117,6 +126,17 @@ public class MatchingService {
                                 && s.getCategory().getId()
                                 .equals(jobCategory.getParent().getId()));
             }
+
+            // 선호 카테고리도 카테고리 매칭 기준에 포함
+            if (!categoryMatch) {
+                List<Long> preferredIds = preferredCategoryRepository
+                        .findCategoryIdsByUser(worker);
+                categoryMatch = preferredIds.contains(jobCategory.getId())
+                        || (jobCategory.getParent() != null
+                                && preferredIds.contains(
+                                        jobCategory.getParent().getId()));
+            }
+
             if (!categoryMatch) continue;
             score += 40;
 
@@ -136,7 +156,8 @@ public class MatchingService {
                             try {
                                 DateTimeFormatter fmt =
                                         DateTimeFormatter.ofPattern("yyyy-MM");
-                                YearMonth start = YearMonth.parse(c.getJoinDate(), fmt);
+                                YearMonth start = YearMonth.parse(
+                                        c.getJoinDate(), fmt);
                                 YearMonth end = (c.getLeaveDate() != null
                                         && !c.getLeaveDate().isBlank())
                                         ? YearMonth.parse(c.getLeaveDate(), fmt)
@@ -147,8 +168,7 @@ public class MatchingService {
                             }
                         })
                         .sum();
-                int careerScore = Math.min((totalMonths / 12) * 3, 15);
-                score += careerScore;
+                score += Math.min((totalMonths / 12) * 3, 15);
             }
 
             // 4. 지역 매칭 - 20점
@@ -158,14 +178,10 @@ public class MatchingService {
             }
 
             // 5. 상시근무 가능 - 10점
-            if (Boolean.TRUE.equals(worker.getAvailableAlways())) {
-                score += 10;
-            }
+            if (Boolean.TRUE.equals(worker.getAvailableAlways())) score += 10;
 
             // 6. 최근 90일 내 실제 근무 이력 - 10점
-            if (recentlyWorkedIds.contains(worker.getId())) {
-                score += 10;
-            }
+            if (recentlyWorkedIds.contains(worker.getId())) score += 10;
 
             // 7. 이력서 완성도 - 5점
             if (resume != null
@@ -176,14 +192,16 @@ public class MatchingService {
                 score += 5;
             }
 
-            double finalScore = score + (worker.getTemperature() != null
-                    ? worker.getTemperature() / 1000.0 : 0);
+            // 타이브레이커: 등급 점수
+            double finalScore = score + (worker.getGradeScore() != null
+                    ? worker.getGradeScore() / 100.0 : 0);
 
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("workerId", worker.getId());
             result.put("name", worker.getName());
             result.put("activityRegion", worker.getActivityRegion());
-            result.put("temperature", worker.getTemperature());
+            result.put("gradeScore", worker.getGradeScore());
+            result.put("grade", worker.getGrade());
             result.put("availableAlways", worker.getAvailableAlways());
             result.put("matchScore", score);
             result.put("categoryMatch", true);
@@ -200,9 +218,92 @@ public class MatchingService {
                 .collect(Collectors.toList());
     }
 
-    private int getMatchingLimit(User loginUser) {
+    // ===== 구직자 → 공고 추천 =====
+    @Transactional(readOnly = true)
+    public List<JobPostResponseDto> recommendJobPostsForWorker(User loginUser) {
+
+        if (loginUser.getRole() != Role.INDIVIDUAL) {
+            throw new CustomException(ErrorCode.WORKER_ONLY);
+        }
+
+        // 구직자 선호 카테고리 ID 목록
+        List<Long> preferredCategoryIds = preferredCategoryRepository
+                .findCategoryIdsByUser(loginUser);
+
+        if (preferredCategoryIds.isEmpty()) {
+            // 선호 카테고리 없으면 전체 OPEN 공고 최신순 반환
+            return jobPostRepository
+                    .findByPostStatus(PostStatus.OPEN)
+                    .stream()
+                    .map(p -> new JobPostResponseDto(p,
+                            applicationRepository.countByJobPost(p)))
+                    .collect(Collectors.toList());
+        }
+
+        // 이미 지원한 공고 ID 목록 (완료 포함 제외)
+        Set<Long> appliedJobPostIds = applicationRepository
+                .findByUser(loginUser)
+                .stream()
+                .map(a -> a.getJobPost().getId())
+                .collect(Collectors.toSet());
+
+        // 선호 카테고리 기반 OPEN 공고 조회 + 스코어링
+        List<Map<String, Object>> scored = new ArrayList<>();
+
+        for (Long categoryId : preferredCategoryIds) {
+            jobPostRepository.findOpenByCategory(categoryId)
+                    .stream()
+                    .filter(p -> !appliedJobPostIds.contains(p.getId()))
+                    .forEach(post -> {
+                        int score = 0;
+
+                        // 카테고리 매칭 - 40점
+                        score += 40;
+
+                        // 지역 매칭 - 30점
+                        if (loginUser.getActivityRegion() != null
+                                && post.getWorkLocation() != null
+                                && post.getWorkLocation().contains(
+                                        loginUser.getActivityRegion()
+                                                .substring(0, Math.min(
+                                                        loginUser.getActivityRegion().length(), 2)))) {
+                            score += 30;
+                        }
+
+                        // 긴급 공고 - 20점
+                        if (Boolean.TRUE.equals(post.getUrgentBadge())) score += 20;
+
+                        // 마감 임박 (3일 이내) - 10점
+                        if (post.getDeadline() != null) {
+                            try {
+                                java.time.LocalDate deadline =
+                                        java.time.LocalDate.parse(post.getDeadline());
+                                long daysLeft = java.time.temporal.ChronoUnit.DAYS
+                                        .between(java.time.LocalDate.now(), deadline);
+                                if (daysLeft >= 0 && daysLeft <= 3) score += 10;
+                            } catch (Exception ignored) {}
+                        }
+
+                        scored.add(Map.of(
+                                "score", (double) score,
+                                "data", post
+                        ));
+                    });
+        }
+
+        return scored.stream()
+                .sorted((a, b) -> Double.compare(
+                        (Double) b.get("score"), (Double) a.get("score")))
+                .map(m -> (JobPost) m.get("data"))
+                .distinct()
+                .map(p -> new JobPostResponseDto(p,
+                        applicationRepository.countByJobPost(p)))
+                .collect(Collectors.toList());
+    }
+
+    private int getMatchingLimit(User companyUser) {
         return companySubscriptionRepository
-                .findByCompanyAndStatus(loginUser, SubscriptionStatus.ACTIVE)
+                .findByCompanyAndStatus(companyUser, SubscriptionStatus.ACTIVE)
                 .map(sub -> sub.getPlan().getMatchingLimit() != null
                         ? sub.getPlan().getMatchingLimit() : 0)
                 .orElse(0);

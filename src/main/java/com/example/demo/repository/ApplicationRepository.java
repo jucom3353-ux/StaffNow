@@ -86,4 +86,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
 
     Optional<Application> findFirstByUserAndStatusOrderByCreatedAtAsc(
         User user, ApplicationStatus status);
+
+    @EntityGraph(attributePaths = {"user", "jobPost", "jobPost.user", "jobPostRole"})
+        List<Application> findByUser(User user);
 }
