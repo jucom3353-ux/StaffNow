@@ -58,6 +58,7 @@ public enum ErrorCode {
     PORTFOLIO_IMAGE_LIMIT(HttpStatus.BAD_REQUEST, "포트폴리오 이미지는 최대 10장까지 등록 가능합니다."),
     GOAL_ALREADY_EXISTS(HttpStatus.BAD_REQUEST, "진행 중인 목표가 이미 존재합니다."),
     PREFERRED_CATEGORY_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "선호 카테고리는 최대 5개까지 등록 가능합니다."),
+    EVENT_PHOTO_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "행사 사진은 최대 10장까지 등록 가능합니다."),
 
     // 401 Unauthorized
     TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "토큰이 만료되었습니다."),
@@ -128,6 +129,7 @@ public enum ErrorCode {
     REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "리뷰를 찾을 수 없습니다."),
     GOAL_NOT_FOUND(HttpStatus.NOT_FOUND, "목표를 찾을 수 없습니다."),
     NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 리소스를 찾을 수 없습니다."),
+    EVENT_PHOTO_NOT_FOUND(HttpStatus.NOT_FOUND, "행사 사진을 찾을 수 없습니다."),
 
     // 409 Conflict
     EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
