@@ -3,12 +3,11 @@ package com.example.demo.dto;
 public class WorkerRatingResponseDto {
 
     private Long workerId;
-    private double averageRating;       // 종합 평균 별점
-    private double avgSincerityRating;  // 성실도 평균
-    private double avgKindnessRating;   // 친절도 평균
-    private double avgSkillRating;      // 숙련도 평균
+    private double averageRating;
+    private double avgSincerityRating;
+    private double avgKindnessRating;
+    private double avgSkillRating;
     private int reviewCount;
-    private double temperature;
 
     public WorkerRatingResponseDto(
             Long workerId,
@@ -16,8 +15,7 @@ public class WorkerRatingResponseDto {
             double avgSincerityRating,
             double avgKindnessRating,
             double avgSkillRating,
-            int reviewCount,
-            double temperature
+            int reviewCount
     ) {
         this.workerId = workerId;
         this.averageRating = averageRating;
@@ -25,7 +23,6 @@ public class WorkerRatingResponseDto {
         this.avgKindnessRating = avgKindnessRating;
         this.avgSkillRating = avgSkillRating;
         this.reviewCount = reviewCount;
-        this.temperature = temperature;
     }
 
     public Long getWorkerId() { return workerId; }
@@ -34,5 +31,4 @@ public class WorkerRatingResponseDto {
     public double getAvgKindnessRating() { return avgKindnessRating; }
     public double getAvgSkillRating() { return avgSkillRating; }
     public int getReviewCount() { return reviewCount; }
-    public double getTemperature() { return temperature; }
 }

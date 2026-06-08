@@ -131,8 +131,7 @@ public class ReviewService {
                 avgSincerity,
                 avgKindness,
                 avgSkill,
-                reviews.size(),
-                worker.getTemperature()
+                reviews.size()
         );
     }
 
