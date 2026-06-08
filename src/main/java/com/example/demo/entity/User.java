@@ -2,12 +2,8 @@ package com.example.demo.entity;
 
 import java.time.LocalDateTime;
 
-import com.example.demo.entity.AuthProvider;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
@@ -67,7 +63,6 @@ public class User {
     @Column(name = "available_always")
     private Boolean availableAlways = false;
 
-    // 추가: 정지 여부
     @Column(name = "suspended")
     private Boolean suspended = false;
 
@@ -96,10 +91,13 @@ public class User {
     private String emergencyContactRelation;
 
     @Column(name = "grade")
-    private String grade = "아마추어"; // 아마추어/스탭/프로/프로모터
+    private String grade = "스탭";
+
+    @Column(name = "grade_score", columnDefinition = "double default 0.0")
+    private Double gradeScore = 0.0;
 
     @Column(name = "specialty_badge")
-    private String specialtyBadge; // 마트, 경호 등 직종 뱃지
+    private String specialtyBadge;
 
     @Enumerated(EnumType.STRING)
     private AuthProvider provider = AuthProvider.LOCAL;
@@ -127,8 +125,8 @@ public class User {
 
     @PrePersist
     public void prePersist() {
-    this.createdAt = LocalDateTime.now();
-}
+        this.createdAt = LocalDateTime.now();
+    }
 
     public Long getId() { return id; }
     public String getEmail() { return email; }
@@ -172,6 +170,7 @@ public class User {
     public int getWarningLevel() { return warningLevel; }
     public LocalDateTime getLastLoginAt() { return lastLoginAt; }
     public String getGrade() { return grade; }
+    public Double getGradeScore() { return gradeScore; }
     public String getSpecialtyBadge() { return specialtyBadge; }
     public LocalDateTime getDeletedAt() { return deletedAt; }
     public Boolean getAnonymized() { return anonymized; }
@@ -201,7 +200,7 @@ public class User {
     public void setTwoFactorEnabled(boolean twoFactorEnabled) { this.twoFactorEnabled = twoFactorEnabled; }
     public void setGender(Gender gender) { this.gender = gender; }
     public void setAge(Integer age) { this.age = age; }
-    public void incrementReferralCount() {    this.referralCount++;}
+    public void incrementReferralCount() { this.referralCount++; }
     public void setReferralCode(String referralCode) { this.referralCode = referralCode; }
     public void setReferredBy(String referredBy) { this.referredBy = referredBy; }
     public void setReferralCount(int referralCount) { this.referralCount = referralCount; }
@@ -218,6 +217,7 @@ public class User {
     public void setWarningLevel(int warningLevel) { this.warningLevel = warningLevel; }
     public void setLastLoginAt(LocalDateTime lastLoginAt) { this.lastLoginAt = lastLoginAt; }
     public void setGrade(String grade) { this.grade = grade; }
+    public void setGradeScore(Double gradeScore) { this.gradeScore = gradeScore; }
     public void setSpecialtyBadge(String specialtyBadge) { this.specialtyBadge = specialtyBadge; }
     public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
     public void setAnonymized(Boolean anonymized) { this.anonymized = anonymized; }

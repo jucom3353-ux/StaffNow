@@ -20,3 +20,8 @@ springdoc:
 logging:
   level:
     com.example.demo: INFO  # DEBUG → INFO로 변경
+
+oauth:
+  kakao:
+    client-id: ${KAKAO_CLIENT_ID}
+    redirect-uri: https://도메인주소/auth/kakao/callback

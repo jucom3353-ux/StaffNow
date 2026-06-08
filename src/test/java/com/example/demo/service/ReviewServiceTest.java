@@ -29,6 +29,8 @@ class ReviewServiceTest {
     @Mock private ReviewRepository reviewRepository;
     @Mock private ApplicationRepository applicationRepository;
     @Mock private UserRepository userRepository;
+    @Mock private WorkAttendanceRepository workAttendanceRepository;
+    @Mock private GradeService gradeService;
 
     private User company;
     private User worker;
@@ -49,6 +51,8 @@ class ReviewServiceTest {
         worker.setRole(Role.INDIVIDUAL);
         worker.setName("홍길동");
         worker.setTemperature(36.5);
+        worker.setGradeScore(0.0);
+        worker.setGrade("스탭");
 
         admin = new User();
         admin.setId(3L);
@@ -81,11 +85,15 @@ class ReviewServiceTest {
         given(reviewRepository.existsByApplicationIdAndReviewType(
                 1L, ReviewType.COMPANY_TO_WORKER)).willReturn(false);
         given(reviewRepository.save(any())).willReturn(new Review());
+        given(workAttendanceRepository.findByApplicationId(1L))
+                .willReturn(Optional.empty());
+        doNothing().when(gradeService).applyReviewScore(any(), any(), any(), any());
 
         assertThatNoException().isThrownBy(() ->
                 reviewService.createReview(1L, requestDto, company));
 
         verify(reviewRepository, times(1)).save(any());
+        verify(gradeService, times(1)).applyReviewScore(any(), any(), any(), any());
     }
 
     @Test

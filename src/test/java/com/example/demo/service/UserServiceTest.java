@@ -31,10 +31,9 @@ class UserServiceTest {
 
     @Mock private UserRepository userRepository;
     @Mock private PasswordEncoder passwordEncoder;
-    @Mock private RefreshTokenRepository refreshTokenRepository;
-    @Mock private CompanyInviteService companyInviteService;
+    @Mock private RefreshTokenRepository refreshTokenRepository;  // 추가
     @Mock private FcmTokenService fcmTokenService;
-
+    
     private User admin;
     private User worker;
     private User company;
@@ -242,7 +241,6 @@ class UserServiceTest {
     @DisplayName("강제 탈퇴 성공")
     void forceDeleteUser_success() {
         given(userRepository.findById(2L)).willReturn(Optional.of(worker));
-        given(refreshTokenRepository.findByUserId(any(), any())).willReturn(List.of());
 
         userService.forceDeleteUser(2L, admin);
 

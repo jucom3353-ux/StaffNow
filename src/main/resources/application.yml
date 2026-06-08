@@ -43,15 +43,7 @@ oauth:
   kakao:
     client-id: ${KAKAO_CLIENT_ID:dummy}
     redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8080/auth/kakao/callback}
-  google:
-    client-id: ${GOOGLE_CLIENT_ID:dummy}
-    client-secret: ${GOOGLE_CLIENT_SECRET:dummy}
-    redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8080/auth/google/callback}
-  naver:
-    client-id: ${NAVER_CLIENT_ID:dummy}
-    client-secret: ${NAVER_CLIENT_SECRET:dummy}
-    redirect-uri: ${NAVER_REDIRECT_URI:http://localhost:8080/auth/naver/callback}
-
+    
 server:
   error:
     include-message: always
@@ -92,3 +84,4 @@ coolsms:
   api-key: ${COOLSMS_API_KEY:}
   api-secret: ${COOLSMS_API_SECRET:}
   sender: ${COOLSMS_SENDER:}
+  

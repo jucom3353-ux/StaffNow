@@ -39,11 +39,15 @@ public class WorkAttendanceService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final PayrollRepository payrollRepository;
+    private final GradeService gradeService;
 
-    private static final int EARLY_THRESHOLD_MINUTES = 10;
+    private static final int    EARLY_THRESHOLD_MINUTES = 10;
     private static final double EARLY_TEMPERATURE_BONUS = 0.1;
-    private static final double MAX_TEMPERATURE = 100.0;
-    private static final double ALLOWED_RADIUS_METERS = 300.0;
+    private static final double MAX_TEMPERATURE         = 100.0;
+
+    // 출근: 300m, 퇴근: 200m (회의 확정)
+    private static final double CHECKIN_RADIUS_METERS  = 300.0;
+    private static final double CHECKOUT_RADIUS_METERS = 200.0;
 
     @Transactional
     public WorkAttendanceResponseDto checkIn(
@@ -72,7 +76,8 @@ public class WorkAttendanceService {
             validateGpsLocation(
                     requestDto.getLatitude(),
                     requestDto.getLongitude(),
-                    workSession.getJobPost().getWorkLocation());
+                    workSession.getJobPost().getWorkLocation(),
+                    CHECKIN_RADIUS_METERS);
         }
 
         WorkAttendance attendance = new WorkAttendance();
@@ -105,15 +110,13 @@ public class WorkAttendanceService {
                     "[" + application.getJobPost().getTitle() + "] 지각 처리되었습니다.",
                     saved.getId()
             );
-             // 기업/매니저한테도 지각 알림
             notificationService.send(
-                application.getJobPost().getUser(),
+                    application.getJobPost().getUser(),
                     NotificationType.ATTENDANCE_LATE,
                     "[" + application.getJobPost().getTitle() + "] "
                     + loginUser.getName() + "님이 지각했습니다.",
                     saved.getId()
-    );
-
+            );
         } else {
             notificationService.send(
                     loginUser,
@@ -144,6 +147,18 @@ public class WorkAttendanceService {
             throw new CustomException(ErrorCode.ALREADY_CHECKED_OUT);
         }
 
+        // 퇴근 GPS 200m 검증 (회의 확정)
+        WorkSession workSession = application.getWorkSession();
+        if (workSession != null
+                && requestDto.getLatitude() != null
+                && requestDto.getLongitude() != null) {
+            validateGpsLocation(
+                    requestDto.getLatitude(),
+                    requestDto.getLongitude(),
+                    workSession.getJobPost().getWorkLocation(),
+                    CHECKOUT_RADIUS_METERS);
+        }
+
         attendance.setCheckOutTime(LocalDateTime.now());
         attendance.setCheckOutLatitude(requestDto.getLatitude());
         attendance.setCheckOutLongitude(requestDto.getLongitude());
@@ -159,15 +174,13 @@ public class WorkAttendanceService {
                 "[" + application.getJobPost().getTitle() + "] 퇴근이 확인되었습니다.",
                 saved.getId()
         );
-
-                // 기업/매니저한테도 퇴근 알림
         notificationService.send(
                 application.getJobPost().getUser(),
                 NotificationType.ATTENDANCE_CHECKED_OUT,
                 "[" + application.getJobPost().getTitle() + "] "
                 + loginUser.getName() + "님이 퇴근했습니다.",
                 saved.getId()
-    );
+        );
 
         autoGeneratePayroll(saved, loginUser);
 
@@ -199,6 +212,9 @@ public class WorkAttendanceService {
         }
 
         workAttendanceRepository.save(attendance);
+
+        // 노쇼 → 등급 점수 0으로 초기화
+        gradeService.applyNoShow(application.getUser());
     }
 
     @Transactional(readOnly = true)
@@ -348,7 +364,8 @@ public class WorkAttendanceService {
     }
 
     private void validateGpsLocation(
-            double userLat, double userLng, String workLocation) {
+            double userLat, double userLng,
+            String workLocation, double allowedRadius) {
 
         if (workLocation == null || !workLocation.contains(",")) return;
 
@@ -358,11 +375,11 @@ public class WorkAttendanceService {
             double workLng = Double.parseDouble(parts[1].trim());
             double distance = haversineDistance(userLat, userLng, workLat, workLng);
 
-            if (distance > ALLOWED_RADIUS_METERS) {
+            if (distance > allowedRadius) {
                 throw new CustomException(ErrorCode.GPS_OUT_OF_RANGE,
                         "근무지에서 너무 멀리 떨어져 있습니다. (현재 거리: "
                         + (int) distance + "m, 허용 반경: "
-                        + (int) ALLOWED_RADIUS_METERS + "m)");
+                        + (int) allowedRadius + "m)");
             }
         } catch (CustomException e) {
             throw e;

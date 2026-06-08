@@ -3,122 +3,109 @@ package com.example.demo.service;
 import com.example.demo.entity.*;
 import com.example.demo.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class GradeService {
 
     private final ApplicationRepository applicationRepository;
-    private final CareerRepository careerRepository;
-    private final ResumeRepository resumeRepository;
+    private final ReviewRepository reviewRepository;
+    private final UserRepository userRepository;
 
-    // 대표님 확정 후 수치 변경
-    private static final int STAFF_MIN_COUNT = 10;
-    private static final int PRO_MIN_COUNT = 30;
-    private static final int PROMOTER_MIN_COUNT = 50;
+    // 등급 기준 점수
+    private static final double STAFF_MAX     = 3.0;
+    private static final double PRO_MIN       = 3.1;
+    private static final double PRO_MAX       = 4.9;
+    private static final double PROMOTER_MIN  = 5.0;
 
-    private static final int STAFF_MIN_MONTHS = 6;
-    private static final int PRO_MIN_MONTHS = 18;
-    private static final int PROMOTER_MIN_MONTHS = 36;
+    // 초기 혜택: 처음 3건은 건당 최대 0.1 (기업 평가 점수 × 0.1)
+    private static final int    EARLY_BENEFIT_COUNT   = 3;
+    private static final double EARLY_BENEFIT_MAX     = 1.0;
 
+    // 4건 이후: 건당 기본 0.05 + 별점 1개당 0.01
+    private static final double NORMAL_BASE_SCORE     = 0.05;
+    private static final double STAR_SCORE_PER_POINT  = 0.01;
+
+    /**
+     * 기업이 리뷰를 남긴 후 호출
+     * 노쇼/지각 처리 후에도 호출 (AttendanceStatus 기반)
+     */
     @Transactional
-    public void updateGrade(User user) {
-        if (user.getRole() != Role.INDIVIDUAL) return;
+    public void applyReviewScore(User worker, Application application,
+                                  Review review, AttendanceStatus attendanceStatus) {
+        if (worker.getRole() != Role.INDIVIDUAL) return;
 
-        int completedCount = applicationRepository
-                .countByUserAndStatus(user, ApplicationStatus.COMPLETED);
-
-        int totalCareerMonths = getTotalCareerMonths(user);
-
-        String newGrade = calculateGrade(completedCount, totalCareerMonths);
-
-        if (!newGrade.equals(user.getGrade())) {
-            user.setGrade(newGrade);
+        // 노쇼: 점수 0으로 초기화
+        if (attendanceStatus == AttendanceStatus.ABSENT) {
+            worker.setGradeScore(0.0);
+            worker.setGrade(calculateGrade(0.0));
+            userRepository.save(worker);
+            log.info("[등급] 노쇼로 점수 초기화 userId={}", worker.getId());
+            return;
         }
+
+        // 완료된 근무 횟수 (리뷰 있는 건만 카운트)
+        List<Review> companyReviews = reviewRepository
+                .findByWorkerAndReviewType(worker, ReviewType.COMPANY_TO_WORKER);
+        int reviewedCount = companyReviews.size(); // 현재 리뷰 포함 전 카운트
+
+        double addedScore;
+
+        if (reviewedCount < EARLY_BENEFIT_COUNT) {
+            // 초기 혜택: rating 1~5 기준, 건당 최대 0.1 (× 0.02)
+            addedScore = Math.min(review.getRating() * 0.02, 0.1);
+        } else {
+            // 지각: 기본 0.05 미적용, 별점 점수만 적용 (rating 1~5 × 0.01)
+            if (attendanceStatus == AttendanceStatus.LATE) {
+                addedScore = review.getRating() * STAR_SCORE_PER_POINT;
+            } else {
+                addedScore = NORMAL_BASE_SCORE
+                        + review.getRating() * STAR_SCORE_PER_POINT;
+            }
+        }
+
+        double newScore = Math.round(
+                (worker.getGradeScore() + addedScore) * 100.0) / 100.0;
+
+        worker.setGradeScore(newScore);
+        worker.setGrade(calculateGrade(newScore));
+        userRepository.save(worker);
+
+        log.info("[등급] 점수 갱신 userId={}, addedScore={}, newScore={}, grade={}",
+                worker.getId(), addedScore, newScore, worker.getGrade());
     }
 
-    private String calculateGrade(int completedCount, int totalCareerMonths) {
-        if (completedCount >= PROMOTER_MIN_COUNT
-                || totalCareerMonths >= PROMOTER_MIN_MONTHS) {
-            return "프로모터";
-        }
-        if (completedCount >= PRO_MIN_COUNT
-                || totalCareerMonths >= PRO_MIN_MONTHS) {
-            return "프로";
-        }
-        if (completedCount >= STAFF_MIN_COUNT
-                || totalCareerMonths >= STAFF_MIN_MONTHS) {
-            return "스탭";
-        }
-        return "아마추어";
+    /**
+     * 노쇼 발생 시 단독 호출 (리뷰 없이 노쇼 처리 시)
+     */
+    @Transactional
+    public void applyNoShow(User worker) {
+        if (worker.getRole() != Role.INDIVIDUAL) return;
+
+        worker.setGradeScore(0.0);
+        worker.setGrade(calculateGrade(0.0));
+        userRepository.save(worker);
+
+        log.info("[등급] 노쇼 점수 초기화 userId={}", worker.getId());
     }
 
-    private int getTotalCareerMonths(User user) {
-        int inAppMonths = getInAppCareerMonths(user);
-        int resumeMonths = getResumeCareerMonths(user);
-        return inAppMonths + resumeMonths;
-    }
-
-    private int getInAppCareerMonths(User user) {
-        return applicationRepository
-                .findFirstByUserAndStatusOrderByCreatedAtAsc(
-                        user, ApplicationStatus.COMPLETED)
-                .map(app -> {
-                    LocalDateTime start = app.getCreatedAt();
-                    LocalDateTime now = LocalDateTime.now();
-                    return (int) ChronoUnit.MONTHS.between(start, now);
-                })
-                .orElse(0);
-    }
-
-    private int getResumeCareerMonths(User user) {
-        return resumeRepository.findByUser(user)
-                .map(resume -> {
-                    List<Career> careers = careerRepository.findByResume(resume);
-                    return careers.stream()
-                            .mapToInt(career -> {
-                                if (career.getJoinDate() == null) return 0;
-                                try {
-                                    // "yyyy-MM" 형식 파싱
-                                    DateTimeFormatter formatter =
-                                            DateTimeFormatter.ofPattern("yyyy-MM");
-                                    LocalDate start = LocalDate.parse(
-                                            career.getJoinDate() + "-01",
-                                            DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-
-                                    LocalDate end;
-                                    if (Boolean.TRUE.equals(career.getIsCurrent())
-                                            || career.getLeaveDate() == null) {
-                                        end = LocalDate.now();
-                                    } else {
-                                        end = LocalDate.parse(
-                                                career.getLeaveDate() + "-01",
-                                                DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-                                    }
-                                    return (int) ChronoUnit.MONTHS.between(start, end);
-                                } catch (Exception e) {
-                                    return 0;
-                                }
-                            })
-                            .sum();
-                })
-                .orElse(0);
+    private String calculateGrade(double score) {
+        if (score >= PROMOTER_MIN) return "프로모터";
+        if (score >= PRO_MIN)      return "프로";
+        return "스탭";
     }
 
     public String getGradeDescription(String grade) {
         return switch (grade) {
-            case "스탭" -> "근무 완료 10회 이상 또는 경력 6개월 이상";
-            case "프로" -> "근무 완료 30회 이상 또는 경력 18개월 이상";
-            case "프로모터" -> "근무 완료 50회 이상 또는 경력 36개월 이상";
-            default -> "StaffNow 신규 회원";
+            case "프로"    -> "점수 3.1 이상";
+            case "프로모터" -> "점수 5.0 이상";
+            default        -> "스탭 (0.0 ~ 3.0)";
         };
     }
 }

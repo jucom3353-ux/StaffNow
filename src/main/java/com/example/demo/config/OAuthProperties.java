@@ -12,8 +12,6 @@ import org.springframework.stereotype.Component;
 public class OAuthProperties {
 
     private Provider kakao = new Provider();
-    private Provider google = new Provider();
-    private Provider naver = new Provider();
 
     @Getter
     @Setter

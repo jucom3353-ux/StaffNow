@@ -102,14 +102,18 @@ public interface WorkAttendanceRepository
     @Query("SELECT COUNT(w) FROM WorkAttendance w " +
            "WHERE w.application.user = :user " +
            "AND w.status = :status")
-         long countByUserAndStatus(
+    long countByUserAndStatus(
             @Param("user") User user,
             @Param("status") AttendanceStatus status);
 
     @Query("SELECT COUNT(w) FROM WorkAttendance w " +
            "WHERE w.application.user = :user " +
            "AND w.status IN :statuses")
-         long countByUserAndStatusIn(
+    long countByUserAndStatusIn(
             @Param("user") User user,
             @Param("statuses") List<AttendanceStatus> statuses);
+
+    // 등급 점수 계산용: applicationId로 출퇴근 상태 조회
+    @Query("SELECT w FROM WorkAttendance w WHERE w.application.id = :applicationId")
+    Optional<WorkAttendance> findByApplicationId(@Param("applicationId") Long applicationId);
 }
