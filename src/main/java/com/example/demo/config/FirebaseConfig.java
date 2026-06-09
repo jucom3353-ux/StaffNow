@@ -20,10 +20,10 @@ public class FirebaseConfig {
             if (FirebaseApp.getApps().isEmpty()) {
                 InputStream serviceAccount = getClass()
                         .getClassLoader()
-                        .getResourceAsStream("firebase-service-account.json");
+                        .getResourceAsStream("jucompany-358e2-firebase-adminsdk-fbsvc-c82ea52497.json");
 
                 if (serviceAccount == null) {
-                    log.error("firebase-service-account.json 파일을 찾을 수 없습니다.");
+                    log.error("jucompany-358e2-firebase-adminsdk-fbsvc-c82ea52497.json 파일을 찾을 수 없습니다.");
                     return;
                 }
 

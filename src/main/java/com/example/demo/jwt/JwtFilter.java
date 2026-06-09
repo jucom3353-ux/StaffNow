@@ -125,15 +125,24 @@ public class JwtFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private String extractTokenFromCookie(HttpServletRequest request) {
-        if (request.getCookies() == null) return null;
-        for (Cookie cookie : request.getCookies()) {
-            if ("access_token".equals(cookie.getName())) {
-                return cookie.getValue();
+        private String extractTokenFromCookie(HttpServletRequest request) {
+        // 1순위: Cookie (웹)
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("access_token".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
             }
         }
-        return null;
-    }
+
+        // 2순위: Authorization Bearer 헤더 (Flutter 앱)
+        String bearerToken = request.getHeader("Authorization");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+
+                    return null;
+                }
 
     private void writeError(HttpServletResponse response,
                             int status, String code, String message) throws IOException {

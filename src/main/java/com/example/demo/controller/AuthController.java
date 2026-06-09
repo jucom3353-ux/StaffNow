@@ -65,7 +65,7 @@ public class AuthController {
 
     @Operation(
         summary = "로그인",
-        description = "이메일/비밀번호로 로그인합니다. 성공 시 access_token, refresh_token이 HttpOnly 쿠키에 저장됩니다. 2단계 인증이 활성화된 경우 인증 코드 발송 후 /auth/2fa/verify-login을 호출해야 합니다."
+        description = "이메일/비밀번호로 로그인합니다. 앱은 X-Client-Type: APP 헤더 포함 시 Body로 토큰 반환."
     )
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "로그인 성공 또는 2단계 인증 코드 발송"),
@@ -76,6 +76,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<?>> login(
             @Valid @RequestBody LoginRequestDto requestDto,
+            @RequestHeader(value = "X-Client-Type", defaultValue = "WEB") String clientType,
             HttpServletResponse response
     ) {
         User user = userRepository.findByEmail(requestDto.getEmail())
@@ -101,13 +102,18 @@ public class AuthController {
             return ResponseEntity.ok(ApiResponse.ok("2단계 인증 코드가 발송되었습니다."));
         }
 
-        return ResponseEntity.ok(ApiResponse.ok("로그인 완료",
-                issueTokens(user, response)));
+        Map<String, Object> tokens = issueTokens(user, response);
+
+        if ("APP".equals(clientType)) {
+            return ResponseEntity.ok(ApiResponse.ok("로그인 완료", tokens));
+        }
+
+        return ResponseEntity.ok(ApiResponse.ok("로그인 완료", tokens.get("user")));
     }
 
     @Operation(
         summary = "2단계 인증 코드 검증 후 로그인",
-        description = "로그인 시 2단계 인증이 필요한 경우 이메일로 발송된 6자리 코드를 검증합니다. 성공 시 JWT 토큰이 쿠키에 저장됩니다."
+        description = "로그인 시 2단계 인증이 필요한 경우 이메일로 발송된 6자리 코드를 검증합니다."
     )
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "로그인 성공"),
@@ -119,6 +125,7 @@ public class AuthController {
             @RequestParam String email,
             @Parameter(description = "이메일로 발송된 6자리 인증 코드", example = "123456")
             @RequestParam String code,
+            @RequestHeader(value = "X-Client-Type", defaultValue = "WEB") String clientType,
             HttpServletResponse response
     ) {
         User user = userRepository.findByEmail(email)
@@ -126,13 +133,18 @@ public class AuthController {
 
         twoFactorAuthService.verifyCode(user, code);
 
-        return ResponseEntity.ok(ApiResponse.ok("로그인 완료",
-                issueTokens(user, response)));
+        Map<String, Object> tokens = issueTokens(user, response);
+
+        if ("APP".equals(clientType)) {
+            return ResponseEntity.ok(ApiResponse.ok("로그인 완료", tokens));
+        }
+
+        return ResponseEntity.ok(ApiResponse.ok("로그인 완료", tokens.get("user")));
     }
 
     @Operation(
         summary = "2단계 인증 코드 재발송",
-        description = "2단계 인증 코드를 이메일로 재발송합니다. 코드는 5분간 유효합니다."
+        description = "2단계 인증 코드를 이메일로 재발송합니다."
     )
     @PostMapping("/2fa/send")
     public ResponseEntity<ApiResponse<?>> sendTwoFactorCode(
@@ -145,8 +157,7 @@ public class AuthController {
     }
 
     @Operation(
-        summary = "2단계 인증 활성화/비활성화 토글",
-        description = "현재 로그인한 사용자의 2단계 인증을 활성화 또는 비활성화합니다. ADMIN은 항상 2단계 인증이 강제 적용됩니다."
+        summary = "2단계 인증 활성화/비활성화 토글"
     )
     @PatchMapping("/2fa/toggle")
     public ResponseEntity<ApiResponse<?>> toggleTwoFactor() {
@@ -156,7 +167,7 @@ public class AuthController {
 
     @Operation(
         summary = "Access Token 재발급",
-        description = "refresh_token 쿠키를 사용하여 새로운 access_token을 발급합니다. 기존 refresh_token은 무효화됩니다."
+        description = "refresh_token을 사용하여 새로운 access_token을 발급합니다. 앱은 Body로 refreshToken 전달."
     )
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "토큰 재발급 성공"),
@@ -165,9 +176,16 @@ public class AuthController {
     })
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<?>> refresh(
-            @CookieValue(name = "refresh_token", required = false) String refreshTokenValue,
+            @CookieValue(name = "refresh_token", required = false) String refreshTokenCookie,
+            @RequestBody(required = false) Map<String, String> body,
+            @RequestHeader(value = "X-Client-Type", defaultValue = "WEB") String clientType,
             HttpServletResponse response
     ) {
+        // 앱: Body에서 refreshToken, 웹: Cookie에서 추출
+        String refreshTokenValue = "APP".equals(clientType)
+                ? (body != null ? body.get("refreshToken") : null)
+                : refreshTokenCookie;
+
         if (refreshTokenValue == null) {
             throw new CustomException(ErrorCode.REFRESH_TOKEN_NOT_FOUND);
         }
@@ -195,23 +213,30 @@ public class AuthController {
         refreshToken.setBlacklisted(true);
         refreshTokenRepository.save(refreshToken);
 
-        return ResponseEntity.ok(ApiResponse.ok("토큰 재발급 완료",
-                issueTokens(user, response)));
+        Map<String, Object> tokens = issueTokens(user, response);
+
+        if ("APP".equals(clientType)) {
+            return ResponseEntity.ok(ApiResponse.ok("토큰 재발급 완료", tokens));
+        }
+
+        return ResponseEntity.ok(ApiResponse.ok("토큰 재발급 완료", tokens.get("user")));
     }
 
     @Operation(
         summary = "로그아웃",
-        description = "refresh_token을 무효화하고 쿠키를 삭제합니다. 앱 로그아웃 시 fcmToken도 함께 전달하면 FCM 토큰이 삭제됩니다."
+        description = "refresh_token을 무효화하고 쿠키를 삭제합니다. 앱 로그아웃 시 Body로 refreshToken + fcmToken 전달."
     )
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<?>> logout(
-            @CookieValue(name = "refresh_token", required = false) String refreshTokenValue,
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                description = "앱 로그아웃 시 fcmToken 포함 (선택사항). 예: {\"fcmToken\": \"device_token_here\"}"
-            )
+            @CookieValue(name = "refresh_token", required = false) String refreshTokenCookie,
             @RequestBody(required = false) Map<String, String> body,
+            @RequestHeader(value = "X-Client-Type", defaultValue = "WEB") String clientType,
             HttpServletResponse response
     ) {
+        String refreshTokenValue = "APP".equals(clientType)
+                ? (body != null ? body.get("refreshToken") : null)
+                : refreshTokenCookie;
+
         if (refreshTokenValue != null) {
             refreshTokenRepository.findByRefreshToken(refreshTokenValue)
                     .ifPresent(rt -> {
@@ -230,7 +255,7 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.ok("로그아웃 완료"));
     }
 
-    private LoginResponseDto issueTokens(User user, HttpServletResponse response) {
+    private Map<String, Object> issueTokens(User user, HttpServletResponse response) {
         String accessToken = JwtUtil.createToken(user.getId(), user.getRole().name());
         String refreshTokenValue = UUID.randomUUID().toString();
 
@@ -254,7 +279,11 @@ public class AuthController {
         setAccessCookie(response, accessToken);
         setRefreshCookie(response, refreshTokenValue);
 
-        return new LoginResponseDto(user);
+        return Map.of(
+                "accessToken", accessToken,
+                "refreshToken", refreshTokenValue,
+                "user", new LoginResponseDto(user)
+        );
     }
 
     private User getLoginUser() {
