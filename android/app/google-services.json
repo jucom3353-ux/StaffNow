@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "207552127662",
+    "project_id": "jucompany-358e2",
+    "storage_bucket": "jucompany-358e2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:207552127662:android:e30d2180731c2842b4833f",
+        "android_client_info": {
+          "package_name": "com.example.promoter_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBqtTFLdzZZhx4fnqPqBroSxkIu-vLYcu4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
