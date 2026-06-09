@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: promoter-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: promoter
+      MYSQL_USER: promoter
+      MYSQL_PASSWORD: promoterpassword
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: .
+    container_name: promoter-backend
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/promoter?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
+      SPRING_DATASOURCE_USERNAME: promoter
+      SPRING_DATASOURCE_PASSWORD: promoterpassword
+      JWT_SECRET: JWT_SECRET=jucompany-staffnow-jwt-secret-key-2026-secure
+      KAKAO_CLIENT_ID: dummy
+      KAKAO_CLIENT_SECRET: dummy
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql-data:
