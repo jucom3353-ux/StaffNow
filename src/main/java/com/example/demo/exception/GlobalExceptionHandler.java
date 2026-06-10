@@ -10,6 +10,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -32,17 +33,17 @@ public class GlobalExceptionHandler {
 
     // @Valid 검증 실패 → 400
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidationException(
-            MethodArgumentNotValidException ex, HttpServletRequest request) {
+public ResponseEntity<ErrorResponse> handleValidationException(
+        MethodArgumentNotValidException ex, HttpServletRequest request) {
 
-        Map<String, String> fieldErrors = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .collect(Collectors.toMap(
-                        FieldError::getField,
-                        FieldError::getDefaultMessage,
-                        (existing, replacement) -> existing
-                ));
+    Map<String, String> fieldErrors = ex.getBindingResult()
+            .getFieldErrors()
+            .stream()
+            .collect(Collectors.toMap(
+                    FieldError::getField,
+                    FieldError::getDefaultMessage,
+                    (existing, replacement) -> existing
+            ));
 
         Map<String, Object> response = new HashMap<>();
         response.put("status", 400);
@@ -51,7 +52,9 @@ public class GlobalExceptionHandler {
         response.put("path", request.getRequestURI());
         response.put("timestamp", java.time.LocalDateTime.now().toString());
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                 .body(new ErrorResponse(400, "입력값 검증 실패",
+                    request.getRequestURI(), fieldErrors));
     }
 
     // 필수 파라미터 누락 → 400
@@ -93,4 +96,14 @@ public class GlobalExceptionHandler {
                         "서버 내부 오류가 발생했습니다.",
                         request.getRequestURI()));
     }
+   
+    // 파일 크기 초과 → 400
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceeded(
+                MaxUploadSizeExceededException ex, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(400,
+                        "파일 크기가 너무 큽니다.",
+                        request.getRequestURI()));
+}
 }
