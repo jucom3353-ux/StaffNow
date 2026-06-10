@@ -18,5 +18,6 @@ public class DemoApplication {
         );
 
         SpringApplication.run(DemoApplication.class, args);
+        System.out.println("=== Promoter 서버 시작 ===");
     }
 }

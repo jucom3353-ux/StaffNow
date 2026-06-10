@@ -35,5 +35,16 @@ services:
       mysql:
         condition: service_healthy
 
+
+  nginx:
+    image: nginx:alpine
+    container_name: promoter-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - backend
+
 volumes:
   mysql-data:

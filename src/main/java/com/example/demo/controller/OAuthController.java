@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Tag(name = "소셜 로그인 API", description = "카카오 OAuth2 로그인")
@@ -34,12 +35,22 @@ public class OAuthController {
     @GetMapping("/kakao/callback")
     public ResponseEntity<ApiResponse<?>> kakaoCallback(
             @RequestParam String code,
+            @RequestHeader(value = "X-Client-Type", defaultValue = "WEB") String clientType,
             HttpServletResponse response) {
-        return processOAuthLogin(oAuthService.loginWithKakao(code), response);
+        return processOAuthLogin(oAuthService.loginWithKakao(code), clientType, response);
+    }
+
+    @Operation(summary = "카카오 로그인 (앱 전용 - authCode 직접 전달)")
+    @PostMapping("/kakao/app")
+    public ResponseEntity<ApiResponse<?>> kakaoAppLogin(
+            @RequestBody Map<String, String> body,
+            HttpServletResponse response) {
+        String code = body.get("authCode");
+        return processOAuthLogin(oAuthService.loginWithKakao(code), "APP", response);
     }
 
     private ResponseEntity<ApiResponse<?>> processOAuthLogin(
-            User user, HttpServletResponse response) {
+            User user, String clientType, HttpServletResponse response) {
 
         String accessToken = JwtUtil.createToken(user.getId(), user.getRole().name());
         String refreshTokenValue = UUID.randomUUID().toString();
@@ -59,6 +70,16 @@ public class OAuthController {
         refreshToken.setBlacklisted(false);
         refreshTokenRepository.save(refreshToken);
 
+        if ("APP".equals(clientType)) {
+            // 앱: Body로 토큰 반환
+            return ResponseEntity.ok(ApiResponse.ok("카카오 로그인 완료", Map.of(
+                    "accessToken", accessToken,
+                    "refreshToken", refreshTokenValue,
+                    "user", new LoginResponseDto(user)
+            )));
+        }
+
+        // 웹: Cookie 방식
         Cookie accessCookie = new Cookie("access_token", accessToken);
         accessCookie.setHttpOnly(true);
         accessCookie.setPath("/");
@@ -72,12 +93,6 @@ public class OAuthController {
         response.addCookie(refreshCookie);
 
         return ResponseEntity.ok(ApiResponse.ok("카카오 로그인 완료",
-                new LoginResponseDto(
-                        user.getRole().name(),
-                        user.getName(),
-                        user.getEmail(),
-                        user.getPhone(),
-                        user.getMbti()
-                )));
+                new LoginResponseDto(user)));
     }
 }
