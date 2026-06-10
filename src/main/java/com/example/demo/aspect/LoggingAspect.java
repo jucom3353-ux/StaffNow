@@ -12,21 +12,24 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.example.demo.entity.User;
+import com.example.demo.exception.CustomException;
 
 @Slf4j
 @Aspect
 @Component
 public class LoggingAspect {
 
+    private static final long SLOW_REQUEST_THRESHOLD_MS = 500;
+
     @Around("execution(* com.example.demo.controller..*(..))")
     public Object logRequest(ProceedingJoinPoint joinPoint) throws Throwable {
 
         long startTime = System.currentTimeMillis();
 
-        // 요청 정보 추출
         String method = "";
         String uri = "";
         String clientIp = "";
+        String queryString = "";
 
         ServletRequestAttributes attrs =
                 (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
@@ -35,9 +38,10 @@ public class LoggingAspect {
             method = request.getMethod();
             uri = request.getRequestURI();
             clientIp = getClientIp(request);
+            queryString = request.getQueryString() != null
+                    ? "?" + request.getQueryString() : "";
         }
 
-        // 로그인 유저 추출
         String userInfo = "비로그인";
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getPrincipal() instanceof User user) {
@@ -48,26 +52,41 @@ public class LoggingAspect {
             Object result = joinPoint.proceed();
             long duration = System.currentTimeMillis() - startTime;
 
-            log.info("[API] {} {} | {} | {}ms | 성공",
-                    method, uri, userInfo, duration);
+            if (duration >= SLOW_REQUEST_THRESHOLD_MS) {
+                log.warn("[API][SLOW] {} {}{} | {} | ip={} | {}ms | 성공",
+                        method, uri, queryString, userInfo, clientIp, duration);
+            } else {
+                log.info("[API] {} {}{} | {} | ip={} | {}ms | 성공",
+                        method, uri, queryString, userInfo, clientIp, duration);
+            }
 
             return result;
 
+        } catch (CustomException e) {
+            long duration = System.currentTimeMillis() - startTime;
+            log.warn("[API][4xx] {} {}{} | {} | ip={} | {}ms | {} - {}",
+                    method, uri, queryString, userInfo, clientIp, duration,
+                    e.getErrorCode(), e.getMessage());
+            throw e;
+
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startTime;
-
-            log.warn("[API] {} {} | {} | {}ms | 실패: {}",
-                    method, uri, userInfo, duration, e.getMessage());
-
+            log.error("[API][5xx] {} {}{} | {} | ip={} | {}ms | {}",
+                    method, uri, queryString, userInfo, clientIp, duration,
+                    e.getMessage());
             throw e;
         }
     }
 
     private String getClientIp(HttpServletRequest request) {
         String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isBlank()) {
-            ip = request.getRemoteAddr();
+        if (ip != null && !ip.isBlank()) {
+            return ip.split(",")[0].trim();
         }
-        return ip;
+        ip = request.getHeader("X-Real-IP");
+        if (ip != null && !ip.isBlank()) {
+            return ip;
+        }
+        return request.getRemoteAddr();
     }
 }
