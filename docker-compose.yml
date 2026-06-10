@@ -28,7 +28,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/promoter?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
       SPRING_DATASOURCE_USERNAME: promoter
       SPRING_DATASOURCE_PASSWORD: promoterpassword
-      JWT_SECRET: JWT_SECRET=jucompany-staffnow-jwt-secret-key-2026-secure
+      JWT_SECRET: jucompany-staffnow-jwt-secret-key-2026-secure
       KAKAO_CLIENT_ID: dummy
       KAKAO_CLIENT_SECRET: dummy
     depends_on:
