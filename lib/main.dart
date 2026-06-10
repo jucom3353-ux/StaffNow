@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'core/router/app_router.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,4 +40,19 @@ class PromoterApp extends ConsumerWidget {
       ),
     );
   }
+
+  void main() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    await Firebase.initializeApp();
+
+    // 카카오 SDK 초기화 (키 받으면 실제 값으로 교체)
+    KakaoSdk.init(nativeAppKey: 'YOUR_KAKAO_NATIVE_APP_KEY');
+
+    runApp(
+      const ProviderScope(
+        child: PromoterApp(),
+      ),
+    );
+  }
+
 }
