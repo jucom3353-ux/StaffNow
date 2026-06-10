@@ -2,13 +2,15 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.ProfileBoostService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "프로필 부스트 API")
@@ -23,13 +25,13 @@ public class ProfileBoostController {
     @PostMapping
     public ResponseEntity<ApiResponse<?>> startBoost() {
         return ResponseEntity.ok(ApiResponse.ok(
-                profileBoostService.startBoost(getLoginUser())));
+                profileBoostService.startBoost( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(summary = "부스트 취소")
     @DeleteMapping
     public ResponseEntity<ApiResponse<?>> cancelBoost() {
-        profileBoostService.cancelBoost(getLoginUser());
+        profileBoostService.cancelBoost( AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("부스트 취소 완료"));
     }
 
@@ -37,19 +39,15 @@ public class ProfileBoostController {
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<?>> getMyBoosts() {
         return ResponseEntity.ok(ApiResponse.ok(
-                profileBoostService.getMyBoosts(getLoginUser())));
+                profileBoostService.getMyBoosts( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(summary = "부스트 활성 여부 확인")
     @GetMapping("/status")
     public ResponseEntity<ApiResponse<?>> isBoostActive() {
         return ResponseEntity.ok(ApiResponse.ok(
-                profileBoostService.isBoostActive(getLoginUser())));
+                profileBoostService.isBoostActive( AuthorizationUtil.getLoginUser())));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

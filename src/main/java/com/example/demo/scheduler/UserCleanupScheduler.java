@@ -1,6 +1,9 @@
 package com.example.demo.scheduler;
 
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -4,6 +4,9 @@ import com.example.demo.dto.ApiResponse;
 import com.example.demo.entity.ApplicationStatus;
 import com.example.demo.entity.ApplyMethod;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.ApplicationService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,8 +17,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "지원 API", description = "공고 지원 및 근무 처리 기능")
@@ -43,7 +45,7 @@ public class ApplicationController {
             @RequestParam Long jobPostRoleId,
             @Parameter(description = "지원 방식 (ONLINE/PHONE/MESSAGE)", example = "ONLINE")
             @RequestParam(required = false) ApplyMethod applyMethod) {
-        applicationService.apply(jobPostId, jobPostRoleId, applyMethod, getLoginUser());
+        applicationService.apply(jobPostId, jobPostRoleId, applyMethod,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("지원 완료"));
     }
 
@@ -58,7 +60,7 @@ public class ApplicationController {
             @Parameter(description = "페이지 크기", example = "10")
             @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(ApiResponse.ok(
-                applicationService.getMyApplications(getLoginUser(), page, size)));
+                applicationService.getMyApplications( AuthorizationUtil.getLoginUser(), page, size)));
     }
 
     @Operation(
@@ -73,7 +75,7 @@ public class ApplicationController {
     public ResponseEntity<ApiResponse<?>> cancelApplication(
             @Parameter(description = "지원 ID", example = "1")
             @PathVariable Long applicationId) {
-        applicationService.cancelApplication(applicationId, getLoginUser());
+        applicationService.cancelApplication(applicationId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("지원 취소 완료"));
     }
 
@@ -88,7 +90,7 @@ public class ApplicationController {
             @Parameter(description = "지원 상태 필터 (APPLIED/APPROVED/REJECTED/COMPLETED/NO_SHOW/ABSENT)")
             @RequestParam(required = false) ApplicationStatus status) {
         return ResponseEntity.ok(ApiResponse.ok(
-                applicationService.getApplications(jobPostId, getLoginUser(), status)));
+                applicationService.getApplications(jobPostId,  AuthorizationUtil.getLoginUser(), status)));
     }
 
     @Operation(
@@ -100,7 +102,7 @@ public class ApplicationController {
             @Parameter(description = "지원 ID", example = "1")
             @PathVariable Long applicationId) {
         return ResponseEntity.ok(ApiResponse.ok(
-                applicationService.getWorkerProfile(applicationId, getLoginUser())));
+                applicationService.getWorkerProfile(applicationId,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -111,7 +113,7 @@ public class ApplicationController {
     public ResponseEntity<ApiResponse<?>> approveApplication(
             @Parameter(description = "지원 ID", example = "1")
             @PathVariable Long applicationId) {
-        applicationService.approveApplication(applicationId, getLoginUser());
+        applicationService.approveApplication(applicationId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("지원 승인 완료"));
     }
 
@@ -123,7 +125,7 @@ public class ApplicationController {
     public ResponseEntity<ApiResponse<?>> rejectApplication(
             @Parameter(description = "지원 ID", example = "1")
             @PathVariable Long applicationId) {
-        applicationService.rejectApplication(applicationId, getLoginUser());
+        applicationService.rejectApplication(applicationId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("지원 거절 완료"));
     }
 
@@ -135,7 +137,7 @@ public class ApplicationController {
     public ResponseEntity<ApiResponse<?>> completeApplication(
             @Parameter(description = "지원 ID", example = "1")
             @PathVariable Long applicationId) {
-        applicationService.completeApplication(applicationId, getLoginUser());
+        applicationService.completeApplication(applicationId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("근무 완료 처리"));
     }
 
@@ -147,7 +149,7 @@ public class ApplicationController {
     public ResponseEntity<ApiResponse<?>> noShowApplication(
             @Parameter(description = "지원 ID", example = "1")
             @PathVariable Long applicationId) {
-        applicationService.noShowApplication(applicationId, getLoginUser());
+        applicationService.noShowApplication(applicationId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("노쇼 처리 완료"));
     }
 
@@ -159,13 +161,9 @@ public class ApplicationController {
     public ResponseEntity<ApiResponse<?>> absentApplication(
             @Parameter(description = "지원 ID", example = "1")
             @PathVariable Long applicationId) {
-        applicationService.absentApplication(applicationId, getLoginUser());
+        applicationService.absentApplication(applicationId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("결근 처리 완료"));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

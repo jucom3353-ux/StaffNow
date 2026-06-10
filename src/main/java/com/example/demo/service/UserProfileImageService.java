@@ -2,6 +2,9 @@ package com.example.demo.service;
 
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.entity.UserProfileImage;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;

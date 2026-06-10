@@ -4,6 +4,9 @@ import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.CheckInRequestDto;
 import com.example.demo.dto.CheckOutRequestDto;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.WorkAttendanceService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,8 +16,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "출퇴근 API", description = "출퇴근 기록 관리")
@@ -35,7 +37,7 @@ public class WorkAttendanceController {
             @PathVariable Long applicationId,
             @RequestBody CheckInRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                workAttendanceService.checkIn(applicationId, requestDto, getLoginUser())));
+                workAttendanceService.checkIn(applicationId, requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -48,7 +50,7 @@ public class WorkAttendanceController {
             @PathVariable Long applicationId,
             @RequestBody CheckOutRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                workAttendanceService.checkOut(applicationId, requestDto, getLoginUser())));
+                workAttendanceService.checkOut(applicationId, requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -59,7 +61,7 @@ public class WorkAttendanceController {
     public ResponseEntity<ApiResponse<?>> markAbsent(
             @Parameter(description = "지원 ID", example = "1")
             @PathVariable Long applicationId) {
-        workAttendanceService.markAbsent(applicationId, getLoginUser());
+        workAttendanceService.markAbsent(applicationId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("결근 처리 완료"));
     }
 
@@ -70,7 +72,7 @@ public class WorkAttendanceController {
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<?>> getMyAttendances() {
         return ResponseEntity.ok(ApiResponse.ok(
-                workAttendanceService.getMyAttendances(getLoginUser())));
+                workAttendanceService.getMyAttendances( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -82,7 +84,7 @@ public class WorkAttendanceController {
             @Parameter(description = "조회 날짜 (yyyy-MM-dd)", example = "2026-06-01")
             @RequestParam String date) {
         return ResponseEntity.ok(ApiResponse.ok(
-                workAttendanceService.getMyAttendancesByDate(getLoginUser(), date)));
+                workAttendanceService.getMyAttendancesByDate( AuthorizationUtil.getLoginUser(), date)));
     }
 
     @Operation(
@@ -96,7 +98,7 @@ public class WorkAttendanceController {
             @Parameter(description = "월 (1~12)", example = "6")
             @RequestParam int month) {
         return ResponseEntity.ok(ApiResponse.ok(
-                workAttendanceService.getMyAttendanceCalendar(getLoginUser(), year, month)));
+                workAttendanceService.getMyAttendanceCalendar( AuthorizationUtil.getLoginUser(), year, month)));
     }
 
     @Operation(
@@ -108,7 +110,7 @@ public class WorkAttendanceController {
             @Parameter(description = "공고 ID", example = "1")
             @PathVariable Long jobPostId) {
         return ResponseEntity.ok(ApiResponse.ok(
-                workAttendanceService.getAttendancesByJobPost(jobPostId, getLoginUser())));
+                workAttendanceService.getAttendancesByJobPost(jobPostId,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -123,7 +125,7 @@ public class WorkAttendanceController {
             @PathVariable Long workerId) {
         return ResponseEntity.ok(ApiResponse.ok(
                 workAttendanceService.getAttendancesByJobPostAndWorker(
-                        jobPostId, workerId, getLoginUser())));
+                        jobPostId, workerId,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -140,12 +142,8 @@ public class WorkAttendanceController {
             @RequestParam int month) {
         return ResponseEntity.ok(ApiResponse.ok(
                 workAttendanceService.getJobPostAttendanceCalendar(
-                        jobPostId, getLoginUser(), year, month)));
+                        jobPostId,  AuthorizationUtil.getLoginUser(), year, month)));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

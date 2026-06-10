@@ -2,6 +2,9 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.NotificationService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,8 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -32,7 +34,7 @@ public class NotificationController {
     @GetMapping
     public ResponseEntity<ApiResponse<?>> getMyNotifications() {
         return ResponseEntity.ok(ApiResponse.ok(
-                notificationService.getMyNotifications(getLoginUser())));
+                notificationService.getMyNotifications( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -42,7 +44,7 @@ public class NotificationController {
     @GetMapping("/unread")
     public ResponseEntity<ApiResponse<?>> getUnreadNotifications() {
         return ResponseEntity.ok(ApiResponse.ok(
-                notificationService.getUnreadNotifications(getLoginUser())));
+                notificationService.getUnreadNotifications( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -53,7 +55,7 @@ public class NotificationController {
     public ResponseEntity<ApiResponse<?>> getUnreadCount() {
         return ResponseEntity.ok(ApiResponse.ok(
                 Map.of("unreadCount",
-                        notificationService.getUnreadCount(getLoginUser()))));
+                        notificationService.getUnreadCount( AuthorizationUtil.getLoginUser()))));
     }
 
     @Operation(
@@ -64,7 +66,7 @@ public class NotificationController {
     public ResponseEntity<ApiResponse<?>> markAsRead(
             @Parameter(description = "알림 ID", example = "1")
             @PathVariable Long notificationId) {
-        notificationService.markAsRead(notificationId, getLoginUser());
+        notificationService.markAsRead(notificationId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("읽음 처리 완료"));
     }
 
@@ -74,13 +76,9 @@ public class NotificationController {
     )
     @PatchMapping("/read-all")
     public ResponseEntity<ApiResponse<?>> markAllAsRead() {
-        notificationService.markAllAsRead(getLoginUser());
+        notificationService.markAllAsRead( AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("전체 읽음 처리 완료"));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

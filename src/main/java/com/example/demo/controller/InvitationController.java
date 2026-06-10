@@ -3,6 +3,9 @@ package com.example.demo.controller;
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.entity.InvitationStatus;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.InvitationService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,8 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "초대 API", description = "기업의 근로자 초대 기능")
@@ -35,7 +37,7 @@ public class InvitationController {
             @Parameter(description = "초대할 근로자 ID", example = "1")
             @RequestParam Long workerId
     ) {
-        invitationService.sendInvitation(jobPostId, workerId, getLoginUser());
+        invitationService.sendInvitation(jobPostId, workerId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("초대 완료"));
     }
 
@@ -46,7 +48,7 @@ public class InvitationController {
     @GetMapping("/received")
     public ResponseEntity<ApiResponse<?>> getMyInvitations() {
         return ResponseEntity.ok(ApiResponse.ok(
-                invitationService.getMyInvitations(getLoginUser())));
+                invitationService.getMyInvitations( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -56,7 +58,7 @@ public class InvitationController {
     @GetMapping("/sent")
     public ResponseEntity<ApiResponse<?>> getSentInvitations() {
         return ResponseEntity.ok(ApiResponse.ok(
-                invitationService.getSentInvitations(getLoginUser())));
+                invitationService.getSentInvitations( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -68,7 +70,7 @@ public class InvitationController {
             @Parameter(description = "초대 ID", example = "1")
             @PathVariable Long invitationId) {
         return ResponseEntity.ok(ApiResponse.ok(
-                invitationService.getInvitation(invitationId, getLoginUser())));
+                invitationService.getInvitation(invitationId,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -80,7 +82,7 @@ public class InvitationController {
             @Parameter(description = "초대 상태 (PENDING/ACCEPTED/REJECTED/CANCELLED)")
             @RequestParam InvitationStatus status) {
         return ResponseEntity.ok(ApiResponse.ok(
-                invitationService.getMyInvitationsByStatus(getLoginUser(), status)));
+                invitationService.getMyInvitationsByStatus( AuthorizationUtil.getLoginUser(), status)));
     }
 
     @Operation(
@@ -91,7 +93,7 @@ public class InvitationController {
     public ResponseEntity<ApiResponse<?>> acceptInvitation(
             @Parameter(description = "초대 ID", example = "1")
             @PathVariable Long invitationId) {
-        invitationService.acceptInvitation(invitationId, getLoginUser());
+        invitationService.acceptInvitation(invitationId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("초대 수락 완료"));
     }
 
@@ -103,7 +105,7 @@ public class InvitationController {
     public ResponseEntity<ApiResponse<?>> rejectInvitation(
             @Parameter(description = "초대 ID", example = "1")
             @PathVariable Long invitationId) {
-        invitationService.rejectInvitation(invitationId, getLoginUser());
+        invitationService.rejectInvitation(invitationId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("초대 거절 완료"));
     }
 
@@ -115,13 +117,9 @@ public class InvitationController {
     public ResponseEntity<ApiResponse<?>> cancelInvitation(
             @Parameter(description = "초대 ID", example = "1")
             @PathVariable Long invitationId) {
-        invitationService.cancelInvitation(invitationId, getLoginUser());
+        invitationService.cancelInvitation(invitationId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("초대 취소 완료"));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

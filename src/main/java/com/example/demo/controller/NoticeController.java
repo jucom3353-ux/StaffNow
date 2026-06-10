@@ -4,14 +4,16 @@ import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.NoticeRequestDto;
 import com.example.demo.entity.NoticeCategory;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.NoticeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "공지사항 API", description = "플랫폼 공지사항 관리")
@@ -77,7 +79,7 @@ public class NoticeController {
     public ResponseEntity<ApiResponse<?>> createNotice(
             @RequestBody NoticeRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                noticeService.createNotice(requestDto, getLoginUser())));
+                noticeService.createNotice(requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -90,7 +92,7 @@ public class NoticeController {
             @PathVariable Long id,
             @RequestBody NoticeRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                noticeService.updateNotice(id, requestDto, getLoginUser())));
+                noticeService.updateNotice(id, requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -101,13 +103,9 @@ public class NoticeController {
     public ResponseEntity<ApiResponse<?>> deleteNotice(
             @Parameter(description = "공지사항 ID", example = "1")
             @PathVariable Long id) {
-        noticeService.deleteNotice(id, getLoginUser());
+        noticeService.deleteNotice(id,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("공지사항 삭제 완료"));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

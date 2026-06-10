@@ -3,6 +3,9 @@ package com.example.demo.controller;
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.ReviewRequestDto;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.ReviewService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,8 +15,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "리뷰 API", description = "리뷰 작성 및 조회 기능")
@@ -33,7 +35,7 @@ public class ReviewController {
             @Parameter(description = "지원 ID", example = "1")
             @PathVariable Long applicationId,
             @Valid @RequestBody ReviewRequestDto requestDto) {
-        reviewService.createReview(applicationId, requestDto, getLoginUser());
+        reviewService.createReview(applicationId, requestDto,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("리뷰 작성 완료"));
     }
 
@@ -46,7 +48,7 @@ public class ReviewController {
             @Parameter(description = "지원 ID", example = "1")
             @PathVariable Long applicationId,
             @Valid @RequestBody ReviewRequestDto requestDto) {
-        reviewService.createWorkerReview(applicationId, requestDto, getLoginUser());
+        reviewService.createWorkerReview(applicationId, requestDto,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("기업 리뷰 작성 완료"));
     }
 
@@ -81,7 +83,7 @@ public class ReviewController {
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<?>> getMyReviews() {
         return ResponseEntity.ok(ApiResponse.ok(
-                reviewService.getMyReviews(getLoginUser())));
+                reviewService.getMyReviews( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -91,7 +93,7 @@ public class ReviewController {
     @GetMapping("/admin")
     public ResponseEntity<ApiResponse<?>> getAllReviews() {
         return ResponseEntity.ok(ApiResponse.ok(
-                reviewService.getAllReviews(getLoginUser())));
+                reviewService.getAllReviews( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -102,13 +104,9 @@ public class ReviewController {
     public ResponseEntity<ApiResponse<?>> deleteReview(
             @Parameter(description = "리뷰 ID", example = "1")
             @PathVariable Long reviewId) {
-        reviewService.deleteReview(reviewId, getLoginUser());
+        reviewService.deleteReview(reviewId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("리뷰 삭제 완료"));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

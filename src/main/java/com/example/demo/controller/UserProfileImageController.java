@@ -2,6 +2,9 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.UserProfileImageService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,8 +14,7 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,7 +33,7 @@ public class UserProfileImageController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<?>> addProfileImage(
             @RequestParam("file") MultipartFile file) {
-        String url = userProfileImageService.addProfileImage(file, getLoginUser());
+        String url = userProfileImageService.addProfileImage(file,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("사진 추가 완료",
                 Map.of("url", url)));
     }
@@ -40,7 +42,7 @@ public class UserProfileImageController {
     @GetMapping
     public ResponseEntity<ApiResponse<?>> getProfileImages() {
         return ResponseEntity.ok(ApiResponse.ok(
-                userProfileImageService.getProfileImages(getLoginUser())));
+                userProfileImageService.getProfileImages( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(summary = "특정 유저 프로필 사진 조회 (기업용)")
@@ -55,13 +57,9 @@ public class UserProfileImageController {
     @DeleteMapping("/{imageId}")
     public ResponseEntity<ApiResponse<?>> deleteProfileImage(
             @PathVariable Long imageId) {
-        userProfileImageService.deleteProfileImage(imageId, getLoginUser());
+        userProfileImageService.deleteProfileImage(imageId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("사진 삭제 완료"));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

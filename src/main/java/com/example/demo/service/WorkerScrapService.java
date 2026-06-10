@@ -2,11 +2,18 @@ package com.example.demo.service;
 
 import com.example.demo.dto.WorkerScrapResponseDto;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.entity.WorkerScrap;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.UserRepository;
 import com.example.demo.repository.WorkerScrapRepository;
+  import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.util.AuthorizationUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

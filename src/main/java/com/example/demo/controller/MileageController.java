@@ -3,14 +3,16 @@ package com.example.demo.controller;
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.entity.MileageWithdrawalStatus;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.MileageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -30,7 +32,7 @@ public class MileageController {
     @GetMapping
     public ResponseEntity<ApiResponse<?>> getMyMileage() {
         return ResponseEntity.ok(ApiResponse.ok(
-                mileageService.getMyMileage(getLoginUser())));
+                mileageService.getMyMileage( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -39,7 +41,7 @@ public class MileageController {
     )
     @PostMapping("/exchange/boost")
     public ResponseEntity<ApiResponse<?>> exchangeBoost() {
-        mileageService.exchangeBoost(getLoginUser());
+        mileageService.exchangeBoost( AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("부스트 1일권 교환 완료"));
     }
 
@@ -50,7 +52,7 @@ public class MileageController {
     @PostMapping("/withdrawal")
     public ResponseEntity<ApiResponse<?>> requestWithdrawal() {
         return ResponseEntity.ok(ApiResponse.ok(
-                mileageService.requestWithdrawal(getLoginUser())));
+                mileageService.requestWithdrawal( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -61,7 +63,7 @@ public class MileageController {
     public ResponseEntity<ApiResponse<?>> cancelWithdrawal(
             @Parameter(description = "출금 신청 ID", example = "1")
             @PathVariable Long withdrawalId) {
-        mileageService.cancelWithdrawal(withdrawalId, getLoginUser());
+        mileageService.cancelWithdrawal(withdrawalId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("출금 취소 완료"));
     }
 
@@ -72,7 +74,7 @@ public class MileageController {
     @GetMapping("/withdrawal")
     public ResponseEntity<ApiResponse<?>> getMyWithdrawals() {
         return ResponseEntity.ok(ApiResponse.ok(
-                mileageService.getMyWithdrawals(getLoginUser())));
+                mileageService.getMyWithdrawals( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -84,7 +86,7 @@ public class MileageController {
             @Parameter(description = "출금 상태 필터 (PENDING/APPROVED/REJECTED/CANCELLED)")
             @RequestParam(required = false) MileageWithdrawalStatus status) {
         return ResponseEntity.ok(ApiResponse.ok(
-                mileageService.getAllWithdrawals(status, getLoginUser())));
+                mileageService.getAllWithdrawals(status,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -94,7 +96,7 @@ public class MileageController {
     @GetMapping("/withdrawal/pending")
     public ResponseEntity<ApiResponse<?>> getPendingWithdrawals() {
         return ResponseEntity.ok(ApiResponse.ok(
-                mileageService.getPendingWithdrawals(getLoginUser())));
+                mileageService.getPendingWithdrawals( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -105,7 +107,7 @@ public class MileageController {
     public ResponseEntity<ApiResponse<?>> approveWithdrawal(
             @Parameter(description = "출금 신청 ID", example = "1")
             @PathVariable Long withdrawalId) {
-        mileageService.approveWithdrawal(withdrawalId, getLoginUser());
+        mileageService.approveWithdrawal(withdrawalId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("출금 승인 완료"));
     }
 
@@ -119,13 +121,9 @@ public class MileageController {
             @PathVariable Long withdrawalId,
             @RequestBody Map<String, String> body) {
         mileageService.rejectWithdrawal(withdrawalId,
-                body.get("rejectReason"), getLoginUser());
+                body.get("rejectReason"),  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("출금 거절 완료"));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

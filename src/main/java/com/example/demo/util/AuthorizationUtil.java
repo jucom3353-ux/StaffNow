@@ -3,10 +3,28 @@ package com.example.demo.util;
 import com.example.demo.entity.JobPost;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+  import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import com.example.demo.util.AuthorizationUtil;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
+  
 
 public class AuthorizationUtil {
+
+    /**
+     * 현재 로그인한 유저 반환
+     */
+    public static User getLoginUser() {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+        return (User) authentication.getPrincipal();
+    }
 
     /**
      * COMPANY 또는 MANAGER 권한 검증

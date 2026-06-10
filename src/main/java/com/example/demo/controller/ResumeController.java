@@ -3,6 +3,9 @@ package com.example.demo.controller;
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.*;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.ResumeService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,8 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "이력서 API", description = "디지털 이력서 관리")
@@ -31,7 +33,7 @@ public class ResumeController {
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<?>> getMyResume() {
         return ResponseEntity.ok(ApiResponse.ok(
-                resumeService.getMyResume(getLoginUser())));
+                resumeService.getMyResume( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -42,7 +44,7 @@ public class ResumeController {
     public ResponseEntity<ApiResponse<?>> updateResume(
             @RequestBody ResumeRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                resumeService.updateResume(requestDto, getLoginUser())));
+                resumeService.updateResume(requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -53,7 +55,7 @@ public class ResumeController {
     public ResponseEntity<ApiResponse<?>> addEducation(
             @RequestBody EducationRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                resumeService.addEducation(requestDto, getLoginUser())));
+                resumeService.addEducation(requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -64,7 +66,7 @@ public class ResumeController {
     public ResponseEntity<ApiResponse<?>> deleteEducation(
             @Parameter(description = "학력 ID", example = "1")
             @PathVariable Long educationId) {
-        resumeService.deleteEducation(educationId, getLoginUser());
+        resumeService.deleteEducation(educationId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("학력 삭제 완료"));
     }
 
@@ -76,7 +78,7 @@ public class ResumeController {
     public ResponseEntity<ApiResponse<?>> addCareer(
             @RequestBody CareerRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                resumeService.addCareer(requestDto, getLoginUser())));
+                resumeService.addCareer(requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -87,7 +89,7 @@ public class ResumeController {
     public ResponseEntity<ApiResponse<?>> deleteCareer(
             @Parameter(description = "경력 ID", example = "1")
             @PathVariable Long careerId) {
-        resumeService.deleteCareer(careerId, getLoginUser());
+        resumeService.deleteCareer(careerId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("경력 삭제 완료"));
     }
 
@@ -99,7 +101,7 @@ public class ResumeController {
     public ResponseEntity<ApiResponse<?>> addCertificate(
             @RequestBody CertificateRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                resumeService.addCertificate(requestDto, getLoginUser())));
+                resumeService.addCertificate(requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -110,7 +112,7 @@ public class ResumeController {
     public ResponseEntity<ApiResponse<?>> deleteCertificate(
             @Parameter(description = "자격증 ID", example = "1")
             @PathVariable Long certificateId) {
-        resumeService.deleteCertificate(certificateId, getLoginUser());
+        resumeService.deleteCertificate(certificateId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("자격증 삭제 완료"));
     }
 
@@ -123,12 +125,8 @@ public class ResumeController {
             @Parameter(description = "근로자 유저 ID", example = "1")
             @PathVariable Long userId) {
         return ResponseEntity.ok(ApiResponse.ok(
-                resumeService.getUserResume(userId, getLoginUser())));
+                resumeService.getUserResume(userId,  AuthorizationUtil.getLoginUser())));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

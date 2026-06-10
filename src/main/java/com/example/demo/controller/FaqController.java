@@ -5,14 +5,16 @@ import com.example.demo.dto.FaqRequestDto;
 import com.example.demo.entity.FaqCategory;
 import com.example.demo.entity.FaqTarget;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.FaqService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "FAQ API", description = "자주 묻는 질문 관리")
@@ -58,7 +60,7 @@ public class FaqController {
     public ResponseEntity<ApiResponse<?>> createFaq(
             @RequestBody FaqRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                faqService.createFaq(requestDto, getLoginUser())));
+                faqService.createFaq(requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -71,7 +73,7 @@ public class FaqController {
             @PathVariable Long id,
             @RequestBody FaqRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                faqService.updateFaq(id, requestDto, getLoginUser())));
+                faqService.updateFaq(id, requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -82,13 +84,9 @@ public class FaqController {
     public ResponseEntity<ApiResponse<?>> deleteFaq(
             @Parameter(description = "FAQ ID", example = "1")
             @PathVariable Long id) {
-        faqService.deleteFaq(id, getLoginUser());
+        faqService.deleteFaq(id,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("FAQ 삭제 완료"));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

@@ -5,14 +5,16 @@ import com.example.demo.dto.InquiryRequestDto;
 import com.example.demo.entity.InquiryStatus;
 import com.example.demo.entity.InquiryType;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.InquiryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "문의/제안/신고 API", description = "고객 문의 및 신고 접수")
@@ -31,7 +33,7 @@ public class InquiryController {
     public ResponseEntity<ApiResponse<?>> createInquiry(
             @RequestBody InquiryRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                inquiryService.createInquiry(requestDto, getLoginUser())));
+                inquiryService.createInquiry(requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -41,7 +43,7 @@ public class InquiryController {
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<?>> getMyInquiries() {
         return ResponseEntity.ok(ApiResponse.ok(
-                inquiryService.getMyInquiries(getLoginUser())));
+                inquiryService.getMyInquiries( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -53,7 +55,7 @@ public class InquiryController {
             @Parameter(description = "문의 ID", example = "1")
             @PathVariable Long inquiryId) {
         return ResponseEntity.ok(ApiResponse.ok(
-                inquiryService.getMyInquiry(inquiryId, getLoginUser())));
+                inquiryService.getMyInquiry(inquiryId,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -67,7 +69,7 @@ public class InquiryController {
             @Parameter(description = "답변 내용", example = "문의 주신 내용에 대해 안내드립니다.")
             @RequestParam String reply) {
         return ResponseEntity.ok(ApiResponse.ok(
-                inquiryService.replyInquiry(inquiryId, reply, getLoginUser())));
+                inquiryService.replyInquiry(inquiryId, reply,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -79,7 +81,7 @@ public class InquiryController {
             @Parameter(description = "문의 ID", example = "1")
             @PathVariable Long inquiryId) {
         return ResponseEntity.ok(ApiResponse.ok(
-                inquiryService.closeInquiry(inquiryId, getLoginUser())));
+                inquiryService.closeInquiry(inquiryId,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -93,12 +95,8 @@ public class InquiryController {
             @Parameter(description = "처리 상태 (PENDING/ANSWERED/CLOSED)")
             @RequestParam(required = false) InquiryStatus status) {
         return ResponseEntity.ok(ApiResponse.ok(
-                inquiryService.getAllInquiries(type, status, getLoginUser())));
+                inquiryService.getAllInquiries(type, status,  AuthorizationUtil.getLoginUser())));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

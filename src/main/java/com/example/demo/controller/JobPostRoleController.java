@@ -3,13 +3,15 @@ package com.example.demo.controller;
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.JobPostRoleRequestDto;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.JobPostRoleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,7 +29,7 @@ public class JobPostRoleController {
     public ResponseEntity<ApiResponse<?>> createRoles(
             @PathVariable Long jobPostId,
             @RequestBody List<JobPostRoleRequestDto> requestDtos) {
-        jobPostRoleService.createRoles(jobPostId, requestDtos, getLoginUser());
+        jobPostRoleService.createRoles(jobPostId, requestDtos,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("직무 등록 완료"));
     }
 
@@ -43,20 +45,16 @@ public class JobPostRoleController {
     public ResponseEntity<ApiResponse<?>> updateRoles(
             @PathVariable Long jobPostId,
             @RequestBody List<JobPostRoleRequestDto> requestDtos) {
-        jobPostRoleService.updateRoles(jobPostId, requestDtos, getLoginUser());
+        jobPostRoleService.updateRoles(jobPostId, requestDtos,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("직무 수정 완료"));
     }
 
     @Operation(summary = "직무 전체 삭제 (기업)")
     @DeleteMapping
     public ResponseEntity<ApiResponse<?>> deleteRoles(@PathVariable Long jobPostId) {
-        jobPostRoleService.deleteRoles(jobPostId, getLoginUser());
+        jobPostRoleService.deleteRoles(jobPostId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("직무 삭제 완료"));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

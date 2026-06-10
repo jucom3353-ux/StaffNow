@@ -4,6 +4,9 @@ import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.MessageReportRequestDto;
 import com.example.demo.entity.MessageReportStatus;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.MessageReportService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,8 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 
 import org.springframework.web.bind.annotation.*;
 
@@ -30,14 +32,14 @@ public class MessageReportController {
     public ResponseEntity<ApiResponse<?>> reportMessage(
             @RequestBody MessageReportRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                messageReportService.reportMessage(requestDto, getLoginUser())));
+                messageReportService.reportMessage(requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(summary = "내 신고 목록 조회")
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<?>> getMyReports() {
         return ResponseEntity.ok(ApiResponse.ok(
-                messageReportService.getMyReports(getLoginUser())));
+                messageReportService.getMyReports( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(summary = "전체 신고 목록 조회 (관리자)")
@@ -45,7 +47,7 @@ public class MessageReportController {
     public ResponseEntity<ApiResponse<?>> getAllReports(
             @RequestParam(required = false) MessageReportStatus status) {
         return ResponseEntity.ok(ApiResponse.ok(
-                messageReportService.getAllReports(status, getLoginUser())));
+                messageReportService.getAllReports(status,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(summary = "신고 승인 (관리자)")
@@ -53,7 +55,7 @@ public class MessageReportController {
     public ResponseEntity<ApiResponse<?>> approveReport(
             @PathVariable Long reportId) {
         return ResponseEntity.ok(ApiResponse.ok(
-                messageReportService.approveReport(reportId, getLoginUser())));
+                messageReportService.approveReport(reportId,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(summary = "신고 기각 (관리자)")
@@ -61,12 +63,8 @@ public class MessageReportController {
     public ResponseEntity<ApiResponse<?>> dismissReport(
             @PathVariable Long reportId) {
         return ResponseEntity.ok(ApiResponse.ok(
-                messageReportService.dismissReport(reportId, getLoginUser())));
+                messageReportService.dismissReport(reportId,  AuthorizationUtil.getLoginUser())));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

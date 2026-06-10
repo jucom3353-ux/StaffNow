@@ -3,6 +3,9 @@ package com.example.demo.controller;
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.WorkSessionCreateRequestDto;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.entity.WorkStatus;
 import com.example.demo.service.WorkSessionService;
 
@@ -13,8 +16,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "근무회차 API", description = "근무 회차 생성 및 조회 기능")
@@ -36,7 +38,7 @@ public class WorkSessionController {
             @RequestBody WorkSessionCreateRequestDto requestDto
     ) {
         return ResponseEntity.ok(ApiResponse.ok(
-                workSessionService.createWorkSession(jobPostId, requestDto, getLoginUser())));
+                workSessionService.createWorkSession(jobPostId, requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -48,7 +50,7 @@ public class WorkSessionController {
             @Parameter(description = "공고 ID", example = "1")
             @PathVariable Long jobPostId) {
         return ResponseEntity.ok(ApiResponse.ok(
-                workSessionService.generateWorkSessions(jobPostId, getLoginUser())));
+                workSessionService.generateWorkSessions(jobPostId,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -97,7 +99,7 @@ public class WorkSessionController {
     @GetMapping("/work-sessions/my")
     public ResponseEntity<ApiResponse<?>> getAllMyWorkSessions() {
         return ResponseEntity.ok(ApiResponse.ok(
-                workSessionService.getAllMyWorkSessions(getLoginUser())));
+                workSessionService.getAllMyWorkSessions( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -114,7 +116,7 @@ public class WorkSessionController {
             @RequestParam WorkStatus workStatus
     ) {
         workSessionService.changeWorkSessionStatus(
-                jobPostId, workSessionId, workStatus, getLoginUser());
+                jobPostId, workSessionId, workStatus,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("근무회차 상태 변경 완료"));
     }
 
@@ -129,7 +131,7 @@ public class WorkSessionController {
             @Parameter(description = "메모 내용", example = "현장 주차 가능")
             @RequestParam String memo
     ) {
-        workSessionService.updateMemo(workSessionId, memo, getLoginUser());
+        workSessionService.updateMemo(workSessionId, memo,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("메모 수정 완료"));
     }
 
@@ -144,13 +146,9 @@ public class WorkSessionController {
             @Parameter(description = "지원 ID", example = "1")
             @PathVariable Long applicationId
     ) {
-        workSessionService.assignWorkSession(applicationId, workSessionId, getLoginUser());
+        workSessionService.assignWorkSession(applicationId, workSessionId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("Shift 배정 완료"));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

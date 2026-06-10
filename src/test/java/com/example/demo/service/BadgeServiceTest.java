@@ -2,6 +2,9 @@ package com.example.demo.service;
 
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.repository.ApplicationRepository;
 import com.example.demo.repository.UserRepository;
 import org.junit.jupiter.api.Test;

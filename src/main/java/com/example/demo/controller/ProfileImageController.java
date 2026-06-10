@@ -2,6 +2,9 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.ProfileImageService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,8 +16,7 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -34,7 +36,7 @@ public class ProfileImageController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<?>> uploadProfileImage(
             @RequestParam("file") MultipartFile file) {
-        String url = profileImageService.uploadProfileImage(file, getLoginUser());
+        String url = profileImageService.uploadProfileImage(file,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("업로드 완료",
                 Map.of("url", url)));
     }
@@ -42,13 +44,9 @@ public class ProfileImageController {
     @Operation(summary = "프로필 사진 삭제")
     @DeleteMapping
     public ResponseEntity<ApiResponse<?>> deleteProfileImage() {
-        profileImageService.deleteProfileImage(getLoginUser());
+        profileImageService.deleteProfileImage( AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("프로필 사진 삭제 완료"));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

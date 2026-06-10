@@ -3,14 +3,16 @@ package com.example.demo.controller;
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.PortfolioRequestDto;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.PortfolioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "현장 포트폴리오 API", description = "근무 현장 포트폴리오 관리")
@@ -29,7 +31,7 @@ public class PortfolioController {
     public ResponseEntity<ApiResponse<?>> createPortfolio(
             @RequestBody PortfolioRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                portfolioService.createPortfolio(requestDto, getLoginUser())));
+                portfolioService.createPortfolio(requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -42,7 +44,7 @@ public class PortfolioController {
             @PathVariable Long portfolioId,
             @RequestBody PortfolioRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                portfolioService.updatePortfolio(portfolioId, requestDto, getLoginUser())));
+                portfolioService.updatePortfolio(portfolioId, requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -52,7 +54,7 @@ public class PortfolioController {
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<?>> getMyPortfolios() {
         return ResponseEntity.ok(ApiResponse.ok(
-                portfolioService.getMyPortfolios(getLoginUser())));
+                portfolioService.getMyPortfolios( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -87,13 +89,9 @@ public class PortfolioController {
     public ResponseEntity<ApiResponse<?>> deletePortfolio(
             @Parameter(description = "포트폴리오 ID", example = "1")
             @PathVariable Long portfolioId) {
-        portfolioService.deletePortfolio(portfolioId, getLoginUser());
+        portfolioService.deletePortfolio(portfolioId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("포트폴리오 삭제 완료"));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

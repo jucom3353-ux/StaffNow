@@ -4,6 +4,9 @@ import com.example.demo.entity.Application;
 import com.example.demo.entity.Review;
 import com.example.demo.entity.ReviewType;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 

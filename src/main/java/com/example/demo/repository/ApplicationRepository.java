@@ -5,6 +5,9 @@ import com.example.demo.entity.ApplicationStatus;
 import com.example.demo.entity.JobPost;
 import com.example.demo.entity.JobPostRole;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.entity.WorkSession;
 
 import org.springframework.data.domain.Page;

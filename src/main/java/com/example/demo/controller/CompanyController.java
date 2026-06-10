@@ -5,6 +5,9 @@ import com.example.demo.dto.CompanyInviteCodeResponseDto;
 import com.example.demo.dto.UserResponseDto;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.UserRepository;
@@ -13,8 +16,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -33,7 +35,7 @@ public class CompanyController {
     @PostMapping("/invite")
     public ResponseEntity<ApiResponse<?>> generateInviteCode(
             @RequestParam(required = false) Role role) {
-        String code = companyInviteService.generateInviteCode(getLoginUser(), role);
+        String code = companyInviteService.generateInviteCode( AuthorizationUtil.getLoginUser(), role);
         return ResponseEntity.ok(ApiResponse.ok(code));
     }
 
@@ -41,7 +43,7 @@ public class CompanyController {
     @GetMapping("/invite")
     public ResponseEntity<ApiResponse<?>> getInviteCodes() {
         List<CompanyInviteCodeResponseDto> codes = companyInviteService
-                .getInviteCodes(getLoginUser())
+                .getInviteCodes( AuthorizationUtil.getLoginUser())
                 .stream()
                 .map(CompanyInviteCodeResponseDto::new)
                 .collect(Collectors.toList());
@@ -52,14 +54,14 @@ public class CompanyController {
     @DeleteMapping("/invite/{inviteCodeId}")
     public ResponseEntity<ApiResponse<?>> cancelInviteCode(
             @PathVariable Long inviteCodeId) {
-        companyInviteService.cancelInviteCode(inviteCodeId, getLoginUser());
+        companyInviteService.cancelInviteCode(inviteCodeId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("초대 코드 취소 완료"));
     }
 
     @Operation(summary = "담당자 목록 조회", description = "소속 담당자 전체 조회")
     @GetMapping("/members")
     public ResponseEntity<ApiResponse<?>> getMembers() {
-        User loginUser = getLoginUser();
+        User loginUser =  AuthorizationUtil.getLoginUser();
         if (loginUser.getRole() != Role.COMPANY) {
             throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
@@ -73,7 +75,7 @@ public class CompanyController {
     public ResponseEntity<ApiResponse<?>> updateMemberRole(
             @PathVariable Long userId,
             @RequestParam Role role) {
-        User loginUser = getLoginUser();
+        User loginUser =  AuthorizationUtil.getLoginUser();
         if (loginUser.getRole() != Role.COMPANY) {
             throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
@@ -90,7 +92,7 @@ public class CompanyController {
     @Operation(summary = "담당자 삭제", description = "기업 계정만 가능")
     @DeleteMapping("/members/{userId}")
     public ResponseEntity<ApiResponse<?>> removeMember(@PathVariable Long userId) {
-        User loginUser = getLoginUser();
+        User loginUser =  AuthorizationUtil.getLoginUser();
         if (loginUser.getRole() != Role.COMPANY) {
             throw new CustomException(ErrorCode.COMPANY_ONLY);
         }
@@ -105,7 +107,7 @@ public class CompanyController {
         return ResponseEntity.ok(ApiResponse.ok("담당자 삭제 완료"));
     }
 
-    private User getLoginUser() {
+    private User  getLoginUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return (User) authentication.getPrincipal();
     }

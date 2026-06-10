@@ -2,14 +2,16 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.WorkSessionQrService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "QR 출퇴근 API", description = "QR 코드 기반 출퇴근 처리")
@@ -29,7 +31,7 @@ public class WorkSessionQrController {
             @Parameter(description = "근무회차 ID", example = "1")
             @PathVariable Long workSessionId) {
         return ResponseEntity.ok(ApiResponse.ok(
-                workSessionQrService.generateQr(workSessionId, getLoginUser())));
+                workSessionQrService.generateQr(workSessionId,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -41,12 +43,8 @@ public class WorkSessionQrController {
             @Parameter(description = "QR 토큰 값", example = "abc123token")
             @RequestParam String token) {
         return ResponseEntity.ok(ApiResponse.ok(
-                workSessionQrService.scanQr(token, getLoginUser())));
+                workSessionQrService.scanQr(token,  AuthorizationUtil.getLoginUser())));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

@@ -4,14 +4,16 @@ import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.EventRequestDto;
 import com.example.demo.entity.EventStatus;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.EventService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -57,7 +59,7 @@ public class EventController {
     public ResponseEntity<ApiResponse<?>> createEvent(
             @RequestBody EventRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                eventService.createEvent(requestDto, getLoginUser())));
+                eventService.createEvent(requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -70,7 +72,7 @@ public class EventController {
             @PathVariable Long id,
             @RequestBody EventRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                eventService.updateEvent(id, requestDto, getLoginUser())));
+                eventService.updateEvent(id, requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -83,7 +85,7 @@ public class EventController {
             @PathVariable Long id,
             @RequestBody Map<String, String> body) {
         return ResponseEntity.ok(ApiResponse.ok(
-                eventService.announceWinner(id, body.get("winnerContent"), getLoginUser())));
+                eventService.announceWinner(id, body.get("winnerContent"),  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -94,13 +96,9 @@ public class EventController {
     public ResponseEntity<ApiResponse<?>> deleteEvent(
             @Parameter(description = "이벤트 ID", example = "1")
             @PathVariable Long id) {
-        eventService.deleteEvent(id, getLoginUser());
+        eventService.deleteEvent(id,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("이벤트 삭제 완료"));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

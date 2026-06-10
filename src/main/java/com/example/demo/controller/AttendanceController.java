@@ -2,6 +2,9 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.AttendanceService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,8 +15,7 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -42,7 +44,7 @@ public class AttendanceController {
             @RequestParam Double longitude
     ) {
         attendanceService.checkIn(
-                applicationId, photo, latitude, longitude, getLoginUser());
+                applicationId, photo, latitude, longitude,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("출근 처리 완료"));
     }
 
@@ -63,13 +65,9 @@ public class AttendanceController {
             @RequestParam Double longitude
     ) {
         attendanceService.checkOut(
-                applicationId, photo, latitude, longitude, getLoginUser());
+                applicationId, photo, latitude, longitude,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("퇴근 처리 완료"));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

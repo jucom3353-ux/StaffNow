@@ -2,66 +2,50 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.LoginRequestDto;
-import com.example.demo.dto.LoginResponseDto;
 import com.example.demo.entity.RefreshToken;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
-import com.example.demo.jwt.JwtUtil;
 import com.example.demo.repository.RefreshTokenRepository;
 import com.example.demo.repository.UserRepository;
+import com.example.demo.service.AuthService;
 import com.example.demo.service.FcmTokenService;
 import com.example.demo.service.TwoFactorAuthService;
+  import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import com.example.demo.util.AuthorizationUtil;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.PageRequest;
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @Tag(name = "인증 API", description = "로그인 및 JWT 토큰 관리 기능")
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/auth")
 public class AuthController {
 
-    private final UserRepository userRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final AuthService authService;
     private final TwoFactorAuthService twoFactorAuthService;
     private final FcmTokenService fcmTokenService;
-
-    @Value("${app.cookie.secure:false}")
-    private boolean cookieSecure;
-
-    public AuthController(
-            UserRepository userRepository,
-            RefreshTokenRepository refreshTokenRepository,
-            PasswordEncoder passwordEncoder,
-            TwoFactorAuthService twoFactorAuthService,
-            FcmTokenService fcmTokenService
-    ) {
-        this.userRepository = userRepository;
-        this.refreshTokenRepository = refreshTokenRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.twoFactorAuthService = twoFactorAuthService;
-        this.fcmTokenService = fcmTokenService;
-    }
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final UserRepository userRepository;
 
     @Operation(
         summary = "로그인",
@@ -79,16 +63,7 @@ public class AuthController {
             @RequestHeader(value = "X-Client-Type", defaultValue = "WEB") String clientType,
             HttpServletResponse response
     ) {
-        User user = userRepository.findByEmail(requestDto.getEmail())
-                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_EMAIL));
-
-        if (!passwordEncoder.matches(requestDto.getPassword(), user.getPassword())) {
-            throw new CustomException(ErrorCode.INVALID_PASSWORD);
-        }
-
-        if (Boolean.TRUE.equals(user.getSuspended())) {
-            throw new CustomException(ErrorCode.ACCESS_DENIED);
-        }
+        User user = authService.authenticate(requestDto);
 
         boolean requireTwoFactor = switch (user.getRole()) {
             case ADMIN -> true;
@@ -102,7 +77,7 @@ public class AuthController {
             return ResponseEntity.ok(ApiResponse.ok("2단계 인증 코드가 발송되었습니다."));
         }
 
-        Map<String, Object> tokens = issueTokens(user, response);
+        Map<String, Object> tokens = authService.issueTokens(user, response);
 
         if ("APP".equals(clientType)) {
             return ResponseEntity.ok(ApiResponse.ok("로그인 완료", tokens));
@@ -133,7 +108,7 @@ public class AuthController {
 
         twoFactorAuthService.verifyCode(user, code);
 
-        Map<String, Object> tokens = issueTokens(user, response);
+        Map<String, Object> tokens = authService.issueTokens(user, response);
 
         if ("APP".equals(clientType)) {
             return ResponseEntity.ok(ApiResponse.ok("로그인 완료", tokens));
@@ -142,10 +117,7 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.ok("로그인 완료", tokens.get("user")));
     }
 
-    @Operation(
-        summary = "2단계 인증 코드 재발송",
-        description = "2단계 인증 코드를 이메일로 재발송합니다."
-    )
+    @Operation(summary = "2단계 인증 코드 재발송")
     @PostMapping("/2fa/send")
     public ResponseEntity<ApiResponse<?>> sendTwoFactorCode(
             @Parameter(description = "사용자 이메일", example = "user@example.com")
@@ -156,12 +128,10 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.ok("인증 코드 발송 완료"));
     }
 
-    @Operation(
-        summary = "2단계 인증 활성화/비활성화 토글"
-    )
+    @Operation(summary = "2단계 인증 활성화/비활성화 토글")
     @PatchMapping("/2fa/toggle")
     public ResponseEntity<ApiResponse<?>> toggleTwoFactor() {
-        twoFactorAuthService.toggleTwoFactor(getLoginUser());
+        twoFactorAuthService.toggleTwoFactor(AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("2단계 인증 설정 변경 완료"));
     }
 
@@ -181,7 +151,6 @@ public class AuthController {
             @RequestHeader(value = "X-Client-Type", defaultValue = "WEB") String clientType,
             HttpServletResponse response
     ) {
-        // 앱: Body에서 refreshToken, 웹: Cookie에서 추출
         String refreshTokenValue = "APP".equals(clientType)
                 ? (body != null ? body.get("refreshToken") : null)
                 : refreshTokenCookie;
@@ -190,18 +159,7 @@ public class AuthController {
             throw new CustomException(ErrorCode.REFRESH_TOKEN_NOT_FOUND);
         }
 
-        RefreshToken refreshToken = refreshTokenRepository
-                .findByRefreshToken(refreshTokenValue)
-                .orElseThrow(() -> new CustomException(ErrorCode.REFRESH_TOKEN_NOT_FOUND));
-
-        if (refreshToken.isBlacklisted()) {
-            throw new CustomException(ErrorCode.REFRESH_TOKEN_BLACKLISTED);
-        }
-
-        if (refreshToken.getExpiredAt() != null
-                && refreshToken.getExpiredAt().isBefore(LocalDateTime.now())) {
-            throw new CustomException(ErrorCode.REFRESH_TOKEN_EXPIRED);
-        }
+        RefreshToken refreshToken = authService.validateRefreshToken(refreshTokenValue);
 
         User user = userRepository.findById(refreshToken.getUserId())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
@@ -213,7 +171,7 @@ public class AuthController {
         refreshToken.setBlacklisted(true);
         refreshTokenRepository.save(refreshToken);
 
-        Map<String, Object> tokens = issueTokens(user, response);
+        Map<String, Object> tokens = authService.issueTokens(user, response);
 
         if ("APP".equals(clientType)) {
             return ResponseEntity.ok(ApiResponse.ok("토큰 재발급 완료", tokens));
@@ -238,84 +196,16 @@ public class AuthController {
                 : refreshTokenCookie;
 
         if (refreshTokenValue != null) {
-            refreshTokenRepository.findByRefreshToken(refreshTokenValue)
-                    .ifPresent(rt -> {
-                        rt.setBlacklisted(true);
-                        refreshTokenRepository.save(rt);
-                    });
+            authService.blacklistRefreshToken(refreshTokenValue);
         }
 
         if (body != null && body.get("fcmToken") != null) {
             fcmTokenService.removeToken(body.get("fcmToken"));
         }
 
-        clearCookie(response, "access_token");
-        clearCookie(response, "refresh_token");
+        authService.clearCookie(response, "access_token");
+        authService.clearCookie(response, "refresh_token");
 
         return ResponseEntity.ok(ApiResponse.ok("로그아웃 완료"));
-    }
-
-    private Map<String, Object> issueTokens(User user, HttpServletResponse response) {
-        String accessToken = JwtUtil.createToken(user.getId(), user.getRole().name());
-        String refreshTokenValue = UUID.randomUUID().toString();
-
-        List<RefreshToken> existingTokens = refreshTokenRepository
-                .findByUserId(user.getId(), PageRequest.of(0, 1));
-        if (!existingTokens.isEmpty()) {
-            existingTokens.get(0).setBlacklisted(true);
-            refreshTokenRepository.save(existingTokens.get(0));
-        }
-
-        RefreshToken refreshToken = new RefreshToken();
-        refreshToken.setUserId(user.getId());
-        refreshToken.setRefreshToken(refreshTokenValue);
-        refreshToken.setExpiredAt(LocalDateTime.now().plusDays(7));
-        refreshToken.setBlacklisted(false);
-        refreshTokenRepository.save(refreshToken);
-
-        user.setLastLoginAt(LocalDateTime.now());
-        userRepository.save(user);
-
-        setAccessCookie(response, accessToken);
-        setRefreshCookie(response, refreshTokenValue);
-
-        return Map.of(
-                "accessToken", accessToken,
-                "refreshToken", refreshTokenValue,
-                "user", new LoginResponseDto(user)
-        );
-    }
-
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
-
-    private void setAccessCookie(HttpServletResponse response, String token) {
-        Cookie cookie = new Cookie("access_token", token);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(cookieSecure);
-        cookie.setPath("/");
-        cookie.setMaxAge(60 * 60);
-        response.addCookie(cookie);
-    }
-
-    private void setRefreshCookie(HttpServletResponse response, String token) {
-        Cookie cookie = new Cookie("refresh_token", token);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(cookieSecure);
-        cookie.setPath("/");
-        cookie.setMaxAge(60 * 60 * 24 * 7);
-        response.addCookie(cookie);
-    }
-
-    private void clearCookie(HttpServletResponse response, String name) {
-        Cookie cookie = new Cookie(name, "");
-        cookie.setHttpOnly(true);
-        cookie.setSecure(cookieSecure);
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
     }
 }

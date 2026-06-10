@@ -3,6 +3,9 @@ package com.example.demo.controller;
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.BusinessValidationResponseDto;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.BusinessLicenseService;
 import com.example.demo.service.NtsApiService;
 
@@ -15,8 +18,7 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -37,7 +39,7 @@ public class BusinessLicenseController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<?>> uploadLicense(
             @RequestParam("file") MultipartFile file) {
-        String url = businessLicenseService.uploadLicense(file, getLoginUser());
+        String url = businessLicenseService.uploadLicense(file,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("업로드 완료",
                 Map.of("url", url, "status", "PENDING")));
     }
@@ -45,7 +47,7 @@ public class BusinessLicenseController {
     @Operation(summary = "사업자 등록증명서 상태 조회")
     @GetMapping
     public ResponseEntity<ApiResponse<?>> getLicenseStatus() {
-        User loginUser = getLoginUser();
+        User loginUser =  AuthorizationUtil.getLoginUser();
         return ResponseEntity.ok(ApiResponse.ok(
                 Map.of(
                         "url", loginUser.getBusinessLicenseUrl() != null
@@ -64,9 +66,5 @@ public class BusinessLicenseController {
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

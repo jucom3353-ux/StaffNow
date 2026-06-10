@@ -3,6 +3,9 @@ package com.example.demo.controller;
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.MessageRequestDto;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.MessageService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,8 +15,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -34,7 +36,7 @@ public class MessageController {
     public ResponseEntity<ApiResponse<?>> sendMessage(
             @Valid @RequestBody MessageRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                messageService.sendMessage(requestDto, getLoginUser())));
+                messageService.sendMessage(requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -46,7 +48,7 @@ public class MessageController {
             @Parameter(description = "대화 상대 유저 ID", example = "1")
             @PathVariable Long partnerId) {
         return ResponseEntity.ok(ApiResponse.ok(
-                messageService.getConversation(partnerId, getLoginUser())));
+                messageService.getConversation(partnerId,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -56,7 +58,7 @@ public class MessageController {
     @GetMapping("/conversations")
     public ResponseEntity<ApiResponse<?>> getConversationPartners() {
         return ResponseEntity.ok(ApiResponse.ok(
-                messageService.getConversationPartners(getLoginUser())));
+                messageService.getConversationPartners( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -66,7 +68,7 @@ public class MessageController {
     @GetMapping("/unread/count")
     public ResponseEntity<ApiResponse<?>> getUnreadCount() {
         return ResponseEntity.ok(ApiResponse.ok(
-                Map.of("unreadCount", messageService.getUnreadCount(getLoginUser()))));
+                Map.of("unreadCount", messageService.getUnreadCount( AuthorizationUtil.getLoginUser()))));
     }
 
     @Operation(
@@ -77,13 +79,9 @@ public class MessageController {
     public ResponseEntity<ApiResponse<?>> deleteMessage(
             @Parameter(description = "메시지 ID", example = "1")
             @PathVariable Long messageId) {
-        messageService.deleteMessage(messageId, getLoginUser());
+        messageService.deleteMessage(messageId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("메시지 삭제 완료"));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

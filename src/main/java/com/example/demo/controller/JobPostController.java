@@ -5,6 +5,9 @@ import com.example.demo.dto.JobPostCreateRequestDto;
 import com.example.demo.entity.JobPost;
 import com.example.demo.entity.PostStatus;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.JobPostService;
 import com.example.demo.service.JobPostTemplateService;
 
@@ -17,8 +20,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "공고 API", description = "공고 생성 및 조회 기능")
@@ -86,7 +88,7 @@ public class JobPostController {
             @RequestParam(required = false) PostStatus postStatus
     ) {
         return ResponseEntity.ok(ApiResponse.ok(
-                jobPostService.getMyJobPosts(getLoginUser(), postStatus)));
+                jobPostService.getMyJobPosts( AuthorizationUtil.getLoginUser(), postStatus)));
     }
 
     @Operation(
@@ -102,7 +104,7 @@ public class JobPostController {
             @Parameter(description = "공고 ID", example = "1")
             @PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.ok(
-                jobPostService.getJobPost(id, getLoginUser())));
+                jobPostService.getJobPost(id,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -112,7 +114,7 @@ public class JobPostController {
     @GetMapping("/recent-views")
     public ResponseEntity<ApiResponse<?>> getRecentViews() {
         return ResponseEntity.ok(ApiResponse.ok(
-                jobPostService.getRecentViews(getLoginUser())));
+                jobPostService.getRecentViews( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -126,7 +128,7 @@ public class JobPostController {
     @PostMapping
     public ResponseEntity<ApiResponse<?>> createJobPost(
             @Valid @RequestBody JobPostCreateRequestDto requestDto) {
-        jobPostService.createJobPost(requestDto, getLoginUser());
+        jobPostService.createJobPost(requestDto,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("공고 생성 완료"));
     }
 
@@ -138,7 +140,7 @@ public class JobPostController {
     public ResponseEntity<ApiResponse<?>> copyJobPost(
             @Parameter(description = "복사할 공고 ID", example = "1")
             @PathVariable Long id) {
-        jobPostService.copyJobPost(id, getLoginUser());
+        jobPostService.copyJobPost(id,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("공고 복사 완료"));
     }
 
@@ -152,10 +154,10 @@ public class JobPostController {
             @PathVariable Long id,
             @Parameter(description = "템플릿 이름", example = "행사 프로모터 기본 템플릿")
             @RequestParam String templateName) {
-        JobPost jobPost = jobPostService.getJobPostEntity(id, getLoginUser());
+        JobPost jobPost = jobPostService.getJobPostEntity(id,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok(
                 jobPostTemplateService.createTemplateFromJobPost(
-                        jobPost, templateName, getLoginUser())));
+                        jobPost, templateName,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -169,7 +171,7 @@ public class JobPostController {
             @Parameter(description = "변경할 상태 (DRAFT/OPEN/CLOSED)")
             @RequestParam PostStatus postStatus
     ) {
-        jobPostService.changePostStatus(id, postStatus, getLoginUser());
+        jobPostService.changePostStatus(id, postStatus,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("공고 상태 변경 완료"));
     }
 
@@ -188,7 +190,7 @@ public class JobPostController {
             @PathVariable Long id,
             @Valid @RequestBody JobPostCreateRequestDto requestDto
     ) {
-        jobPostService.updateJobPost(id, requestDto, getLoginUser());
+        jobPostService.updateJobPost(id, requestDto,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("공고 수정 완료"));
     }
 
@@ -200,7 +202,7 @@ public class JobPostController {
     public ResponseEntity<ApiResponse<?>> deleteJobPost(
             @Parameter(description = "공고 ID", example = "1")
             @PathVariable Long id) {
-        jobPostService.deleteJobPost(id, getLoginUser());
+        jobPostService.deleteJobPost(id,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("공고 삭제 완료"));
     }
 
@@ -213,7 +215,7 @@ public class JobPostController {
             @Parameter(description = "공고 상태 필터 (DRAFT/OPEN/CLOSED)")
             @RequestParam(required = false) PostStatus postStatus) {
         return ResponseEntity.ok(ApiResponse.ok(
-                jobPostService.adminGetAllJobPosts(postStatus, getLoginUser())));
+                jobPostService.adminGetAllJobPosts(postStatus,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -224,7 +226,7 @@ public class JobPostController {
     public ResponseEntity<ApiResponse<?>> adminCloseJobPost(
             @Parameter(description = "공고 ID", example = "1")
             @PathVariable Long id) {
-        jobPostService.adminCloseJobPost(id, getLoginUser());
+        jobPostService.adminCloseJobPost(id,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("공고 강제 마감 완료"));
     }
 
@@ -236,13 +238,9 @@ public class JobPostController {
     public ResponseEntity<ApiResponse<?>> adminDeleteJobPost(
             @Parameter(description = "공고 ID", example = "1")
             @PathVariable Long id) {
-        jobPostService.adminDeleteJobPost(id, getLoginUser());
+        jobPostService.adminDeleteJobPost(id,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("공고 강제 삭제 완료"));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

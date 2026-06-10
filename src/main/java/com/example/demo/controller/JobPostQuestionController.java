@@ -4,13 +4,15 @@ import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.JobPostQuestionAnswerRequestDto;
 import com.example.demo.dto.JobPostQuestionRequestDto;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.JobPostQuestionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "사전질문 API")
@@ -28,7 +30,7 @@ public class JobPostQuestionController {
             @RequestBody JobPostQuestionRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
                 jobPostQuestionService.saveQuestions(
-                        jobPostId, requestDto, getLoginUser())));
+                        jobPostId, requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(summary = "사전질문 조회")
@@ -45,7 +47,7 @@ public class JobPostQuestionController {
             @RequestBody JobPostQuestionAnswerRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
                 jobPostQuestionService.submitAnswers(
-                        applicationId, requestDto, getLoginUser())));
+                        applicationId, requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(summary = "지원자 답변 조회 (기업)")
@@ -53,12 +55,8 @@ public class JobPostQuestionController {
     public ResponseEntity<ApiResponse<?>> getAnswers(
             @PathVariable Long applicationId) {
         return ResponseEntity.ok(ApiResponse.ok(
-                jobPostQuestionService.getAnswers(applicationId, getLoginUser())));
+                jobPostQuestionService.getAnswers(applicationId,  AuthorizationUtil.getLoginUser())));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

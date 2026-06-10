@@ -9,6 +9,9 @@ import com.example.demo.dto.UserResponseDto;
 import com.example.demo.dto.UserUpdateRequestDto;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.MileageService;
 import com.example.demo.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,8 +21,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -67,7 +69,7 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<?>> getMe() {
         return ResponseEntity.ok(
-                ApiResponse.ok(new UserPrivateResponseDto(getLoginUser())));
+                ApiResponse.ok(new UserPrivateResponseDto( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -76,7 +78,7 @@ public class UserController {
     )
     @GetMapping("/me/referral")
     public ResponseEntity<ApiResponse<?>> getReferralInfo() {
-        User loginUser = getLoginUser();
+        User loginUser =  AuthorizationUtil.getLoginUser();
         return ResponseEntity.ok(
                 ApiResponse.ok(userService.getReferralInfo(loginUser.getEmail())));
     }
@@ -88,7 +90,7 @@ public class UserController {
     @PatchMapping("/me")
     public ResponseEntity<ApiResponse<?>> updateMe(
             @RequestBody UserUpdateRequestDto requestDto) {
-        User loginUser = getLoginUser();
+        User loginUser =  AuthorizationUtil.getLoginUser();
         userService.updateUser(loginUser, requestDto);
         return ResponseEntity.ok(
                 ApiResponse.ok("프로필 수정 완료", new UserPrivateResponseDto(loginUser)));
@@ -105,7 +107,7 @@ public class UserController {
     @PatchMapping("/me/password")
     public ResponseEntity<ApiResponse<?>> changePassword(
             @RequestBody PasswordChangeRequestDto requestDto) {
-        userService.changePassword(getLoginUser(), requestDto);
+        userService.changePassword( AuthorizationUtil.getLoginUser(), requestDto);
         return ResponseEntity.ok(ApiResponse.ok("비밀번호 변경 완료"));
     }
 
@@ -115,7 +117,7 @@ public class UserController {
     )
     @DeleteMapping("/me")
     public ResponseEntity<ApiResponse<?>> deleteMe() {
-        userService.deleteUser(getLoginUser());
+        userService.deleteUser( AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("회원 탈퇴 완료"));
     }
 
@@ -127,7 +129,7 @@ public class UserController {
     public ResponseEntity<ApiResponse<?>> uploadBusinessLicense(
             @Parameter(description = "사업자등록증 이미지 URL", example = "https://storage.example.com/license.jpg")
             @RequestParam String licenseUrl) {
-        userService.uploadBusinessLicense(getLoginUser(), licenseUrl);
+        userService.uploadBusinessLicense( AuthorizationUtil.getLoginUser(), licenseUrl);
         return ResponseEntity.ok(ApiResponse.ok("사업자등록증 등록 완료"));
     }
 
@@ -138,7 +140,7 @@ public class UserController {
     @GetMapping("/admin")
     public ResponseEntity<ApiResponse<?>> getAllUsers(
             @RequestParam(required = false) Role role) {
-        List<UserPrivateResponseDto> users = userService.getAllUsers(role, getLoginUser());
+        List<UserPrivateResponseDto> users = userService.getAllUsers(role,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok(users));
     }
 
@@ -149,7 +151,7 @@ public class UserController {
     @GetMapping("/admin/business-licenses/pending")
     public ResponseEntity<ApiResponse<?>> getPendingBusinessLicenses() {
         return ResponseEntity.ok(ApiResponse.ok(
-                userService.getPendingBusinessLicenses(getLoginUser())));
+                userService.getPendingBusinessLicenses( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -160,7 +162,7 @@ public class UserController {
     public ResponseEntity<ApiResponse<?>> approveBusinessLicense(
             @Parameter(description = "대상 유저 ID", example = "1")
             @PathVariable Long userId) {
-        userService.approveBusinessLicense(userId, getLoginUser());
+        userService.approveBusinessLicense(userId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("사업자등록증 승인 완료"));
     }
 
@@ -172,7 +174,7 @@ public class UserController {
     public ResponseEntity<ApiResponse<?>> rejectBusinessLicense(
             @Parameter(description = "대상 유저 ID", example = "1")
             @PathVariable Long userId) {
-        userService.rejectBusinessLicense(userId, getLoginUser());
+        userService.rejectBusinessLicense(userId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("사업자등록증 반려 완료"));
     }
 
@@ -184,7 +186,7 @@ public class UserController {
     public ResponseEntity<ApiResponse<?>> suspendUser(
             @Parameter(description = "정지할 유저 ID", example = "1")
             @PathVariable Long userId) {
-        userService.suspendUser(userId, getLoginUser());
+        userService.suspendUser(userId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("회원 정지 완료"));
     }
 
@@ -196,7 +198,7 @@ public class UserController {
     public ResponseEntity<ApiResponse<?>> unsuspendUser(
             @Parameter(description = "정지 해제할 유저 ID", example = "1")
             @PathVariable Long userId) {
-        userService.unsuspendUser(userId, getLoginUser());
+        userService.unsuspendUser(userId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("회원 정지 해제 완료"));
     }
 
@@ -208,7 +210,7 @@ public class UserController {
     public ResponseEntity<ApiResponse<?>> forceDeleteUser(
             @Parameter(description = "강제 탈퇴할 유저 ID", example = "1")
             @PathVariable Long userId) {
-        userService.forceDeleteUser(userId, getLoginUser());
+        userService.forceDeleteUser(userId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("강제 탈퇴 완료"));
     }
 
@@ -219,7 +221,7 @@ public class UserController {
     @GetMapping("/admin/flagged")
     public ResponseEntity<ApiResponse<?>> getFlaggedUsers() {
         return ResponseEntity.ok(ApiResponse.ok(
-            userService.getFlaggedUsers(getLoginUser())));
+            userService.getFlaggedUsers( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -234,14 +236,10 @@ public class UserController {
             @RequestParam int amount,
             @Parameter(description = "사유", example = "이벤트 당첨 보상")
             @RequestParam String description) {
-        mileageService.adjustMileage(userId, amount, description, getLoginUser());
+        mileageService.adjustMileage(userId, amount, description,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("마일리지 " +
                 (amount > 0 ? "지급" : "차감") + " 완료 (" + amount + ")"));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

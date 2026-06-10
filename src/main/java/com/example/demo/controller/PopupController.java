@@ -3,14 +3,16 @@ package com.example.demo.controller;
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.PopupRequestDto;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.PopupService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "팝업 API", description = "메인 화면 팝업 관리")
@@ -37,7 +39,7 @@ public class PopupController {
     @GetMapping("/admin")
     public ResponseEntity<ApiResponse<?>> getAllPopups() {
         return ResponseEntity.ok(ApiResponse.ok(
-                popupService.getAllPopups(getLoginUser())));
+                popupService.getAllPopups( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -48,7 +50,7 @@ public class PopupController {
     public ResponseEntity<ApiResponse<?>> createPopup(
             @RequestBody PopupRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                popupService.createPopup(requestDto, getLoginUser())));
+                popupService.createPopup(requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -61,7 +63,7 @@ public class PopupController {
             @PathVariable Long id,
             @RequestBody PopupRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                popupService.updatePopup(id, requestDto, getLoginUser())));
+                popupService.updatePopup(id, requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -72,13 +74,9 @@ public class PopupController {
     public ResponseEntity<ApiResponse<?>> deletePopup(
             @Parameter(description = "팝업 ID", example = "1")
             @PathVariable Long id) {
-        popupService.deletePopup(id, getLoginUser());
+        popupService.deletePopup(id,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("팝업 삭제 완료"));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

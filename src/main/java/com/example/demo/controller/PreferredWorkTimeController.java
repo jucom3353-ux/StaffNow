@@ -3,6 +3,9 @@ package com.example.demo.controller;
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.PreferredWorkTimeRequestDto;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.PreferredWorkTimeService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,8 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 
 import org.springframework.web.bind.annotation.*;
 
@@ -30,26 +32,22 @@ public class PreferredWorkTimeController {
             @RequestBody PreferredWorkTimeRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
                 preferredWorkTimeService.savePreferredWorkTime(
-                        requestDto, getLoginUser())));
+                        requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(summary = "선호 근무 시간 조회")
     @GetMapping
     public ResponseEntity<ApiResponse<?>> getPreferredWorkTime() {
         return ResponseEntity.ok(ApiResponse.ok(
-                preferredWorkTimeService.getPreferredWorkTime(getLoginUser())));
+                preferredWorkTimeService.getPreferredWorkTime( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(summary = "선호 근무 시간 전체 삭제")
     @DeleteMapping
     public ResponseEntity<ApiResponse<?>> deletePreferredWorkTime() {
-        preferredWorkTimeService.deletePreferredWorkTime(getLoginUser());
+        preferredWorkTimeService.deletePreferredWorkTime( AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("선호 근무 시간 삭제 완료"));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

@@ -2,6 +2,9 @@ package com.example.demo.jwt;
 
 import com.example.demo.entity.SubscriptionStatus;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.repository.CompanySubscriptionRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -10,6 +13,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -39,7 +43,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         String ip = getClientIp(request);
-        User loginUser = getLoginUser();
+        User loginUser =  AuthorizationUtil.getLoginUser();
 
         String key = loginUser != null ? ip + ":" + loginUser.getId() : ip;
         String path = request.getServletPath();

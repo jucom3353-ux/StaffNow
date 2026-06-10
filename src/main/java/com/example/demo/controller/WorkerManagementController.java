@@ -4,6 +4,9 @@ import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.WorkerBlacklistRequestDto;
 import com.example.demo.dto.WorkerMemoRequestDto;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.WorkerBlacklistService;
 import com.example.demo.service.WorkerMemoService;
 import com.example.demo.service.WorkerScrapService;
@@ -12,8 +15,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "인재 관리 API", description = "스크랩/메모/채용부적합 관리")
@@ -34,7 +36,7 @@ public class WorkerManagementController {
     public ResponseEntity<ApiResponse<?>> addScrap(
             @Parameter(description = "근로자 ID", example = "1")
             @PathVariable Long workerId) {
-        workerScrapService.addScrap(workerId, getLoginUser());
+        workerScrapService.addScrap(workerId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("스크랩 완료"));
     }
 
@@ -46,7 +48,7 @@ public class WorkerManagementController {
     public ResponseEntity<ApiResponse<?>> removeScrap(
             @Parameter(description = "근로자 ID", example = "1")
             @PathVariable Long workerId) {
-        workerScrapService.removeScrap(workerId, getLoginUser());
+        workerScrapService.removeScrap(workerId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("스크랩 취소 완료"));
     }
 
@@ -57,7 +59,7 @@ public class WorkerManagementController {
     @GetMapping("/scraps")
     public ResponseEntity<ApiResponse<?>> getScraps() {
         return ResponseEntity.ok(ApiResponse.ok(
-                workerScrapService.getScraps(getLoginUser())));
+                workerScrapService.getScraps( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -70,7 +72,7 @@ public class WorkerManagementController {
             @PathVariable Long workerId,
             @RequestBody WorkerMemoRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                workerMemoService.saveMemo(workerId, requestDto, getLoginUser())));
+                workerMemoService.saveMemo(workerId, requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -80,7 +82,7 @@ public class WorkerManagementController {
     @GetMapping("/memos")
     public ResponseEntity<ApiResponse<?>> getMemos() {
         return ResponseEntity.ok(ApiResponse.ok(
-                workerMemoService.getMemos(getLoginUser())));
+                workerMemoService.getMemos( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -91,7 +93,7 @@ public class WorkerManagementController {
     public ResponseEntity<ApiResponse<?>> deleteMemo(
             @Parameter(description = "근로자 ID", example = "1")
             @PathVariable Long workerId) {
-        workerMemoService.deleteMemo(workerId, getLoginUser());
+        workerMemoService.deleteMemo(workerId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("메모 삭제 완료"));
     }
 
@@ -105,7 +107,7 @@ public class WorkerManagementController {
             @PathVariable Long workerId,
             @RequestBody WorkerBlacklistRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                workerBlacklistService.addBlacklist(workerId, requestDto, getLoginUser())));
+                workerBlacklistService.addBlacklist(workerId, requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -116,7 +118,7 @@ public class WorkerManagementController {
     public ResponseEntity<ApiResponse<?>> removeBlacklist(
             @Parameter(description = "근로자 ID", example = "1")
             @PathVariable Long workerId) {
-        workerBlacklistService.removeBlacklist(workerId, getLoginUser());
+        workerBlacklistService.removeBlacklist(workerId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("채용부적합 해제 완료"));
     }
 
@@ -127,12 +129,8 @@ public class WorkerManagementController {
     @GetMapping("/blacklist")
     public ResponseEntity<ApiResponse<?>> getBlacklist() {
         return ResponseEntity.ok(ApiResponse.ok(
-                workerBlacklistService.getBlacklist(getLoginUser())));
+                workerBlacklistService.getBlacklist( AuthorizationUtil.getLoginUser())));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

@@ -2,6 +2,9 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.BookmarkService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,8 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "북마크 API", description = "관심 공고 북마크 기능")
@@ -31,7 +33,7 @@ public class BookmarkController {
     public ResponseEntity<ApiResponse<?>> addBookmark(
             @Parameter(description = "공고 ID", example = "1")
             @PathVariable Long jobPostId) {
-        bookmarkService.addBookmark(jobPostId, getLoginUser());
+        bookmarkService.addBookmark(jobPostId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("북마크 추가 완료"));
     }
 
@@ -43,7 +45,7 @@ public class BookmarkController {
     public ResponseEntity<ApiResponse<?>> removeBookmark(
             @Parameter(description = "공고 ID", example = "1")
             @PathVariable Long jobPostId) {
-        bookmarkService.removeBookmark(jobPostId, getLoginUser());
+        bookmarkService.removeBookmark(jobPostId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("북마크 취소 완료"));
     }
 
@@ -54,12 +56,8 @@ public class BookmarkController {
     @GetMapping("/bookmarks")
     public ResponseEntity<ApiResponse<?>> getMyBookmarks() {
         return ResponseEntity.ok(ApiResponse.ok(
-                bookmarkService.getMyBookmarks(getLoginUser())));
+                bookmarkService.getMyBookmarks( AuthorizationUtil.getLoginUser())));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

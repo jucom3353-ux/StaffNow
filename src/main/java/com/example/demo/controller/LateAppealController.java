@@ -4,13 +4,15 @@ import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.LateAppealRequestDto;
 import com.example.demo.entity.LateAppealStatus;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.LateAppealService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "지각 소명 API")
@@ -28,14 +30,14 @@ public class LateAppealController {
             @RequestBody LateAppealRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
                 lateAppealService.createAppeal(
-                        attendanceId, requestDto, getLoginUser())));
+                        attendanceId, requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(summary = "내 소명 목록 조회")
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<?>> getMyAppeals() {
         return ResponseEntity.ok(ApiResponse.ok(
-                lateAppealService.getMyAppeals(getLoginUser())));
+                lateAppealService.getMyAppeals( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(summary = "소명 승인 (관리자)")
@@ -44,7 +46,7 @@ public class LateAppealController {
             @PathVariable Long appealId,
             @RequestParam(required = false) String adminMemo) {
         return ResponseEntity.ok(ApiResponse.ok(
-                lateAppealService.approveAppeal(appealId, adminMemo, getLoginUser())));
+                lateAppealService.approveAppeal(appealId, adminMemo,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(summary = "소명 반려 (관리자)")
@@ -53,7 +55,7 @@ public class LateAppealController {
             @PathVariable Long appealId,
             @RequestParam String adminMemo) {
         return ResponseEntity.ok(ApiResponse.ok(
-                lateAppealService.rejectAppeal(appealId, adminMemo, getLoginUser())));
+                lateAppealService.rejectAppeal(appealId, adminMemo,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(summary = "전체 소명 목록 조회 (관리자)")
@@ -61,12 +63,8 @@ public class LateAppealController {
     public ResponseEntity<ApiResponse<?>> getAllAppeals(
             @RequestParam(required = false) LateAppealStatus status) {
         return ResponseEntity.ok(ApiResponse.ok(
-                lateAppealService.getAllAppeals(status, getLoginUser())));
+                lateAppealService.getAllAppeals(status,  AuthorizationUtil.getLoginUser())));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

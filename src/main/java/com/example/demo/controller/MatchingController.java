@@ -2,6 +2,9 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.MatchingService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,8 +13,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 
 import org.springframework.web.bind.annotation.*;
 
@@ -27,12 +29,8 @@ public class MatchingController {
     @GetMapping("/{jobPostId}")
     public ResponseEntity<ApiResponse<?>> autoMatch(@PathVariable Long jobPostId) {
         return ResponseEntity.ok(ApiResponse.ok(
-                matchingService.autoMatch(jobPostId, getLoginUser())));
+                matchingService.autoMatch(jobPostId,  AuthorizationUtil.getLoginUser())));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

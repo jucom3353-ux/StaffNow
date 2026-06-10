@@ -4,14 +4,16 @@ import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.BannerRequestDto;
 import com.example.demo.entity.BannerPosition;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.BannerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "배너 API", description = "메인/서브 배너 관리")
@@ -41,7 +43,7 @@ public class BannerController {
     @GetMapping("/admin")
     public ResponseEntity<ApiResponse<?>> getAllBanners() {
         return ResponseEntity.ok(ApiResponse.ok(
-                bannerService.getAllBanners(getLoginUser())));
+                bannerService.getAllBanners( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -52,7 +54,7 @@ public class BannerController {
     public ResponseEntity<ApiResponse<?>> createBanner(
             @RequestBody BannerRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                bannerService.createBanner(requestDto, getLoginUser())));
+                bannerService.createBanner(requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -65,7 +67,7 @@ public class BannerController {
             @PathVariable Long id,
             @RequestBody BannerRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                bannerService.updateBanner(id, requestDto, getLoginUser())));
+                bannerService.updateBanner(id, requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -76,7 +78,7 @@ public class BannerController {
     public ResponseEntity<ApiResponse<?>> deleteBanner(
             @Parameter(description = "배너 ID", example = "1")
             @PathVariable Long id) {
-        bannerService.deleteBanner(id, getLoginUser());
+        bannerService.deleteBanner(id,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("배너 삭제 완료"));
     }
 
@@ -92,9 +94,5 @@ public class BannerController {
         return ResponseEntity.ok(ApiResponse.ok("클릭 처리 완료"));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

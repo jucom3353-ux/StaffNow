@@ -3,6 +3,9 @@ package com.example.demo.controller;
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.ContractCreateRequestDto;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.ContractPdfService;
 import com.example.demo.service.ContractService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,8 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -33,7 +35,7 @@ public class ContractController {
     @PostMapping
     public ResponseEntity<ApiResponse<?>> createContract(
             @RequestBody ContractCreateRequestDto requestDto) {
-        contractService.createContract(requestDto, getLoginUser());
+        contractService.createContract(requestDto,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("계약서 생성 완료"));
     }
 
@@ -44,7 +46,7 @@ public class ContractController {
     @GetMapping
     public ResponseEntity<ApiResponse<?>> getMyContracts() {
         return ResponseEntity.ok(ApiResponse.ok(
-                contractService.getMyContracts(getLoginUser())));
+                contractService.getMyContracts( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -61,7 +63,7 @@ public class ContractController {
             @Parameter(description = "계약서 ID", example = "1")
             @PathVariable Long contractId) {
         return ResponseEntity.ok(ApiResponse.ok(
-                contractService.getContract(contractId, getLoginUser())));
+                contractService.getContract(contractId,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -78,7 +80,7 @@ public class ContractController {
             @PathVariable Long contractId,
             @Parameter(description = "서명 이미지 URL (선택)", example = "https://storage.example.com/signature.png")
             @RequestParam(required = false) String signatureUrl) {
-        contractService.signContract(contractId, signatureUrl, getLoginUser());
+        contractService.signContract(contractId, signatureUrl,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("서명 완료"));
     }
 
@@ -90,7 +92,7 @@ public class ContractController {
     public ResponseEntity<ApiResponse<?>> cancelContract(
             @Parameter(description = "계약서 ID", example = "1")
             @PathVariable Long contractId) {
-        contractService.cancelContract(contractId, getLoginUser());
+        contractService.cancelContract(contractId,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("계약서 취소 완료"));
     }
 
@@ -103,14 +105,10 @@ public class ContractController {
             @Parameter(description = "계약서 ID", example = "1")
             @PathVariable Long contractId) {
         String url = contractPdfService.generateContractPdf(
-                contractId, getLoginUser().getId());
+                contractId,  AuthorizationUtil.getLoginUser().getId());
         return ResponseEntity.ok(ApiResponse.ok("PDF 생성 완료",
                 Map.of("url", url)));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

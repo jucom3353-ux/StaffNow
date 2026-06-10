@@ -3,6 +3,9 @@ package com.example.demo.controller;
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.entity.PayrollStatus;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.PayrollService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,8 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "정산 API", description = "주간 급여 정산 기능")
@@ -35,7 +37,7 @@ public class PayrollController {
             @Parameter(description = "정산 주 시작일 (yyyy-MM-dd, 월요일)", example = "2026-06-01")
             @RequestParam String weekStart) {
         return ResponseEntity.ok(ApiResponse.ok(
-                payrollService.createPayroll(applicationId, weekStart, getLoginUser())));
+                payrollService.createPayroll(applicationId, weekStart,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -47,7 +49,7 @@ public class PayrollController {
             @Parameter(description = "정산 ID", example = "1")
             @PathVariable Long payrollId) {
         return ResponseEntity.ok(ApiResponse.ok(
-                payrollService.confirmPayroll(payrollId, getLoginUser())));
+                payrollService.confirmPayroll(payrollId,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -59,7 +61,7 @@ public class PayrollController {
             @Parameter(description = "정산 ID", example = "1")
             @PathVariable Long payrollId) {
         return ResponseEntity.ok(ApiResponse.ok(
-                payrollService.payPayroll(payrollId, getLoginUser())));
+                payrollService.payPayroll(payrollId,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -73,7 +75,7 @@ public class PayrollController {
             @Parameter(description = "반려 사유", example = "근무 시간 불일치")
             @RequestParam String rejectReason) {
         return ResponseEntity.ok(ApiResponse.ok(
-                payrollService.rejectPayroll(payrollId, rejectReason, getLoginUser())));
+                payrollService.rejectPayroll(payrollId, rejectReason,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -92,7 +94,7 @@ public class PayrollController {
             @RequestParam(required = false) String yearMonth) {
         return ResponseEntity.ok(ApiResponse.ok(
                 payrollService.getMyPayrollSummary(
-                        getLoginUser(), status, startDate, endDate, yearMonth)));
+                         AuthorizationUtil.getLoginUser(), status, startDate, endDate, yearMonth)));
     }
 
     @Operation(
@@ -107,7 +109,7 @@ public class PayrollController {
             @RequestParam(required = false) String yearMonth) {
         return ResponseEntity.ok(ApiResponse.ok(
                 payrollService.getCompanyPayrollSummary(
-                        getLoginUser(), jobPostId, yearMonth)));
+                         AuthorizationUtil.getLoginUser(), jobPostId, yearMonth)));
     }
 
     @Operation(
@@ -119,7 +121,7 @@ public class PayrollController {
             @Parameter(description = "정산 상태 필터 (PENDING/CONFIRMED/PAID/REJECTED)")
             @RequestParam(required = false) PayrollStatus status) {
         return ResponseEntity.ok(ApiResponse.ok(
-                payrollService.adminGetAllPayrolls(status, getLoginUser())));
+                payrollService.adminGetAllPayrolls(status,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -131,7 +133,7 @@ public class PayrollController {
             @Parameter(description = "정산 ID", example = "1")
             @PathVariable Long payrollId) {
         return ResponseEntity.ok(ApiResponse.ok(
-                payrollService.adminConfirmPayroll(payrollId, getLoginUser())));
+                payrollService.adminConfirmPayroll(payrollId,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -146,12 +148,8 @@ public class PayrollController {
             @RequestParam String rejectReason) {
         return ResponseEntity.ok(ApiResponse.ok(
                 payrollService.adminRejectPayroll(
-                        payrollId, rejectReason, getLoginUser())));
+                        payrollId, rejectReason,  AuthorizationUtil.getLoginUser())));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

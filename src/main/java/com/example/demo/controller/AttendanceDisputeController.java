@@ -4,13 +4,15 @@ import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.AttendanceDisputeRequestDto;
 import com.example.demo.entity.AttendanceDisputeStatus;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.AttendanceDisputeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "출퇴근 분쟁 API")
@@ -26,21 +28,21 @@ public class AttendanceDisputeController {
     public ResponseEntity<ApiResponse<?>> createDispute(
             @RequestBody AttendanceDisputeRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                attendanceDisputeService.createDispute(requestDto, getLoginUser())));
+                attendanceDisputeService.createDispute(requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(summary = "내 분쟁 목록 조회 (근로자)")
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<?>> getMyDisputes() {
         return ResponseEntity.ok(ApiResponse.ok(
-                attendanceDisputeService.getMyDisputes(getLoginUser())));
+                attendanceDisputeService.getMyDisputes( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(summary = "기업 분쟁 목록 조회")
     @GetMapping("/company")
     public ResponseEntity<ApiResponse<?>> getCompanyDisputes() {
         return ResponseEntity.ok(ApiResponse.ok(
-                attendanceDisputeService.getCompanyDisputes(getLoginUser())));
+                attendanceDisputeService.getCompanyDisputes( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(summary = "분쟁 승인 (관리자)")
@@ -50,7 +52,7 @@ public class AttendanceDisputeController {
             @RequestParam(required = false) String adminMemo) {
         return ResponseEntity.ok(ApiResponse.ok(
                 attendanceDisputeService.approveDispute(
-                        disputeId, adminMemo, getLoginUser())));
+                        disputeId, adminMemo,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(summary = "분쟁 반려 (관리자)")
@@ -60,7 +62,7 @@ public class AttendanceDisputeController {
             @RequestParam String adminMemo) {
         return ResponseEntity.ok(ApiResponse.ok(
                 attendanceDisputeService.rejectDispute(
-                        disputeId, adminMemo, getLoginUser())));
+                        disputeId, adminMemo,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(summary = "전체 분쟁 목록 조회 (관리자)")
@@ -68,12 +70,8 @@ public class AttendanceDisputeController {
     public ResponseEntity<ApiResponse<?>> getAllDisputes(
             @RequestParam(required = false) AttendanceDisputeStatus status) {
         return ResponseEntity.ok(ApiResponse.ok(
-                attendanceDisputeService.getAllDisputes(status, getLoginUser())));
+                attendanceDisputeService.getAllDisputes(status,  AuthorizationUtil.getLoginUser())));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

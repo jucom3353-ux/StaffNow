@@ -3,6 +3,9 @@ package com.example.demo.controller;
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.entity.Gender;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.WorkerSearchService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,8 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "추천 인력 API", description = "근로자 검색 및 추천 기능")
@@ -61,7 +63,7 @@ public class WorkerSearchController {
             @Parameter(description = "페이지 크기", example = "20")
             @RequestParam(defaultValue = "20") int size
     ) {
-        User loginUser = getLoginUser();
+        User loginUser =  AuthorizationUtil.getLoginUser();
         return ResponseEntity.ok(ApiResponse.ok(
                 workerSearchService.searchWorkers(
                         name, minRating, maxNoShow,
@@ -85,9 +87,5 @@ public class WorkerSearchController {
                 workerSearchService.getWorker(workerId)));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }

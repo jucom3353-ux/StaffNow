@@ -3,14 +3,16 @@ package com.example.demo.controller;
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.GoalRequestDto;
 import com.example.demo.entity.User;
+import com.example.demo.util.AuthorizationUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.GoalService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+  
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "목표 API", description = "구직자 목표 금액 설정 및 달성 관리")
@@ -29,7 +31,7 @@ public class GoalController {
     public ResponseEntity<ApiResponse<?>> setGoal(
             @Valid @RequestBody GoalRequestDto requestDto) {
         return ResponseEntity.ok(ApiResponse.ok(
-                goalService.setGoal(requestDto, getLoginUser())));
+                goalService.setGoal(requestDto,  AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -39,7 +41,7 @@ public class GoalController {
     @GetMapping
     public ResponseEntity<ApiResponse<?>> getMyGoal() {
         return ResponseEntity.ok(ApiResponse.ok(
-                goalService.getMyGoal(getLoginUser())));
+                goalService.getMyGoal( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -49,7 +51,7 @@ public class GoalController {
     @GetMapping("/history")
     public ResponseEntity<ApiResponse<?>> getMyGoalHistory() {
         return ResponseEntity.ok(ApiResponse.ok(
-                goalService.getMyGoalHistory(getLoginUser())));
+                goalService.getMyGoalHistory( AuthorizationUtil.getLoginUser())));
     }
 
     @Operation(
@@ -58,13 +60,9 @@ public class GoalController {
     )
     @DeleteMapping
     public ResponseEntity<ApiResponse<?>> deleteGoal() {
-        goalService.deleteGoal(getLoginUser());
+        goalService.deleteGoal( AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("목표 삭제 완료"));
     }
 
-    private User getLoginUser() {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
+     
 }
