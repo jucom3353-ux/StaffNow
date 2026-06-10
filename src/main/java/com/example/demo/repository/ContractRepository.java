@@ -3,6 +3,7 @@ package com.example.demo.repository;
 import com.example.demo.entity.Contract;
 import com.example.demo.entity.ContractStatus;
 import com.example.demo.entity.User;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,9 +15,15 @@ import java.util.List;
 @Repository
 public interface ContractRepository extends JpaRepository<Contract, Long> {
 
+    @EntityGraph(attributePaths = {"company", "worker", "jobPost"})
     List<Contract> findByCompany(User company);
+
+    @EntityGraph(attributePaths = {"company", "worker", "jobPost"})
     List<Contract> findByWorker(User worker);
+
+    @EntityGraph(attributePaths = {"company", "worker", "jobPost"})
     List<Contract> findByCompanyAndWorker(User company, User worker);
+
     long countByStatus(ContractStatus status);
 
     @Query("SELECT c FROM Contract c WHERE c.status = 'PENDING' " +
