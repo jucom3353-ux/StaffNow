@@ -66,6 +66,11 @@ public enum ErrorCode {
     REFRESH_TOKEN_NOT_FOUND(HttpStatus.UNAUTHORIZED, "Refresh Token이 없습니다."),
     REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "Refresh Token이 만료되었습니다."),
     REFRESH_TOKEN_BLACKLISTED(HttpStatus.UNAUTHORIZED, "이미 사용된 Refresh Token입니다."),
+    OTP_NOT_FOUND(HttpStatus.UNAUTHORIZED, "OTP를 먼저 요청해주세요."),
+    OTP_EXPIRED(HttpStatus.BAD_REQUEST, "OTP가 만료되었습니다."),
+    OTP_INVALID(HttpStatus.UNAUTHORIZED, "OTP 코드가 올바르지 않습니다."),
+    OTP_LOCKED(HttpStatus.TOO_MANY_REQUESTS, "OTP 입력 횟수 초과. 30분 후 재시도하세요."),
+    
 
     // 403 Forbidden
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
@@ -131,6 +136,7 @@ public enum ErrorCode {
     NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 리소스를 찾을 수 없습니다."),
     EVENT_PHOTO_NOT_FOUND(HttpStatus.NOT_FOUND, "행사 사진을 찾을 수 없습니다."),
 
+
     // 409 Conflict
     EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
     ALREADY_CHECKED_IN(HttpStatus.CONFLICT, "이미 출근 처리된 지원입니다."),
@@ -162,6 +168,7 @@ public enum ErrorCode {
     // 500 Internal Server Error
     FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "파일 업로드에 실패했습니다."),
     PDF_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "PDF 생성에 실패했습니다.");
+    
 
     private final HttpStatus httpStatus;
     private final String message;

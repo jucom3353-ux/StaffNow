@@ -4,9 +4,6 @@ import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.LoginRequestDto;
 import com.example.demo.entity.RefreshToken;
 import com.example.demo.entity.User;
-import com.example.demo.util.AuthorizationUtil;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.RefreshTokenRepository;
@@ -14,10 +11,6 @@ import com.example.demo.repository.UserRepository;
 import com.example.demo.service.AuthService;
 import com.example.demo.service.FcmTokenService;
 import com.example.demo.service.TwoFactorAuthService;
-  import com.example.demo.entity.User;
-import com.example.demo.util.AuthorizationUtil;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.util.AuthorizationUtil;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -49,11 +42,11 @@ public class AuthController {
 
     @Operation(
         summary = "로그인",
-        description = "이메일/비밀번호로 로그인합니다. 앱은 X-Client-Type: APP 헤더 포함 시 Body로 토큰 반환."
+        description = "이메일/비밀번호로 로그인합니다. ADMIN 및 2FA 활성화 유저는 OTP 발송 후 2단계 인증 필요."
     )
     @ApiResponses({
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "로그인 성공 또는 2단계 인증 코드 발송"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "비밀번호 불일치"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "로그인 성공 또는 OTP 발송"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "비밀번호 불일치"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "존재하지 않는 이메일"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "정지된 계정")
     })
@@ -92,7 +85,8 @@ public class AuthController {
     )
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "로그인 성공"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "인증 코드 불일치 또는 만료")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "OTP 코드 불일치 또는 만료"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "429", description = "OTP 입력 횟수 초과")
     })
     @PostMapping("/2fa/verify-login")
     public ResponseEntity<ApiResponse<?>> verifyTwoFactorLogin(

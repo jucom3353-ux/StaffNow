@@ -2,24 +2,21 @@ package com.example.demo.service;
 
 import com.example.demo.entity.TwoFactorAuth;
 import com.example.demo.entity.User;
-import com.example.demo.util.AuthorizationUtil;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.TwoFactorAuthRepository;
 import com.example.demo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.Random;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TwoFactorAuthService {
@@ -27,69 +24,76 @@ public class TwoFactorAuthService {
     private final TwoFactorAuthRepository twoFactorAuthRepository;
     private final UserRepository userRepository;
     private final JavaMailSender mailSender;
+    private final PasswordEncoder passwordEncoder;
 
-    private static final int CODE_EXPIRE_MINUTES = 5;
+    private static final int MAX_ATTEMPT = 5;
+    private static final int OTP_EXPIRE_MINUTES = 5;
+    private static final int LOCK_MINUTES = 30;
 
-    // 2단계 인증 활성화/비활성화
     @Transactional
-    public void toggleTwoFactor(User loginUser) {
-        loginUser.setTwoFactorEnabled(!loginUser.isTwoFactorEnabled());
-        userRepository.save(loginUser);
-        log.info("2단계 인증 {}:  userId={}",
-                loginUser.isTwoFactorEnabled() ? "활성화" : "비활성화",
-                loginUser.getId());
+    public void sendCode(User user) {
+        twoFactorAuthRepository.deleteByUser(user);
+
+        String rawCode = String.format("%06d", new SecureRandom().nextInt(1_000_000));
+
+        TwoFactorAuth otp = new TwoFactorAuth();
+        otp.setUser(user);
+        otp.setCode(passwordEncoder.encode(rawCode));
+        otp.setExpiredAt(LocalDateTime.now().plusMinutes(OTP_EXPIRE_MINUTES));
+        twoFactorAuthRepository.save(otp);
+
+        sendOtpEmail(user.getEmail(), rawCode);
     }
 
-    // 인증 코드 발송
     @Transactional
-    public void sendCode(User loginUser) {
+    public void verifyCode(User user, String inputCode) {
+        TwoFactorAuth otp = twoFactorAuthRepository
+                .findTopByUserAndVerifiedFalseOrderByCreatedAtDesc(user)
+                .orElseThrow(() -> new CustomException(ErrorCode.OTP_NOT_FOUND));
 
-        // 기존 코드 삭제
-        twoFactorAuthRepository.deleteByUser(loginUser);
+        // 잠금 체크
+        if (otp.getLockedUntil() != null
+                && LocalDateTime.now().isBefore(otp.getLockedUntil())) {
+            throw new CustomException(ErrorCode.OTP_LOCKED);
+        }
 
-        String code = generateCode();
+        // 만료 체크
+        if (LocalDateTime.now().isAfter(otp.getExpiredAt())) {
+            twoFactorAuthRepository.delete(otp);
+            throw new CustomException(ErrorCode.OTP_EXPIRED);
+        }
 
-        TwoFactorAuth auth = new TwoFactorAuth();
-        auth.setUser(loginUser);
-        auth.setCode(code);
-        auth.setExpiredAt(LocalDateTime.now().plusMinutes(CODE_EXPIRE_MINUTES));
-        twoFactorAuthRepository.save(auth);
+        // 코드 불일치
+        if (!passwordEncoder.matches(inputCode, otp.getCode())) {
+            int attempts = otp.getAttemptCount() + 1;
+            otp.setAttemptCount(attempts);
+            if (attempts >= MAX_ATTEMPT) {
+                otp.setLockedUntil(LocalDateTime.now().plusMinutes(LOCK_MINUTES));
+            }
+            twoFactorAuthRepository.save(otp);
+            throw new CustomException(ErrorCode.OTP_INVALID);
+        }
 
+        otp.setVerified(true);
+        twoFactorAuthRepository.save(otp);
+    }
+
+    @Transactional
+    public void toggleTwoFactor(User user) {
+        user.setTwoFactorEnabled(!user.isTwoFactorEnabled());
+        userRepository.save(user);
+    }
+
+    @Async
+    public void sendOtpEmail(String to, String code) {
         SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(loginUser.getEmail());
-        message.setSubject("[StaffNow] 2단계 인증 코드");
-        message.setText("인증 코드: " + code + "\n\n" +
-                CODE_EXPIRE_MINUTES + "분간 유효합니다.\n" +
-                "본인이 요청하지 않은 경우 이 메일을 무시하세요.");
-
+        message.setTo(to);
+        message.setSubject("[Promoter] 관리자 인증 코드");
+        message.setText(
+            "인증 코드: " + code + "\n\n" +
+            "유효 시간: 5분\n" +
+            "타인에게 절대 공유하지 마세요."
+        );
         mailSender.send(message);
-        log.info("2단계 인증 코드 발송: userId={}", loginUser.getId());
-    }
-
-    // 인증 코드 검증
-    @Transactional
-    public void verifyCode(User loginUser, String code) {
-
-        TwoFactorAuth auth = twoFactorAuthRepository
-                .findTopByUserOrderByCreatedAtDesc(loginUser)
-                .orElseThrow(() -> new CustomException(ErrorCode.VERIFY_CODE_REQUIRED));
-
-        if (auth.getExpiredAt().isBefore(LocalDateTime.now())) {
-            twoFactorAuthRepository.deleteByUser(loginUser);
-            throw new CustomException(ErrorCode.VERIFY_CODE_EXPIRED);
-        }
-
-        if (!auth.getCode().equals(code)) {
-            throw new CustomException(ErrorCode.VERIFY_CODE_INVALID);
-        }
-
-        auth.setVerified(true);
-        twoFactorAuthRepository.save(auth);
-
-        log.info("2단계 인증 완료: userId={}", loginUser.getId());
-    }
-
-    private String generateCode() {
-        return String.format("%06d", new Random().nextInt(999999));
     }
 }
