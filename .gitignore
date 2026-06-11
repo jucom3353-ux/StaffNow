@@ -47,14 +47,12 @@ dist-ssr
 
 ### 민감 파일 ###
 src/main/resources/application.properties
-src/main/resources/application-prod.yml
 src/main/resources/firebase-service-account.json
 everything-claude-code/
 .claude/settings.local.json
 src/main/resources/jucompany-358e2-firebase-adminsdk-fbsvc-c82ea52497.json
 .env.prod
 server-init.txt
-docker-compose.prod.yml
 nginx/nginx.prod.conf
 .env
 ssl/
