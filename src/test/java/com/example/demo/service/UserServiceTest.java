@@ -13,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import java.time.LocalDateTime;
 
 import java.util.List;
 import java.util.Optional;
@@ -254,5 +255,26 @@ class UserServiceTest {
 
         assertThatThrownBy(() -> userService.forceDeleteUser(1L, admin))
                 .isInstanceOf(CustomException.class);
+    }
+
+    @Test
+    @DisplayName("로그인 잠금 해제 성공")
+    void unlockUser_success() {
+    worker.setLoginFailCount(5);
+    worker.setLoginLockedUntil(LocalDateTime.now().plusMinutes(5));
+    given(userRepository.findById(2L)).willReturn(Optional.of(worker));
+
+    userService.unlockUser(2L, admin);
+
+    assertThat(worker.getLoginFailCount()).isEqualTo(0);
+    assertThat(worker.getLoginLockedUntil()).isNull();
+    verify(userRepository, times(1)).save(worker);
+    }
+
+    @Test
+    @DisplayName("관리자 아닌 경우 잠금 해제 불가")
+    void unlockUser_fail_notAdmin() {
+    assertThatThrownBy(() -> userService.unlockUser(2L, worker))
+            .isInstanceOf(CustomException.class);
     }
 }
