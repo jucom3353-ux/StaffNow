@@ -1,27 +1,35 @@
 spring:
   datasource:
-    url: jdbc:mysql://실제서버주소:3306/jucompany?useSSL=true&serverTimezone=Asia/Seoul
-    
+    url: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
+
   jpa:
-    show-sql: false  # 운영에서 SQL 로그 끄기
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
 
-app:
-  cookie:
-    secure: true  # HTTPS 필수
-  cors:
-    allowed-origins: https://jucompany.com  # 실제 도메인
-
-springdoc:
-  swagger-ui:
-    enabled: false  # 운영에서 Swagger 비활성화
-  api-docs:
-    enabled: false
+file:
+  base-url: https://promoter.co.kr
 
 logging:
   level:
-    com.example.demo: INFO  # DEBUG → INFO로 변경
+    com.example.demo: INFO
+    org.springframework.web: WARN
 
 oauth:
   kakao:
     client-id: ${KAKAO_CLIENT_ID}
-    redirect-uri: https://도메인주소/auth/kakao/callback
+    redirect-uri: https://promoter.co.kr/auth/kakao/callback
+
+app:
+  cookie:
+    secure: true
+  cors:
+    allowed-origins: ${ALLOWED_ORIGINS}
+
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false

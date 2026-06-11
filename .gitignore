@@ -56,3 +56,7 @@ src/main/resources/jucompany-358e2-firebase-adminsdk-fbsvc-c82ea52497.json
 server-init.txt
 docker-compose.prod.yml
 nginx/nginx.prod.conf
+.env
+ssl/
+*.key
+*.crt
