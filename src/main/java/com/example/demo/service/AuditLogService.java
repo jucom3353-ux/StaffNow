@@ -1,7 +1,10 @@
 package com.example.demo.service;
 
 import com.example.demo.entity.AuditLog;
+import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
+import com.example.demo.exception.CustomException;
+import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.AuditLogRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -29,7 +32,10 @@ public class AuditLogService {
         auditLogRepository.save(log);
     }
 
-    public Page<AuditLog> getLogs(Pageable pageable) {
+    public Page<AuditLog> getLogs(User loginUser, Pageable pageable) {
+        if (loginUser.getRole() != Role.ADMIN) {
+            throw new CustomException(ErrorCode.ADMIN_ONLY);
+        }
         return auditLogRepository.findAllByOrderByCreatedAtDesc(pageable);
     }
 }

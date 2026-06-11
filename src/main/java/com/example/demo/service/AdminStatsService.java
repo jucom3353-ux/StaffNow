@@ -196,4 +196,6 @@ public class AdminStatsService {
     private interface DailyStatFetcher {
         long fetch(LocalDateTime start, LocalDateTime end);
     }
+
+    
 }

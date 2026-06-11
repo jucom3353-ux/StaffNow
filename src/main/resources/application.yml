@@ -1,7 +1,7 @@
 spring:
   application:
     name: demo
-  
+
   servlet:
     multipart:
       max-file-size: 10MB
@@ -14,12 +14,12 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: update
     show-sql: true
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
 
   jackson:
@@ -48,7 +48,7 @@ oauth:
   kakao:
     client-id: ${KAKAO_CLIENT_ID:dummy}
     redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8080/auth/kakao/callback}
-    
+
 server:
   error:
     include-message: always
@@ -89,4 +89,3 @@ coolsms:
   api-key: ${COOLSMS_API_KEY:}
   api-secret: ${COOLSMS_API_SECRET:}
   sender: ${COOLSMS_SENDER:}
-  
