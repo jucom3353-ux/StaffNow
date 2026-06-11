@@ -38,18 +38,38 @@ public class AuthService {
 
     @Transactional
     public User authenticate(LoginRequestDto requestDto) {
-        User user = userRepository.findByEmail(requestDto.getEmail())
-                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_EMAIL));
+    User user = userRepository.findByEmail(requestDto.getEmail())
+            .orElseThrow(() -> new CustomException(ErrorCode.INVALID_EMAIL));
 
-        if (!passwordEncoder.matches(requestDto.getPassword(), user.getPassword())) {
-            throw new CustomException(ErrorCode.INVALID_PASSWORD);
+        // 계정 잠금 체크
+    if (user.getLoginLockedUntil() != null
+            && LocalDateTime.now().isBefore(user.getLoginLockedUntil())) {
+        throw new CustomException(ErrorCode.ACCOUNT_LOCKED);
+    }
+
+        // 비밀번호 불일치
+    if (!passwordEncoder.matches(requestDto.getPassword(), user.getPassword())) {
+        int failCount = user.getLoginFailCount() + 1;
+        user.setLoginFailCount(failCount);
+        if (failCount >= 5) {
+            user.setLoginLockedUntil(LocalDateTime.now().plusMinutes(10));
+            user.setLoginFailCount(0); // 카운트 초기화
         }
+        userRepository.save(user);
+        throw new CustomException(ErrorCode.INVALID_PASSWORD);
+    }
 
-        if (Boolean.TRUE.equals(user.getSuspended())) {
-            throw new CustomException(ErrorCode.ACCESS_DENIED);
-        }
+    // 정지 계정 체크
+    if (Boolean.TRUE.equals(user.getSuspended())) {
+        throw new CustomException(ErrorCode.ACCESS_DENIED);
+    }
 
-        return user;
+    // 로그인 성공 시 실패 카운트 초기화
+    user.setLoginFailCount(0);
+    user.setLoginLockedUntil(null);
+    userRepository.save(user);
+
+    return user;
     }
 
     @Transactional

@@ -123,6 +123,12 @@ public class User {
     @Column(name = "anonymized")
     private Boolean anonymized = false;
 
+    @Column(name = "login_fail_count", columnDefinition = "int default 0")
+    private int loginFailCount = 0;
+
+    @Column(name = "login_locked_until")
+    private LocalDateTime loginLockedUntil;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
@@ -174,6 +180,8 @@ public class User {
     public String getSpecialtyBadge() { return specialtyBadge; }
     public LocalDateTime getDeletedAt() { return deletedAt; }
     public Boolean getAnonymized() { return anonymized; }
+    public int getLoginFailCount() { return loginFailCount; }
+    public LocalDateTime getLoginLockedUntil() { return loginLockedUntil; }
 
     public void setId(Long id) { this.id = id; }
     public void setEmail(String email) { this.email = email; }
@@ -221,4 +229,6 @@ public class User {
     public void setSpecialtyBadge(String specialtyBadge) { this.specialtyBadge = specialtyBadge; }
     public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
     public void setAnonymized(Boolean anonymized) { this.anonymized = anonymized; }
+    public void setLoginFailCount(int loginFailCount) { this.loginFailCount = loginFailCount; }
+    public void setLoginLockedUntil(LocalDateTime loginLockedUntil) { this.loginLockedUntil = loginLockedUntil; }
 }

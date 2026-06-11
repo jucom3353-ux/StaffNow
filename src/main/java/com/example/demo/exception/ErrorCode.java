@@ -70,6 +70,7 @@ public enum ErrorCode {
     OTP_EXPIRED(HttpStatus.BAD_REQUEST, "OTP가 만료되었습니다."),
     OTP_INVALID(HttpStatus.UNAUTHORIZED, "OTP 코드가 올바르지 않습니다."),
     OTP_LOCKED(HttpStatus.TOO_MANY_REQUESTS, "OTP 입력 횟수 초과. 30분 후 재시도하세요."),
+    ACCOUNT_LOCKED(HttpStatus.TOO_MANY_REQUESTS, "로그인 시도 횟수 초과. 10분 후 재시도하세요."),
     
 
     // 403 Forbidden

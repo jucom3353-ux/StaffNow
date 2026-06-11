@@ -9,9 +9,6 @@ import com.example.demo.dto.UserUpdateRequestDto;
 import com.example.demo.entity.BusinessLicenseStatus;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
-import com.example.demo.util.AuthorizationUtil;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.RefreshTokenRepository;
@@ -65,7 +62,6 @@ public class UserService {
         user.setRole(requestDto.getRole());
         user.setNoShowCount(0);
         user.setMbti(requestDto.getMbti());
-
         user.setReferralCode(generateReferralCode());
 
         if (requestDto.getReferralCode() != null && !requestDto.getReferralCode().isBlank()) {
@@ -124,17 +120,11 @@ public class UserService {
 
     @Transactional
     public void deleteUser(User loginUser) {
-        // 즉시 삭제 대신 탈퇴 신청 처리 (30일 후 익명화)
         loginUser.setDeletedAt(LocalDateTime.now());
         loginUser.setSuspended(true);
         loginUser.setSuspendReason("탈퇴 신청");
-
-        // RefreshToken 즉시 무효화
         refreshTokenRepository.deleteAllByUserId(loginUser.getId());
-
-        // FCM 토큰 제거
         fcmTokenService.removeAllTokens(loginUser);
-
         userRepository.save(loginUser);
     }
 
@@ -190,11 +180,9 @@ public class UserService {
         if (loginUser.getRole() != Role.ADMIN) {
             throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
-
         List<User> users = role != null
             ? userRepository.findByRole(role)
             : userRepository.findAll();
-
         return users.stream()
                 .map(UserPrivateResponseDto::new)
                 .collect(Collectors.toList());
@@ -205,18 +193,13 @@ public class UserService {
         if (loginUser.getRole() != Role.ADMIN) {
             throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
-
         User target = userRepository.findById(targetUserId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-
         if (target.getRole() == Role.ADMIN) {
             throw new CustomException(ErrorCode.ADMIN_SUSPEND_NOT_ALLOWED);
         }
-
         target.setSuspended(true);
         userRepository.save(target);
-
-        // 정지 시 기존 토큰 즉시 무효화
         refreshTokenRepository.deleteAllByUserId(target.getId());
     }
 
@@ -225,11 +208,21 @@ public class UserService {
         if (loginUser.getRole() != Role.ADMIN) {
             throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
-
         User target = userRepository.findById(targetUserId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-
         target.setSuspended(false);
+        userRepository.save(target);
+    }
+
+    @Transactional
+    public void unlockUser(Long targetUserId, User loginUser) {
+        if (loginUser.getRole() != Role.ADMIN) {
+            throw new CustomException(ErrorCode.ADMIN_ONLY);
+        }
+        User target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        target.setLoginFailCount(0);
+        target.setLoginLockedUntil(null);
         userRepository.save(target);
     }
 
@@ -238,14 +231,11 @@ public class UserService {
         if (loginUser.getRole() != Role.ADMIN) {
             throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
-
         User target = userRepository.findById(targetUserId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-
         if (target.getRole() == Role.ADMIN) {
             throw new CustomException(ErrorCode.ADMIN_DELETE_NOT_ALLOWED);
         }
-
         refreshTokenRepository.deleteAllByUserId(target.getId());
         userRepository.delete(target);
     }
@@ -259,12 +249,12 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<UserPrivateResponseDto> getFlaggedUsers(User loginUser) {
-    if (loginUser.getRole() != Role.ADMIN) {
-        throw new CustomException(ErrorCode.ADMIN_ONLY);
+        if (loginUser.getRole() != Role.ADMIN) {
+            throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
-    return userRepository.findFlaggedUsers()
-            .stream()
-            .map(UserPrivateResponseDto::new)
-            .collect(Collectors.toList());
+        return userRepository.findFlaggedUsers()
+                .stream()
+                .map(UserPrivateResponseDto::new)
+                .collect(Collectors.toList());
     }
 }
