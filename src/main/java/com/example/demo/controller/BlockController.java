@@ -1,21 +1,20 @@
 package com.example.demo.controller;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.example.demo.dto.ApiResponse;
-import com.example.demo.entity.User;
-import com.example.demo.util.AuthorizationUtil;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.BlockService;
+import com.example.demo.util.AuthorizationUtil;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
 import lombok.RequiredArgsConstructor;
-
-import org.springframework.http.ResponseEntity;
-  
-
-import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "차단 API", description = "사용자 차단 기능")
 @RestController

@@ -1,29 +1,28 @@
 package com.example.demo.controller;
 
-import com.example.demo.dto.ApiResponse;
-import com.example.demo.dto.BusinessValidationResponseDto;
-import com.example.demo.entity.User;
-import com.example.demo.util.AuthorizationUtil;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import com.example.demo.service.BusinessLicenseService;
-import com.example.demo.service.NtsApiService;
-
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
-
-import lombok.RequiredArgsConstructor;
+import java.util.Map;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-  
-
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Map;
+import com.example.demo.dto.ApiResponse;
+import com.example.demo.dto.BusinessValidationResponseDto;
+import com.example.demo.entity.User;
+import com.example.demo.service.BusinessLicenseService;
+import com.example.demo.service.NtsApiService;
+import com.example.demo.util.AuthorizationUtil;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 
 @Tag(name = "사업자 등록증명서 API", description = "사업자 등록증명서 업로드 및 검증")
 @RestController

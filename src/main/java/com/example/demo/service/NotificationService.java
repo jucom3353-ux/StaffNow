@@ -176,4 +176,28 @@ public class NotificationService {
         unread.forEach(n -> n.setRead(true));
         notificationRepository.saveAll(unread);
     }
+    
+        @Transactional
+    public void deleteNotification(Long notificationId, User loginUser) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOTIFICATION_NOT_FOUND));
+        if (!notification.getUser().getId().equals(loginUser.getId()))
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
+        notificationRepository.delete(notification);
+    }
+
+    @Transactional
+    public void deleteSelected(List<Long> ids, User loginUser) {
+        List<Notification> notifications = notificationRepository.findAllById(ids);
+        notifications.forEach(n -> {
+            if (!n.getUser().getId().equals(loginUser.getId()))
+                throw new CustomException(ErrorCode.ACCESS_DENIED);
+        });
+        notificationRepository.deleteAll(notifications);
+    }
+
+    @Transactional
+    public void deleteAll(User loginUser) {
+        notificationRepository.deleteByUser(loginUser);
+    }
 }

@@ -19,6 +19,9 @@ public class Application {
     @JoinColumn(name = "job_post_id")
     private JobPost jobPost;
 
+    @Column(name = "attendance_confirmed_at")
+    private LocalDateTime attendanceConfirmedAt;
+
     @ManyToOne
     @JoinColumn(name = "work_session_id")
     private WorkSession workSession;
@@ -50,6 +53,7 @@ public class Application {
     public ApplicationStatus getStatus() { return status; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public ApplyMethod getApplyMethod() { return applyMethod; }
+    public LocalDateTime getAttendanceConfirmedAt() { return attendanceConfirmedAt; }
 
     public void setUser(User user) { this.user = user; }
     public void setJobPost(JobPost jobPost) { this.jobPost = jobPost; }
@@ -57,4 +61,5 @@ public class Application {
     public void setJobPostRole(JobPostRole jobPostRole) { this.jobPostRole = jobPostRole; }
     public void setStatus(ApplicationStatus status) { this.status = status; }
     public void setApplyMethod(ApplyMethod applyMethod) { this.applyMethod = applyMethod; }
+    public void setAttendanceConfirmedAt(LocalDateTime attendanceConfirmedAt) { this.attendanceConfirmedAt = attendanceConfirmedAt; }
 }

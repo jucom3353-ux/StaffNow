@@ -15,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Map;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -534,4 +535,35 @@ public class ApplicationService {
             a.worker != null && a.worker.isBoosted))
         .collect(Collectors.toList());
     }
+
+    @Transactional(readOnly = true)
+    public Map<String, Long> getMyApplicationStats(User loginUser) {
+    if (loginUser.getRole() != Role.INDIVIDUAL)
+        throw new CustomException(ErrorCode.WORKER_ONLY);
+    long total = applicationRepository.countByUser(loginUser);
+    long applied = applicationRepository.countByUserAndStatus(loginUser, ApplicationStatus.APPLIED);
+    long approved = applicationRepository.countByUserAndStatus(loginUser, ApplicationStatus.APPROVED);
+    return Map.of("total", total, "pending", applied, "accepted", approved);
+    }
+
+    @Transactional
+    public void confirmAttendance(Long applicationId, User loginUser) {
+    Application application = applicationRepository.findById(applicationId)
+            .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
+    if (!application.getUser().getId().equals(loginUser.getId()))
+        throw new CustomException(ErrorCode.NOT_MY_APPLICATION);
+    application.setAttendanceConfirmedAt(LocalDateTime.now());
+    applicationRepository.save(application);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Long> getMyApplicationShiftIds(User loginUser) {
+    if (loginUser.getRole() != Role.INDIVIDUAL)
+        throw new CustomException(ErrorCode.WORKER_ONLY);
+    return applicationRepository.findByUser(loginUser).stream()
+            .filter(a -> a.getWorkSession() != null)
+            .map(a -> a.getWorkSession().getId())
+            .collect(Collectors.toList());
+    }
+
 }

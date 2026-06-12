@@ -16,6 +16,18 @@ public class Payroll {
     private User worker;
 
     @ManyToOne
+    @JoinColumn(name = "application_id")
+    private Application application;
+
+    @ManyToOne
+    @JoinColumn(name = "work_session_id")
+    private WorkSession workSession;
+
+    @ManyToOne
+    @JoinColumn(name = "company_id")
+    private User company;
+
+    @ManyToOne
     @JoinColumn(name = "job_post_id")
     private JobPost jobPost;
 
@@ -27,6 +39,9 @@ public class Payroll {
     private int basicPay;
     private int holidayPay;
     private int totalPay;
+    private int lateMinutes;
+    private int overtimeMinutes;
+    private int actualMinutes;
 
     // 추가: 3.3% 공제 실수령액 (totalPay * 0.967)
     private int netPay;
@@ -77,6 +92,12 @@ public class Payroll {
     public String getRejectReason() { return rejectReason; }
     public LocalDateTime getDeadlineAt() { return deadlineAt; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public Application getApplication() { return application; }
+    public WorkSession getWorkSession() { return workSession; }
+    public User getCompany() { return company; }
+    public int getLateMinutes() { return lateMinutes; }
+    public int getOvertimeMinutes() { return overtimeMinutes; }
+    public int getActualMinutes() { return actualMinutes; }
 
     public void setWorker(User worker) { this.worker = worker; }
     public void setJobPost(JobPost jobPost) { this.jobPost = jobPost; }
@@ -98,4 +119,10 @@ public class Payroll {
     public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }
     public void setRejectReason(String rejectReason) { this.rejectReason = rejectReason; }
     public void setDeadlineAt(LocalDateTime deadlineAt) { this.deadlineAt = deadlineAt; }
+    public void setApplication(Application application) { this.application = application; }
+    public void setWorkSession(WorkSession workSession) { this.workSession = workSession; }
+    public void setCompany(User company) { this.company = company; }
+    public void setLateMinutes(int lateMinutes) { this.lateMinutes = lateMinutes; }
+    public void setOvertimeMinutes(int overtimeMinutes) { this.overtimeMinutes = overtimeMinutes; }
+    public void setActualMinutes(int actualMinutes) { this.actualMinutes = actualMinutes; }
 }

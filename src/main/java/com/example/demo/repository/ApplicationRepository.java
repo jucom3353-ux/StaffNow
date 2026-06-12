@@ -5,9 +5,6 @@ import com.example.demo.entity.ApplicationStatus;
 import com.example.demo.entity.JobPost;
 import com.example.demo.entity.JobPostRole;
 import com.example.demo.entity.User;
-import com.example.demo.util.AuthorizationUtil;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.entity.WorkSession;
 
 import org.springframework.data.domain.Page;
@@ -40,6 +37,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     List<Application> findByJobPostAndStatus(JobPost jobPost, ApplicationStatus status);
 
     int countByUserAndStatus(User user, ApplicationStatus status);
+    long countByUser(User user);
     List<Application> findByStatus(ApplicationStatus status);
     long countByStatus(ApplicationStatus status);
     long countByJobPostAndStatus(JobPost jobPost, ApplicationStatus status);
@@ -75,12 +73,13 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
            "AND a.status != :status")
     int countByJobPostRoleAndStatusNot(
             @Param("jobPostRole") JobPostRole jobPostRole,
-            @Param("status") ApplicationStatus status
-    );
+            @Param("status") ApplicationStatus status);
+
     @Query("SELECT COUNT(a) FROM Application a WHERE a.createdAt >= :start AND a.createdAt < :end")
     long countNewApplications(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
+
     @Query("SELECT a.jobPost.category.name, COUNT(a) FROM Application a " +
            "WHERE a.user = :user AND a.status = 'COMPLETED' " +
            "GROUP BY a.jobPost.category.name " +
@@ -91,14 +90,14 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
         User user, ApplicationStatus status);
 
     @EntityGraph(attributePaths = {"user", "jobPost", "jobPost.user", "jobPostRole"})
-        List<Application> findByUser(User user);
+    List<Application> findByUser(User user);
 
     @EntityGraph(attributePaths = {
-    "user", "jobPost", "jobPost.user", "workSession", "workSession.jobPost"
-        })
+        "user", "jobPost", "jobPost.user", "workSession", "workSession.jobPost"
+    })
     @Query("SELECT a FROM Application a " +
            "WHERE a.jobPost.user = :company " +
-         "AND (a.jobPost.deletedAt IS NULL) " +
-         "ORDER BY a.createdAt DESC")
+           "AND (a.jobPost.deletedAt IS NULL) " +
+           "ORDER BY a.createdAt DESC")
     List<Application> findByCompanyUser(@Param("company") User company);
 }

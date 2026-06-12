@@ -5,7 +5,6 @@ import com.example.demo.entity.*;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.*;
-  import com.example.demo.entity.User;
 import com.example.demo.util.AuthorizationUtil;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -435,4 +434,33 @@ public class PayrollService {
 
         return new PayrollResponseDto(payrollRepository.save(payroll));
     }
+
+    @Transactional
+public PayrollResponseDto updateOvertimeMinutes(Long payrollId, int overtimeMinutes, User loginUser) {
+    AuthorizationUtil.validateCompanyOrManager(loginUser);
+
+    Payroll payroll = payrollRepository.findById(payrollId)
+            .orElseThrow(() -> new CustomException(ErrorCode.PAYROLL_NOT_FOUND));
+
+    if (!AuthorizationUtil.isMyJobPost(payroll.getJobPost(), loginUser)) {
+        throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
+    }
+
+    int overtime = Math.max(0, overtimeMinutes);
+    payroll.setOvertimeMinutes(overtime);
+
+    // 급여 재계산
+    JobPost jp = payroll.getJobPost();
+    if (jp.getWageAmount() != null && jp.getWageType() != null) {
+        int lateMin = payroll.getLateMinutes();
+        int hourlyWage = payroll.getHourlyWage();
+        int overtimeHours = overtime / 60;
+        int overtimePay = (int)(overtimeHours * hourlyWage * 1.5);
+        int latePenalty = (int)(lateMin / 60.0 * hourlyWage);
+        int newTotal = payroll.getBasicPay() + payroll.getHolidayPay() + overtimePay - latePenalty;
+        payroll.setTotalPay(Math.max(0, newTotal));
+         }
+
+        return new PayrollResponseDto(payrollRepository.save(payroll));
+        }
 }

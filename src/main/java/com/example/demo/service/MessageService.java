@@ -1,26 +1,29 @@
 package com.example.demo.service;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.example.demo.dto.ConversationResponseDto;
 import com.example.demo.dto.MessageRequestDto;
 import com.example.demo.dto.MessageResponseDto;
+import com.example.demo.entity.ApplicationStatus;
 import com.example.demo.entity.Message;
 import com.example.demo.entity.NotificationType;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
-import com.example.demo.util.AuthorizationUtil;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
+import com.example.demo.repository.ApplicationRepository;
 import com.example.demo.repository.MessageRepository;
 import com.example.demo.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import com.example.demo.util.AuthorizationUtil;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +32,7 @@ public class MessageService {
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final ApplicationRepository applicationRepository;
 
     @Transactional
     public MessageResponseDto sendMessage(MessageRequestDto requestDto, User loginUser) {
@@ -101,4 +105,46 @@ public class MessageService {
 
         messageRepository.delete(message);
     }
+
+    @Transactional
+    public void editMessage(Long messageId, String content, User loginUser) {
+        if (content == null || content.isBlank())
+            throw new CustomException(ErrorCode.INVALID_MESSAGE_CONTENT);
+        Message message = messageRepository.findByIdAndSender(messageId, loginUser)
+                .orElseThrow(() -> new CustomException(ErrorCode.MESSAGE_NOT_FOUND));
+        message.setContent(content);
+        messageRepository.save(message);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getAcceptedContacts(User loginUser) {
+        if (loginUser.getRole() == Role.COMPANY || loginUser.getRole() == Role.MANAGER) {
+            User companyUser = AuthorizationUtil.getCompanyUser(loginUser);
+            return applicationRepository.findByCompanyUser(companyUser).stream()
+                .filter(a -> a.getStatus() == ApplicationStatus.APPROVED)
+                .map(a -> {
+                    User worker = a.getUser();
+                    return Map.<String, Object>of(
+                        "id", worker.getId(),
+                        "name", worker.getName(),
+                        "avatarUrl", worker.getProfileImageUrl() != null ? worker.getProfileImageUrl() : ""
+                    );
+                })
+                .distinct()
+                .collect(Collectors.toList());
+        } else {
+            return applicationRepository.findByUser(loginUser).stream()
+                .filter(a -> a.getStatus() == ApplicationStatus.APPROVED)
+                .map(a -> {
+                    User company = a.getJobPost().getUser();
+                    return Map.<String, Object>of(
+                        "id", company.getId(),
+                        "name", company.getName() != null ? company.getName() : company.getCompanyName(),
+                        "avatarUrl", company.getProfileImageUrl() != null ? company.getProfileImageUrl() : ""
+                    );
+                })
+                .distinct()
+                .collect(Collectors.toList());
+            }
+        }
 }

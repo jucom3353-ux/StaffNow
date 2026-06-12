@@ -1,21 +1,17 @@
 package com.example.demo.controller;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.example.demo.dto.ApiResponse;
-import com.example.demo.entity.User;
-import com.example.demo.util.AuthorizationUtil;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.HomeService;
+import com.example.demo.util.AuthorizationUtil;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
 import lombok.RequiredArgsConstructor;
-
-import org.springframework.http.ResponseEntity;
-  
-
-import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "홈 API", description = "메인 페이지 요약 데이터")
 @RestController

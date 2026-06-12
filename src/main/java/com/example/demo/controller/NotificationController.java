@@ -1,23 +1,25 @@
 package com.example.demo.controller;
 
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.example.demo.dto.ApiResponse;
-import com.example.demo.entity.User;
-import com.example.demo.util.AuthorizationUtil;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.service.NotificationService;
+import com.example.demo.util.AuthorizationUtil;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
 import lombok.RequiredArgsConstructor;
-
-import org.springframework.http.ResponseEntity;
-  
-import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @Tag(name = "알림 API", description = "실시간 알림 조회 및 읽음 처리")
 @RestController
@@ -80,5 +82,25 @@ public class NotificationController {
         return ResponseEntity.ok(ApiResponse.ok("전체 읽음 처리 완료"));
     }
 
+    @Operation(summary = "알림 삭제")
+    @DeleteMapping("/{notificationId}")
+    public ResponseEntity<ApiResponse<?>> deleteNotification(
+            @PathVariable Long notificationId) {
+        notificationService.deleteNotification(notificationId, AuthorizationUtil.getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("알림 삭제 완료"));
+    }
      
+    @Operation(summary = "알림 선택 삭제")
+    @DeleteMapping("/selected")
+    public ResponseEntity<ApiResponse<?>> deleteSelected(@RequestBody List<Long> ids) {
+        notificationService.deleteSelected(ids, AuthorizationUtil.getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("선택 삭제 완료"));
+    }
+
+    @Operation(summary = "알림 전체 삭제")
+    @DeleteMapping("/all")
+    public ResponseEntity<ApiResponse<?>> deleteAll() {
+        notificationService.deleteAll(AuthorizationUtil.getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("전체 삭제 완료"));
+    }
 }
