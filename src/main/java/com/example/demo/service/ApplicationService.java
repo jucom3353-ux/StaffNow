@@ -1,23 +1,20 @@
 package com.example.demo.service;
 
 import com.example.demo.dto.ApplicationResponseDto;
+import com.example.demo.dto.CompanyApplicationResponseDto;
 import com.example.demo.dto.PortfolioResponseDto;
 import com.example.demo.dto.WorkerProfileResponseDto;
 import com.example.demo.entity.*;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.*;
-  import com.example.demo.entity.User;
 import com.example.demo.util.AuthorizationUtil;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import com.example.demo.util.AuthorizationUtil;
-import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -50,6 +47,8 @@ public class ApplicationService {
     private final PortfolioRepository portfolioRepository;
     private final PortfolioImageRepository portfolioImageRepository;
     private final BadgeService badgeService;
+    private final ProfileBoostRepository profileBoostRepository;
+    private final WorkAttendanceRepository workAttendanceRepository;
 
     public ApplicationService(
             ApplicationRepository applicationRepository,
@@ -68,7 +67,9 @@ public class ApplicationService {
             MileageService mileageService,
             PortfolioRepository portfolioRepository,
             PortfolioImageRepository portfolioImageRepository,
-            BadgeService badgeService
+            BadgeService badgeService,
+            ProfileBoostRepository profileBoostRepository,
+            WorkAttendanceRepository workAttendanceRepository
     ) {
         this.applicationRepository = applicationRepository;
         this.jobPostRepository = jobPostRepository;
@@ -87,6 +88,8 @@ public class ApplicationService {
         this.portfolioRepository = portfolioRepository;
         this.portfolioImageRepository = portfolioImageRepository;
         this.badgeService = badgeService;
+        this.profileBoostRepository = profileBoostRepository;
+        this.workAttendanceRepository = workAttendanceRepository;
     }
 
     @Transactional
@@ -445,5 +448,90 @@ public class ApplicationService {
                         + ABSENT_TEMPERATURE_PENALTY + "도 감소하였습니다.",
                 application.getId()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<CompanyApplicationResponseDto> getCompanyApplications(User loginUser) {
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
+        User companyUser = AuthorizationUtil.getCompanyUser(loginUser);
+
+        List<Application> applications = applicationRepository.findByCompanyUser(companyUser);
+        LocalDateTime now = LocalDateTime.now();
+        List<Long> boostedUserIds = profileBoostRepository.findBoostedUserIds(now);
+
+        return applications.stream().map(app -> {
+            CompanyApplicationResponseDto dto = new CompanyApplicationResponseDto();
+            dto.id = app.getId();
+            dto.status = app.getStatus().name();
+            dto.createdAt = app.getCreatedAt();
+            dto.workerId = app.getUser().getId();
+
+            if (app.getWorkSession() != null) {
+                WorkSession ws = app.getWorkSession();
+                CompanyApplicationResponseDto.WorkSessionDto wsDto =
+                    new CompanyApplicationResponseDto.WorkSessionDto();
+                wsDto.id = ws.getId();
+                wsDto.startTime = ws.getStartTime();
+                wsDto.endTime = ws.getEndTime();
+                wsDto.capacity = ws.getRecruitCount();
+                wsDto.filledCount = ws.getCurrentCount();
+
+                if (ws.getJobPost() != null) {
+                    JobPost jp = ws.getJobPost();
+                    CompanyApplicationResponseDto.JobPostDto jpDto =
+                        new CompanyApplicationResponseDto.JobPostDto();
+                    jpDto.id = jp.getId();
+                    jpDto.title = jp.getTitle();
+                    jpDto.deadline = jp.getDeadline();
+                    jpDto.status = jp.getPostStatus().name();
+                    jpDto.workLocation = jp.getWorkLocation();
+                    jpDto.sortOrder = jp.getSortOrder();
+                    wsDto.jobPost = jpDto;
+                }
+                dto.workSession = wsDto;
+            }
+
+            User worker = app.getUser();
+            CompanyApplicationResponseDto.WorkerDto workerDto =
+                new CompanyApplicationResponseDto.WorkerDto();
+            workerDto.id = worker.getId();
+            workerDto.name = worker.getName();
+            workerDto.email = worker.getEmail();
+            workerDto.avatarUrl = worker.getProfileImageUrl();
+            workerDto.address = worker.getAddress();
+            workerDto.isBoosted = boostedUserIds.contains(worker.getId());
+
+            List<Review> reviews = reviewRepository.findByWorker(worker);
+            workerDto.reviewCount = reviews.size();
+            workerDto.avgScore = reviews.isEmpty() ? null :
+                reviews.stream().mapToInt(Review::getRating).average().orElse(0);
+            dto.worker = workerDto;
+
+            contractRepository.findByCompanyAndWorker(companyUser, worker)
+                .stream()
+                .filter(c -> c.getJobPost().getId().equals(app.getJobPost().getId()))
+                .findFirst()
+                .ifPresent(c -> {
+                    CompanyApplicationResponseDto.ContractDto cDto =
+                        new CompanyApplicationResponseDto.ContractDto();
+                    cDto.id = c.getId();
+                    cDto.status = c.getStatus().name();
+                    dto.contract = cDto;
+                });
+
+            workAttendanceRepository.findByApplication(app).ifPresent(att -> {
+                CompanyApplicationResponseDto.AttendanceDto attDto =
+                    new CompanyApplicationResponseDto.AttendanceDto();
+                attDto.id = att.getId();
+                attDto.checkInAt = att.getCheckInTime();
+                dto.attendance = attDto;
+            });
+
+            return dto;
+        })
+        .sorted((a, b) -> Boolean.compare(
+            b.worker != null && b.worker.isBoosted,
+            a.worker != null && a.worker.isBoosted))
+        .collect(Collectors.toList());
     }
 }

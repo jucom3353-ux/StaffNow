@@ -165,5 +165,12 @@ public class ApplicationController {
         return ResponseEntity.ok(ApiResponse.ok("결근 처리 완료"));
     }
 
+    @Operation(summary = "기업 전체 지원자 조합 조회")
+    @GetMapping("/company")
+    public ResponseEntity<ApiResponse<?>> getCompanyApplications() {
+    return ResponseEntity.ok(ApiResponse.ok(
+            applicationService.getCompanyApplications(AuthorizationUtil.getLoginUser())));
+}
+
      
 }

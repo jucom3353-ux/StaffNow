@@ -21,6 +21,8 @@ public class JobPost {
     private String startTime;
     private String endTime;
     private String breakTime;
+    private LocalDateTime deletedAt;
+
 
     @Enumerated(EnumType.STRING)
     private WageType wageType;
@@ -64,6 +66,7 @@ public class JobPost {
     private LocalDate workEndDate;
     private Boolean mealProvided = false;
     private String uniformInfo;
+    private Integer sortOrder = 0;
 
     private Boolean topExposure = false;  // 상단 노출
     private Boolean urgentBadge = false;  // 급구 배지
@@ -134,6 +137,8 @@ public class JobPost {
     public Boolean getAllowOnline() { return allowOnline; }
     public Boolean getAllowPhone() { return allowPhone; }
     public Boolean getAllowSms() { return allowSms; }
+    public LocalDateTime getDeletedAt() { return deletedAt; }
+    public Integer getSortOrder() { return sortOrder; }
 
     public void setId(Long id) { this.id = id; }
     public void setTitle(String title) { this.title = title; }
@@ -177,4 +182,6 @@ public class JobPost {
     public void setAllowOnline(Boolean allowOnline) { this.allowOnline = allowOnline; }
     public void setAllowPhone(Boolean allowPhone) { this.allowPhone = allowPhone; }
     public void setAllowSms(Boolean allowSms) { this.allowSms = allowSms; }
+    public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
+    public void setSortOrder(Integer sortOrder) { this.sortOrder = sortOrder; }
 }

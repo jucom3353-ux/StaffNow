@@ -129,6 +129,12 @@ public class User {
     @Column(name = "login_locked_until")
     private LocalDateTime loginLockedUntil;
 
+    @Column(name = "dispute_reject_count", columnDefinition = "int default 0")
+    private int disputeRejectCount = 0;
+
+    @Column(name = "dispute_restricted_at")
+    private LocalDateTime disputeRestrictedAt;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
@@ -182,6 +188,8 @@ public class User {
     public Boolean getAnonymized() { return anonymized; }
     public int getLoginFailCount() { return loginFailCount; }
     public LocalDateTime getLoginLockedUntil() { return loginLockedUntil; }
+    public int getDisputeRejectCount() { return disputeRejectCount; }
+    public LocalDateTime getDisputeRestrictedAt() { return disputeRestrictedAt; }
 
     public void setId(Long id) { this.id = id; }
     public void setEmail(String email) { this.email = email; }
@@ -231,4 +239,6 @@ public class User {
     public void setAnonymized(Boolean anonymized) { this.anonymized = anonymized; }
     public void setLoginFailCount(int loginFailCount) { this.loginFailCount = loginFailCount; }
     public void setLoginLockedUntil(LocalDateTime loginLockedUntil) { this.loginLockedUntil = loginLockedUntil; }
+    public void setDisputeRejectCount(int disputeRejectCount) { this.disputeRejectCount = disputeRejectCount; }
+    public void setDisputeRestrictedAt(LocalDateTime disputeRestrictedAt) { this.disputeRestrictedAt = disputeRestrictedAt; }
 }

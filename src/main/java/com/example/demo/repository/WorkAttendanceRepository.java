@@ -119,4 +119,5 @@ public interface WorkAttendanceRepository
     // 등급 점수 계산용: applicationId로 출퇴근 상태 조회
     @Query("SELECT w FROM WorkAttendance w WHERE w.application.id = :applicationId")
     Optional<WorkAttendance> findByApplicationId(@Param("applicationId") Long applicationId);
+
 }

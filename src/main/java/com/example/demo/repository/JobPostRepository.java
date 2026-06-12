@@ -176,4 +176,7 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
     @Query("SELECT j FROM JobPost j WHERE j.postStatus = 'OPEN' " +
            "AND j.deadline = :tomorrow")
     List<JobPost> findJobPostsDeadlineTomorrow(@Param("tomorrow") String tomorrow);
+
+    List<JobPost> findByUserAndDeletedAtIsNull(User user);
+    List<JobPost> findByUserAndPostStatusAndDeletedAtIsNull(User user, PostStatus postStatus);
 }

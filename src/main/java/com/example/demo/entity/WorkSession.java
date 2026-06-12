@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -22,6 +23,7 @@ public class WorkSession {
     private String workDate;
     private String startTime;
     private String endTime;
+    private LocalDateTime deletedAt;
 
     private int recruitCount;
     private int currentCount;

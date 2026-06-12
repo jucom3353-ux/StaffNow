@@ -92,4 +92,13 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
 
     @EntityGraph(attributePaths = {"user", "jobPost", "jobPost.user", "jobPostRole"})
         List<Application> findByUser(User user);
+
+    @EntityGraph(attributePaths = {
+    "user", "jobPost", "jobPost.user", "workSession", "workSession.jobPost"
+        })
+    @Query("SELECT a FROM Application a " +
+           "WHERE a.jobPost.user = :company " +
+         "AND (a.jobPost.deletedAt IS NULL) " +
+         "ORDER BY a.createdAt DESC")
+    List<Application> findByCompanyUser(@Param("company") User company);
 }

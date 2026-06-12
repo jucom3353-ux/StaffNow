@@ -6,6 +6,7 @@ import com.example.demo.entity.*;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.AttendanceDisputeRepository;
+import com.example.demo.repository.UserRepository;
 import com.example.demo.repository.WorkAttendanceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ public class AttendanceDisputeService {
     private final AttendanceDisputeRepository attendanceDisputeRepository;
     private final WorkAttendanceRepository workAttendanceRepository;
     private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     // 출퇴근 분쟁 신청 (근로자)
     @Transactional
@@ -143,38 +145,46 @@ public class AttendanceDisputeService {
     // 분쟁 반려 (관리자)
     @Transactional
     public AttendanceDisputeResponseDto rejectDispute(
-            Long disputeId, String adminMemo, User loginUser) {
+        Long disputeId, String adminMemo, User loginUser) {
 
-        if (loginUser.getRole() != Role.ADMIN) {
-            throw new CustomException(ErrorCode.ADMIN_ONLY);
+    if (loginUser.getRole() != Role.ADMIN) {
+        throw new CustomException(ErrorCode.ADMIN_ONLY);
+    }
+
+    AttendanceDispute dispute = attendanceDisputeRepository.findById(disputeId)
+            .orElseThrow(() -> new CustomException(
+                    ErrorCode.ATTENDANCE_DISPUTE_NOT_FOUND));
+
+    if (dispute.getStatus() != AttendanceDisputeStatus.PENDING) {
+        throw new CustomException(ErrorCode.INVALID_STATUS_TRANSITION,
+                "대기 상태의 분쟁만 처리 가능합니다.");
+    }
+
+    dispute.setStatus(AttendanceDisputeStatus.REJECTED);
+    dispute.setAdminMemo(adminMemo);
+    dispute.setAdmin(loginUser);
+    dispute.setProcessedAt(LocalDateTime.now());
+    attendanceDisputeRepository.save(dispute);
+
+    // 분쟁 반려 횟수 누적
+    User worker = dispute.getWorker();
+    int newCount = worker.getDisputeRejectCount() + 1;
+    worker.setDisputeRejectCount(newCount);
+    if (newCount >= 3) {
+        worker.setDisputeRestrictedAt(LocalDateTime.now());
         }
-
-        AttendanceDispute dispute = attendanceDisputeRepository.findById(disputeId)
-                .orElseThrow(() -> new CustomException(
-                        ErrorCode.ATTENDANCE_DISPUTE_NOT_FOUND));
-
-        if (dispute.getStatus() != AttendanceDisputeStatus.PENDING) {
-            throw new CustomException(ErrorCode.INVALID_STATUS_TRANSITION,
-                    "대기 상태의 분쟁만 처리 가능합니다.");
-        }
-
-        dispute.setStatus(AttendanceDisputeStatus.REJECTED);
-        dispute.setAdminMemo(adminMemo);
-        dispute.setAdmin(loginUser);
-        dispute.setProcessedAt(LocalDateTime.now());
-
-        AttendanceDispute saved = attendanceDisputeRepository.save(dispute);
+        userRepository.save(worker);
 
         notificationService.send(
-                dispute.getWorker(),
-                NotificationType.ATTENDANCE_DISPUTE_REJECTED,
-                "[" + dispute.getAttendance().getApplication()
-                        .getJobPost().getTitle() +
-                "] 출퇴근 분쟁이 반려되었습니다. 사유: " + adminMemo,
-                saved.getId()
+            dispute.getWorker(),
+            NotificationType.ATTENDANCE_DISPUTE_REJECTED,
+            "[" + dispute.getAttendance().getApplication()
+                    .getJobPost().getTitle() +
+            "] 출퇴근 분쟁이 반려되었습니다. 사유: " + adminMemo,
+            dispute.getId()
         );
 
-        return new AttendanceDisputeResponseDto(saved);
+        return new AttendanceDisputeResponseDto(dispute);
     }
 
     // 전체 분쟁 목록 조회 (관리자)

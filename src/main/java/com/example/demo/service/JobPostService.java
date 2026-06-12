@@ -12,7 +12,6 @@ import com.example.demo.repository.JobPostRepository;
 import com.example.demo.repository.JobPostViewHistoryRepository;
 import com.example.demo.repository.PreferredCategoryRepository;
 import com.example.demo.repository.UserRepository;
-  import com.example.demo.entity.User;
 import com.example.demo.util.AuthorizationUtil;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -179,8 +178,8 @@ public class JobPostService {
         User companyUser = AuthorizationUtil.getCompanyUser(loginUser);
 
         List<JobPost> posts = postStatus != null
-                ? jobPostRepository.findByUserAndPostStatus(companyUser, postStatus)
-                : jobPostRepository.findByUser(companyUser);
+                ? jobPostRepository.findByUserAndPostStatusAndDeletedAtIsNull(companyUser, postStatus)
+                : jobPostRepository.findByUserAndDeletedAtIsNull(companyUser);
 
         return posts.stream()
                 .map(post -> new JobPostResponseDto(post,
@@ -278,13 +277,13 @@ public class JobPostService {
 
     @Transactional
     public void deleteJobPost(Long id, User loginUser) {
-        AuthorizationUtil.validateCompanyOrManager(loginUser);
-
+    AuthorizationUtil.validateCompanyOrManager(loginUser);
         JobPost post = jobPostRepository.findById(id)
-                .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
-
+            .orElseThrow(() -> new CustomException(ErrorCode.JOB_POST_NOT_FOUND));
         validateJobPostOwnership(post, loginUser);
-        jobPostRepository.deleteById(id);
+        post.setDeletedAt(LocalDateTime.now());
+        post.setPostStatus(PostStatus.CLOSED);
+        jobPostRepository.save(post);
     }
 
     @Transactional(readOnly = true)
@@ -449,5 +448,16 @@ public class JobPostService {
         } catch (Exception e) {
             throw new CustomException(ErrorCode.DEADLINE_FORMAT_INVALID);
         }
+    }
+    @Transactional
+    public void bulkDeleteJobPosts(List<Long> ids, User loginUser) {
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
+        List<JobPost> posts = jobPostRepository.findAllById(ids);
+        posts.forEach(post -> {
+            validateJobPostOwnership(post, loginUser);
+            post.setDeletedAt(LocalDateTime.now());
+            post.setPostStatus(PostStatus.CLOSED);
+        });
+        jobPostRepository.saveAll(posts);
     }
 }

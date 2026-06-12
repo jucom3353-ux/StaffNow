@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.WorkSessionCreateRequestDto;
+import com.example.demo.dto.WorkSessionUpdateRequestDto;
 import com.example.demo.entity.User;
 import com.example.demo.util.AuthorizationUtil;
 import org.springframework.security.core.Authentication;
@@ -12,6 +13,9 @@ import com.example.demo.service.WorkSessionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
+import com.example.demo.dto.WorkSessionUpdateRequestDto;
+import java.util.List;
 
 import lombok.RequiredArgsConstructor;
 
@@ -151,4 +155,34 @@ public class WorkSessionController {
     }
 
      
+
+    @Operation(summary = "기업 전체 근무회차 조회 (shifts)")
+    @GetMapping("/work-sessions/company")
+    public ResponseEntity<ApiResponse<?>> getMyAllShifts() {
+    return ResponseEntity.ok(ApiResponse.ok(
+            workSessionService.getMyAllShifts(AuthorizationUtil.getLoginUser())));
+    }
+
+    @Operation(summary = "근무회차 수정")
+    @PatchMapping("/work-sessions/{workSessionId}")
+    public ResponseEntity<ApiResponse<?>> updateShift(
+        @PathVariable Long workSessionId,
+        @RequestBody WorkSessionUpdateRequestDto dto) {
+    workSessionService.updateShift(workSessionId, dto, AuthorizationUtil.getLoginUser());
+    return ResponseEntity.ok(ApiResponse.ok("근무회차 수정 완료"));
+    }
+
+    @Operation(summary = "근무회차 소프트 삭제")
+    @DeleteMapping("/work-sessions/{workSessionId}")
+    public ResponseEntity<ApiResponse<?>> deleteShift(@PathVariable Long workSessionId) {
+    workSessionService.softDeleteShift(workSessionId, AuthorizationUtil.getLoginUser());
+    return ResponseEntity.ok(ApiResponse.ok("근무회차 삭제 완료"));
+    }
+
+    @Operation(summary = "근무회차 다건 소프트 삭제")
+    @DeleteMapping("/work-sessions/bulk")
+    public ResponseEntity<ApiResponse<?>> bulkDeleteShifts(@RequestBody List<Long> ids) {
+    workSessionService.bulkSoftDeleteShifts(ids, AuthorizationUtil.getLoginUser());
+    return ResponseEntity.ok(ApiResponse.ok("근무회차 일괄 삭제 완료"));
+    }
 }

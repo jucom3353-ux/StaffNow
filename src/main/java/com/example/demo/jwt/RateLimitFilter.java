@@ -43,7 +43,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         String ip = getClientIp(request);
-        User loginUser =  AuthorizationUtil.getLoginUser();
+        User loginUser = null;
+    try {
+        loginUser = AuthorizationUtil.getLoginUser();
+    } catch (Exception e) {
+        loginUser = null;
+    }
 
         String key = loginUser != null ? ip + ":" + loginUser.getId() : ip;
         String path = request.getServletPath();

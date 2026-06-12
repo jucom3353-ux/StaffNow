@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import java.util.List;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -242,5 +243,10 @@ public class JobPostController {
         return ResponseEntity.ok(ApiResponse.ok("공고 강제 삭제 완료"));
     }
 
-     
+    @Operation(summary = "공고 다건 삭제")
+    @DeleteMapping("/bulk")
+    public ResponseEntity<ApiResponse<?>> bulkDeleteJobPosts(@RequestBody List<Long> ids) {
+        jobPostService.bulkDeleteJobPosts(ids, AuthorizationUtil.getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("공고 일괄 삭제 완료"));
+    } 
 }

@@ -11,6 +11,8 @@ import com.example.demo.repository.WorkSessionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.demo.dto.WorkSessionUpdateRequestDto;
+import java.time.LocalDateTime;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -250,5 +252,53 @@ public class WorkSessionService {
                 ws.getStatus().name(),
                 ws.getMemo()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<WorkSessionResponseDto> getMyAllShifts(User loginUser) {
+    if (loginUser.getRole() != Role.COMPANY)
+        throw new CustomException(ErrorCode.COMPANY_ONLY);
+    return workSessionRepository.findByJobPostUserAndDeletedAtIsNull(loginUser)
+            .stream().map(this::toDto).toList();
+    }
+
+    @Transactional
+    public void updateShift(Long workSessionId, WorkSessionUpdateRequestDto dto, User loginUser) {
+    if (loginUser.getRole() != Role.COMPANY)
+        throw new CustomException(ErrorCode.COMPANY_ONLY);
+    WorkSession ws = workSessionRepository.findById(workSessionId)
+            .orElseThrow(() -> new CustomException(ErrorCode.WORK_SESSION_NOT_FOUND));
+    if (!ws.getJobPost().getUser().getId().equals(loginUser.getId()))
+        throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
+    if (dto.getStartTime() != null) ws.setStartTime(dto.getStartTime());
+    if (dto.getEndTime() != null) ws.setEndTime(dto.getEndTime());
+    if (dto.getPay() != null) ws.setPay(dto.getPay());
+    if (dto.getRecruitCount() != null) ws.setRecruitCount(dto.getRecruitCount());
+    workSessionRepository.save(ws);
+    }
+
+    @Transactional
+    public void softDeleteShift(Long workSessionId, User loginUser) {
+    if (loginUser.getRole() != Role.COMPANY)
+        throw new CustomException(ErrorCode.COMPANY_ONLY);
+    WorkSession ws = workSessionRepository.findById(workSessionId)
+            .orElseThrow(() -> new CustomException(ErrorCode.WORK_SESSION_NOT_FOUND));
+    if (!ws.getJobPost().getUser().getId().equals(loginUser.getId()))
+        throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
+    ws.setDeletedAt(LocalDateTime.now());
+    workSessionRepository.save(ws);
+    }
+
+    @Transactional
+    public void bulkSoftDeleteShifts(List<Long> ids, User loginUser) {
+    if (loginUser.getRole() != Role.COMPANY)
+        throw new CustomException(ErrorCode.COMPANY_ONLY);
+    List<WorkSession> sessions = workSessionRepository.findByIdInAndDeletedAtIsNull(ids);
+        sessions.forEach(ws -> {
+        if (!ws.getJobPost().getUser().getId().equals(loginUser.getId()))
+                throw new CustomException(ErrorCode.NOT_MY_JOB_POST);
+            ws.setDeletedAt(LocalDateTime.now());
+        });
+        workSessionRepository.saveAll(sessions);
     }
 }
