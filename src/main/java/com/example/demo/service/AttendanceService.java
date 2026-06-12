@@ -1,20 +1,26 @@
 package com.example.demo.service;
 
-import com.example.demo.entity.*;
-import com.example.demo.exception.CustomException;
-import com.example.demo.exception.ErrorCode;
-import com.example.demo.repository.ApplicationRepository;
-import com.example.demo.repository.WorkAttendanceRepository;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.example.demo.entity.Application;
+import com.example.demo.entity.ApplicationStatus;
+import com.example.demo.entity.AttendanceStatus;
+import com.example.demo.entity.NotificationType;
+import com.example.demo.entity.User;
+import com.example.demo.entity.WorkAttendance;
+import com.example.demo.exception.CustomException;
+import com.example.demo.exception.ErrorCode;
+import com.example.demo.repository.ApplicationRepository;
+import com.example.demo.repository.WorkAttendanceRepository;
 
 @Service
 public class AttendanceService {

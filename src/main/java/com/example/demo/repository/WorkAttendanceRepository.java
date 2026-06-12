@@ -1,22 +1,19 @@
 package com.example.demo.repository;
 
-import com.example.demo.entity.Application;
-import com.example.demo.entity.JobPost;
-import com.example.demo.entity.User;
-import com.example.demo.util.AuthorizationUtil;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import com.example.demo.entity.WorkAttendance;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import com.example.demo.entity.Application;
 import com.example.demo.entity.AttendanceStatus;
+import com.example.demo.entity.JobPost;
+import com.example.demo.entity.User;
+import com.example.demo.entity.WorkAttendance;
 
 public interface WorkAttendanceRepository
         extends JpaRepository<WorkAttendance, Long> {

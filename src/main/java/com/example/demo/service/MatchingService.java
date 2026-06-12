@@ -1,27 +1,48 @@
 package com.example.demo.service;
 
-import com.example.demo.dto.JobPostResponseDto;
-import com.example.demo.entity.*;
-import com.example.demo.exception.CustomException;
-import com.example.demo.exception.ErrorCode;
-import com.example.demo.repository.*;
-  import com.example.demo.entity.User;
-import com.example.demo.util.AuthorizationUtil;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import com.example.demo.util.AuthorizationUtil;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.example.demo.dto.JobPostResponseDto;
+import com.example.demo.entity.Career;
+import com.example.demo.entity.JobCategory;
+import com.example.demo.entity.JobPost;
+import com.example.demo.entity.PostStatus;
+import com.example.demo.entity.Resume;
+import com.example.demo.entity.Role;
+import com.example.demo.entity.Skill;
+import com.example.demo.entity.SubscriptionStatus;
+import com.example.demo.entity.User;
+import com.example.demo.exception.CustomException;
+import com.example.demo.exception.ErrorCode;
+import com.example.demo.repository.ApplicationRepository;
+import com.example.demo.repository.CareerRepository;
+import com.example.demo.repository.CompanySubscriptionRepository;
+import com.example.demo.repository.JobPostRepository;
+import com.example.demo.repository.PreferredCategoryRepository;
+import com.example.demo.repository.ResumeRepository;
+import com.example.demo.repository.SkillRepository;
+import com.example.demo.repository.UserRepository;
+import com.example.demo.repository.WorkAttendanceRepository;
+import com.example.demo.util.AuthorizationUtil;
+
+import lombok.RequiredArgsConstructor;
+
 @Service
+@SuppressWarnings("unchecked")
 @RequiredArgsConstructor
 public class MatchingService {
 
@@ -31,7 +52,6 @@ public class MatchingService {
     private final CareerRepository careerRepository;
     private final ResumeRepository resumeRepository;
     private final CompanySubscriptionRepository companySubscriptionRepository;
-    private final JobCategoryRepository jobCategoryRepository;
     private final WorkAttendanceRepository workAttendanceRepository;
     private final PreferredCategoryRepository preferredCategoryRepository;
     private final ApplicationRepository applicationRepository;

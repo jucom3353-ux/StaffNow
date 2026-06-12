@@ -1,14 +1,28 @@
 package com.example.demo.service;
 
-import com.example.demo.dto.JobPostResponseDto;
-import com.example.demo.entity.*;
-import com.example.demo.repository.*;
-import lombok.RequiredArgsConstructor;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import com.example.demo.dto.JobPostResponseDto;
+import com.example.demo.entity.JobCategory;
+import com.example.demo.entity.JobPost;
+import com.example.demo.entity.PostStatus;
+import com.example.demo.entity.PreferredWorkTime;
+import com.example.demo.entity.Role;
+import com.example.demo.entity.User;
+import com.example.demo.repository.ApplicationRepository;
+import com.example.demo.repository.JobPostRepository;
+import com.example.demo.repository.JobPostViewHistoryRepository;
+import com.example.demo.repository.PreferredWorkTimeRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor

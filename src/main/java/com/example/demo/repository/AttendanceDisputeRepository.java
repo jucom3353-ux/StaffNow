@@ -1,18 +1,15 @@
 package com.example.demo.repository;
 
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
 import com.example.demo.entity.AttendanceDispute;
 import com.example.demo.entity.AttendanceDisputeStatus;
 import com.example.demo.entity.User;
-import com.example.demo.util.AuthorizationUtil;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.entity.WorkAttendance;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
-import java.util.List;
 
-@Repository
 public interface AttendanceDisputeRepository
         extends JpaRepository<AttendanceDispute, Long> {
 

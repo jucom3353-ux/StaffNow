@@ -1,18 +1,20 @@
 package com.example.demo.scheduler;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.example.demo.entity.Contract;
 import com.example.demo.entity.ContractStatus;
 import com.example.demo.entity.NotificationType;
 import com.example.demo.repository.ContractRepository;
 import com.example.demo.service.NotificationService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Slf4j
 @Component

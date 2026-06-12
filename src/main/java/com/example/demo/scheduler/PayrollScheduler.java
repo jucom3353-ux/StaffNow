@@ -1,20 +1,34 @@
 package com.example.demo.scheduler;
 
-import com.example.demo.entity.*;
-import com.example.demo.repository.*;
-import com.example.demo.service.MileageService;
-import com.example.demo.service.NotificationService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.example.demo.entity.Application;
+import com.example.demo.entity.ApplicationStatus;
+import com.example.demo.entity.AttendanceStatus;
+import com.example.demo.entity.JobPost;
+import com.example.demo.entity.MileageType;
+import com.example.demo.entity.NotificationType;
+import com.example.demo.entity.Payroll;
+import com.example.demo.entity.PayrollStatus;
+import com.example.demo.entity.User;
+import com.example.demo.entity.WageType;
+import com.example.demo.entity.WorkAttendance;
+import com.example.demo.repository.ApplicationRepository;
+import com.example.demo.repository.PayrollRepository;
+import com.example.demo.repository.WorkAttendanceRepository;
+import com.example.demo.service.MileageService;
+import com.example.demo.service.NotificationService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component

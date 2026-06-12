@@ -1,16 +1,28 @@
 package com.example.demo.service;
 
-import com.example.demo.dto.AttendanceStatResponseDto;
-import com.example.demo.entity.*;
-import com.example.demo.exception.CustomException;
-import com.example.demo.exception.ErrorCode;
-import com.example.demo.repository.*;
-import lombok.RequiredArgsConstructor;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import com.example.demo.dto.AttendanceStatResponseDto;
+import com.example.demo.entity.ApplicationStatus;
+import com.example.demo.entity.JobPost;
+import com.example.demo.entity.Role;
+import com.example.demo.entity.User;
+import com.example.demo.entity.WorkAttendance;
+import com.example.demo.exception.CustomException;
+import com.example.demo.exception.ErrorCode;
+import com.example.demo.repository.ApplicationRepository;
+import com.example.demo.repository.JobPostRepository;
+import com.example.demo.repository.WorkAttendanceRepository;
+import com.example.demo.repository.WorkSessionRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor

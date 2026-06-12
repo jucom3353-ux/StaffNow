@@ -1,19 +1,24 @@
 package com.example.demo.service;
 
-import com.example.demo.dto.CompanyStatsResponseDto;
-import com.example.demo.entity.*;
-import com.example.demo.exception.CustomException;
-import com.example.demo.exception.ErrorCode;
-import com.example.demo.repository.ApplicationRepository;
-import com.example.demo.repository.JobPostRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.example.demo.dto.CompanyStatsResponseDto;
+import com.example.demo.entity.ApplicationStatus;
+import com.example.demo.entity.JobPost;
+import com.example.demo.entity.Role;
+import com.example.demo.entity.User;
+import com.example.demo.exception.CustomException;
+import com.example.demo.exception.ErrorCode;
+import com.example.demo.repository.ApplicationRepository;
+import com.example.demo.repository.JobPostRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor

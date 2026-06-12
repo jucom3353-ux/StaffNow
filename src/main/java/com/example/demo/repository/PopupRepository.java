@@ -1,15 +1,15 @@
 package com.example.demo.repository;
 
-import com.example.demo.entity.Popup;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
-
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Repository
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import com.example.demo.entity.Popup;
+
+
 public interface PopupRepository extends JpaRepository<Popup, Long> {
 
     @Query("SELECT p FROM Popup p WHERE p.isActive = true " +

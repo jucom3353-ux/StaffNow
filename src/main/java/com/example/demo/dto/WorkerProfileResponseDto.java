@@ -1,15 +1,12 @@
 package com.example.demo.dto;
 
-import com.example.demo.entity.Resume;
-import com.example.demo.entity.Skill;
-import com.example.demo.entity.User;
-import com.example.demo.util.AuthorizationUtil;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import com.example.demo.entity.Review;
-
 import java.util.List;
 import java.util.stream.Collectors;
+
+import com.example.demo.entity.Resume;
+import com.example.demo.entity.Review;
+import com.example.demo.entity.Skill;
+import com.example.demo.entity.User;
 
 public class WorkerProfileResponseDto {
 
@@ -142,11 +139,11 @@ public class WorkerProfileResponseDto {
                               " (" + e.getGraduateStatus() + ")")
                     .collect(Collectors.toList());
 
-            this.careers = careers.stream()
+            this.careers = careers == null ? List.of() : careers.stream()
                     .map(c -> c.getCompanyName() + " " + c.getJobTitle() +
                               " (" + c.getJoinDate() + " ~ " +
-                              (Boolean.TRUE.equals(c.getIsCurrent())
-                                      ? "재직중" : c.getLeaveDate()) + ")")
+                        (Boolean.TRUE.equals(c.getIsCurrent())
+                            ? "재직중" : c.getLeaveDate()) + ")")
                     .collect(Collectors.toList());
 
             this.certificates = certificates.stream()

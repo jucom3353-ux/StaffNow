@@ -1,19 +1,26 @@
 package com.example.demo.scheduler;
 
-import com.example.demo.entity.*;
-import com.example.demo.repository.ApplicationRepository;
-import com.example.demo.repository.UserRepository;
-import com.example.demo.repository.WorkAttendanceRepository;
-import com.example.demo.service.MileageService;
-import com.example.demo.service.NotificationService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDate;
+import java.util.List;
+
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.util.List;
+import com.example.demo.entity.Application;
+import com.example.demo.entity.ApplicationStatus;
+import com.example.demo.entity.AttendanceStatus;
+import com.example.demo.entity.NotificationType;
+import com.example.demo.entity.Role;
+import com.example.demo.entity.User;
+import com.example.demo.entity.WorkAttendance;
+import com.example.demo.repository.ApplicationRepository;
+import com.example.demo.repository.UserRepository;
+import com.example.demo.repository.WorkAttendanceRepository;
+import com.example.demo.service.NotificationService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
@@ -24,7 +31,7 @@ public class AbsentScheduler {
     private final WorkAttendanceRepository workAttendanceRepository;
     private final NotificationService notificationService;
     private final UserRepository userRepository;         // 추가
-    private final MileageService mileageService;         // 추가
+            // 추가
 
     // 기존 메서드 그대로 유지
     @Scheduled(cron = "0 0 1 * * *")

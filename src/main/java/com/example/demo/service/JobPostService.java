@@ -1,9 +1,28 @@
 package com.example.demo.service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.example.demo.dto.JobPostCreateRequestDto;
 import com.example.demo.dto.JobPostPageResponseDto;
 import com.example.demo.dto.JobPostResponseDto;
-import com.example.demo.entity.*;
+import com.example.demo.entity.JobCategory;
+import com.example.demo.entity.JobPost;
+import com.example.demo.entity.JobPostViewHistory;
+import com.example.demo.entity.NotificationType;
+import com.example.demo.entity.PostStatus;
+import com.example.demo.entity.Role;
+import com.example.demo.entity.User;
+import com.example.demo.entity.WorkAvailability;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.ApplicationRepository;
@@ -13,18 +32,8 @@ import com.example.demo.repository.JobPostViewHistoryRepository;
 import com.example.demo.repository.PreferredCategoryRepository;
 import com.example.demo.repository.UserRepository;
 import com.example.demo.util.AuthorizationUtil;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import com.example.demo.util.AuthorizationUtil;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.*;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor

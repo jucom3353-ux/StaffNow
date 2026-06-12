@@ -1,17 +1,21 @@
 package com.example.demo.scheduler;
 
-import com.example.demo.entity.*;
-import com.example.demo.repository.CompanySubscriptionRepository;
-import com.example.demo.repository.RefreshTokenRepository;
-import com.example.demo.service.NotificationService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import com.example.demo.entity.CompanySubscription;
+import com.example.demo.entity.NotificationType;
+import com.example.demo.entity.SubscriptionStatus;
+import com.example.demo.repository.CompanySubscriptionRepository;
+import com.example.demo.repository.RefreshTokenRepository;
+import com.example.demo.service.NotificationService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component

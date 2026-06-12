@@ -1,19 +1,26 @@
 // EventPhotoService.java
 package com.example.demo.service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.example.demo.dto.EventPhotoResponseDto;
-import com.example.demo.entity.*;
+import com.example.demo.entity.Application;
+import com.example.demo.entity.ApplicationStatus;
+import com.example.demo.entity.EventPhoto;
+import com.example.demo.entity.JobCategory;
+import com.example.demo.entity.Role;
+import com.example.demo.entity.User;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.ApplicationRepository;
 import com.example.demo.repository.EventPhotoRepository;
 import com.example.demo.repository.JobCategoryRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor

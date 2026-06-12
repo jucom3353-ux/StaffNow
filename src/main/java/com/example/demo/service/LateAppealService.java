@@ -1,20 +1,27 @@
 package com.example.demo.service;
 
-import com.example.demo.dto.LateAppealRequestDto;
-import com.example.demo.dto.LateAppealResponseDto;
-import com.example.demo.entity.*;
-import com.example.demo.exception.CustomException;
-import com.example.demo.exception.ErrorCode;
-import com.example.demo.repository.LateAppealRepository;
-import com.example.demo.repository.UserRepository;
-import com.example.demo.repository.WorkAttendanceRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.example.demo.dto.LateAppealRequestDto;
+import com.example.demo.dto.LateAppealResponseDto;
+import com.example.demo.entity.AttendanceStatus;
+import com.example.demo.entity.LateAppeal;
+import com.example.demo.entity.LateAppealStatus;
+import com.example.demo.entity.NotificationType;
+import com.example.demo.entity.Role;
+import com.example.demo.entity.User;
+import com.example.demo.entity.WorkAttendance;
+import com.example.demo.exception.CustomException;
+import com.example.demo.exception.ErrorCode;
+import com.example.demo.repository.LateAppealRepository;
+import com.example.demo.repository.WorkAttendanceRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -22,7 +29,6 @@ public class LateAppealService {
 
     private final LateAppealRepository lateAppealRepository;
     private final WorkAttendanceRepository workAttendanceRepository;
-    private final UserRepository userRepository;
     private final NotificationService notificationService;
 
     // 지각 소명 신청 (근로자)

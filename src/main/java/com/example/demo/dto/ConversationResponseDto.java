@@ -1,12 +1,10 @@
 package com.example.demo.dto;
 
-import com.example.demo.entity.User;
-import com.example.demo.util.AuthorizationUtil;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import lombok.Getter;
-
 import java.time.LocalDateTime;
+
+import com.example.demo.entity.User;
+
+import lombok.Getter;
 
 @Getter
 public class ConversationResponseDto {

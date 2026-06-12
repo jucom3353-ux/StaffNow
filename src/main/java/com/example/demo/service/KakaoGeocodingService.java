@@ -1,16 +1,18 @@
 package com.example.demo.service;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("unchecked")
 public class KakaoGeocodingService {
 
     @Value("${kakao.api.key}")
@@ -23,7 +25,7 @@ public class KakaoGeocodingService {
                     .defaultHeader("Authorization", "KakaoAK " + kakaoApiKey)
                     .build();
 
-            Map response = webClient.get()
+                Map<String, Object> response = webClient.get()
                     .uri(uriBuilder -> uriBuilder
                             .path("/v2/local/search/address.json")
                             .queryParam("query", address)

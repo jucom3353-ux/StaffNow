@@ -1,16 +1,18 @@
 package com.example.demo.scheduler;
 
-import com.example.demo.entity.JobPostExposure;
-import com.example.demo.repository.JobPostExposureRepository;
-import com.example.demo.repository.JobPostRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import com.example.demo.entity.JobPostExposure;
+import com.example.demo.repository.JobPostExposureRepository;
+import com.example.demo.repository.JobPostRepository;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component

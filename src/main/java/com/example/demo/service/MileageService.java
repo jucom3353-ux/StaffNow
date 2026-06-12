@@ -1,21 +1,29 @@
 package com.example.demo.service;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.example.demo.dto.MileageResponseDto;
 import com.example.demo.dto.MileageWithdrawalResponseDto;
-import com.example.demo.entity.*;
+import com.example.demo.entity.Mileage;
+import com.example.demo.entity.MileageType;
+import com.example.demo.entity.MileageWithdrawal;
+import com.example.demo.entity.MileageWithdrawalStatus;
+import com.example.demo.entity.ProfileBoost;
+import com.example.demo.entity.Role;
+import com.example.demo.entity.User;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.MileageRepository;
 import com.example.demo.repository.MileageWithdrawalRepository;
 import com.example.demo.repository.ProfileBoostRepository;
 import com.example.demo.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor

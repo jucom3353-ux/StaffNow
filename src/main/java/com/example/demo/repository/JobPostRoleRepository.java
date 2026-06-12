@@ -1,10 +1,11 @@
 package com.example.demo.repository;
 
-import com.example.demo.entity.JobPost;
-import com.example.demo.entity.JobPostRole;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.List;
+import com.example.demo.entity.JobPost;
+import com.example.demo.entity.JobPostRole;
 
 public interface JobPostRoleRepository extends JpaRepository<JobPostRole, Long> {
     List<JobPostRole> findByJobPost(JobPost jobPost);

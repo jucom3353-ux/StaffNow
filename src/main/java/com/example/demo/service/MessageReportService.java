@@ -1,19 +1,26 @@
 package com.example.demo.service;
 
-import com.example.demo.dto.MessageReportRequestDto;
-import com.example.demo.dto.MessageReportResponseDto;
-import com.example.demo.entity.*;
-import com.example.demo.exception.CustomException;
-import com.example.demo.exception.ErrorCode;
-import com.example.demo.repository.MessageRepository;
-import com.example.demo.repository.MessageReportRepository;
-import com.example.demo.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import com.example.demo.dto.MessageReportRequestDto;
+import com.example.demo.dto.MessageReportResponseDto;
+import com.example.demo.entity.Message;
+import com.example.demo.entity.MessageReport;
+import com.example.demo.entity.MessageReportStatus;
+import com.example.demo.entity.NotificationType;
+import com.example.demo.entity.Role;
+import com.example.demo.entity.User;
+import com.example.demo.exception.CustomException;
+import com.example.demo.exception.ErrorCode;
+import com.example.demo.repository.MessageReportRepository;
+import com.example.demo.repository.MessageRepository;
+import com.example.demo.repository.UserRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor

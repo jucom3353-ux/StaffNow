@@ -1,14 +1,5 @@
 package com.example.demo.service;
 
-import com.example.demo.dto.AdminStatsResponseDto;
-import com.example.demo.entity.*;
-import com.example.demo.exception.CustomException;
-import com.example.demo.exception.ErrorCode;
-import com.example.demo.repository.*;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -16,6 +7,36 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.example.demo.dto.AdminStatsResponseDto;
+import com.example.demo.entity.ApplicationStatus;
+import com.example.demo.entity.ContractStatus;
+import com.example.demo.entity.DisputeStatus;
+import com.example.demo.entity.MileageWithdrawalStatus;
+import com.example.demo.entity.PayrollStatus;
+import com.example.demo.entity.PostStatus;
+import com.example.demo.entity.Role;
+import com.example.demo.entity.SubscriptionStatus;
+import com.example.demo.entity.User;
+import com.example.demo.exception.CustomException;
+import com.example.demo.exception.ErrorCode;
+import com.example.demo.repository.ApplicationRepository;
+import com.example.demo.repository.CompanySubscriptionRepository;
+import com.example.demo.repository.ContractRepository;
+import com.example.demo.repository.DisputeRepository;
+import com.example.demo.repository.EarlyBirdRepository;
+import com.example.demo.repository.JobPostRepository;
+import com.example.demo.repository.MileageRepository;
+import com.example.demo.repository.MileageWithdrawalRepository;
+import com.example.demo.repository.PayrollRepository;
+import com.example.demo.repository.ProfileBoostRepository;
+import com.example.demo.repository.ResumeViewHistoryRepository;
+import com.example.demo.repository.UserRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor

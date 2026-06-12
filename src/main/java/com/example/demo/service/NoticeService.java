@@ -1,18 +1,31 @@
 package com.example.demo.service;
 
-import com.example.demo.dto.NoticeRequestDto;
-import com.example.demo.dto.NoticeResponseDto;
-import com.example.demo.entity.*;
-import com.example.demo.exception.CustomException;
-import com.example.demo.exception.ErrorCode;
-import com.example.demo.repository.*;
-import com.example.demo.util.AuthorizationUtil;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import com.example.demo.dto.NoticeRequestDto;
+import com.example.demo.dto.NoticeResponseDto;
+import com.example.demo.entity.Application;
+import com.example.demo.entity.ApplicationStatus;
+import com.example.demo.entity.JobPost;
+import com.example.demo.entity.Notice;
+import com.example.demo.entity.NoticeCategory;
+import com.example.demo.entity.NoticeTarget;
+import com.example.demo.entity.NoticeType;
+import com.example.demo.entity.NotificationType;
+import com.example.demo.entity.Role;
+import com.example.demo.entity.User;
+import com.example.demo.exception.CustomException;
+import com.example.demo.exception.ErrorCode;
+import com.example.demo.repository.ApplicationRepository;
+import com.example.demo.repository.JobPostRepository;
+import com.example.demo.repository.NoticeRepository;
+import com.example.demo.util.AuthorizationUtil;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor

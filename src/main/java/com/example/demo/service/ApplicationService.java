@@ -1,26 +1,61 @@
 package com.example.demo.service;
 
-import com.example.demo.dto.ApplicationResponseDto;
-import com.example.demo.dto.CompanyApplicationResponseDto;
-import com.example.demo.dto.PortfolioResponseDto;
-import com.example.demo.dto.WorkerProfileResponseDto;
-import com.example.demo.entity.*;
-import com.example.demo.exception.CustomException;
-import com.example.demo.exception.ErrorCode;
-import com.example.demo.repository.*;
-import com.example.demo.util.AuthorizationUtil;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.Map;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.example.demo.dto.ApplicationResponseDto;
+import com.example.demo.dto.CompanyApplicationResponseDto;
+import com.example.demo.dto.PortfolioResponseDto;
+import com.example.demo.dto.WorkerProfileResponseDto;
+import com.example.demo.entity.Application;
+import com.example.demo.entity.ApplicationStatus;
+import com.example.demo.entity.ApplyMethod;
+import com.example.demo.entity.Career;
+import com.example.demo.entity.Certificate;
+import com.example.demo.entity.Contract;
+import com.example.demo.entity.ContractStatus;
+import com.example.demo.entity.Education;
+import com.example.demo.entity.JobPost;
+import com.example.demo.entity.JobPostRole;
+import com.example.demo.entity.MileageType;
+import com.example.demo.entity.NotificationType;
+import com.example.demo.entity.PostStatus;
+import com.example.demo.entity.Resume;
+import com.example.demo.entity.Review;
+import com.example.demo.entity.Role;
+import com.example.demo.entity.Skill;
+import com.example.demo.entity.SubscriptionStatus;
+import com.example.demo.entity.User;
+import com.example.demo.entity.WorkSession;
+import com.example.demo.exception.CustomException;
+import com.example.demo.exception.ErrorCode;
+import com.example.demo.repository.ApplicationRepository;
+import com.example.demo.repository.CareerRepository;
+import com.example.demo.repository.CertificateRepository;
+import com.example.demo.repository.CompanySubscriptionRepository;
+import com.example.demo.repository.ContractRepository;
+import com.example.demo.repository.EducationRepository;
+import com.example.demo.repository.JobPostRepository;
+import com.example.demo.repository.JobPostRoleRepository;
+import com.example.demo.repository.PortfolioImageRepository;
+import com.example.demo.repository.PortfolioRepository;
+import com.example.demo.repository.ProfileBoostRepository;
+import com.example.demo.repository.ResumeRepository;
+import com.example.demo.repository.ReviewRepository;
+import com.example.demo.repository.SkillRepository;
+import com.example.demo.repository.UserRepository;
+import com.example.demo.repository.WorkAttendanceRepository;
+import com.example.demo.util.AuthorizationUtil;
 
 @Service
 public class ApplicationService {
@@ -361,7 +396,8 @@ public class ApplicationService {
         double newTemp = Math.min(
                 worker.getTemperature() + COMPLETE_TEMPERATURE_BONUS, MAX_TEMPERATURE);
         worker.setTemperature(newTemp);
-        userRepository.save(worker);
+        double newGrade = Math.round((worker.getGradeScore() + 0.1) * 100.0) / 100.0;
+                worker.setGradeScore(newGrade);
 
         int completedCount = applicationRepository
                 .countByUserAndStatus(worker, ApplicationStatus.COMPLETED);

@@ -1,17 +1,17 @@
 package com.example.demo.repository;
 
-import com.example.demo.entity.TwoFactorAuth;
-import com.example.demo.entity.User;
+import java.time.LocalDateTime;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
-import java.time.LocalDateTime;
 
-import java.util.Optional;
+import com.example.demo.entity.TwoFactorAuth;
+import com.example.demo.entity.User;
 
-@Repository
+
 public interface TwoFactorAuthRepository extends JpaRepository<TwoFactorAuth, Long> {
 
     Optional<TwoFactorAuth> findTopByUserAndVerifiedFalseOrderByCreatedAtDesc(User user);

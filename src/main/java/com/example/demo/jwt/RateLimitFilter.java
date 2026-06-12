@@ -1,26 +1,23 @@
 package com.example.demo.jwt;
 
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
 import com.example.demo.entity.SubscriptionStatus;
 import com.example.demo.entity.User;
-import com.example.demo.util.AuthorizationUtil;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.demo.repository.CompanySubscriptionRepository;
+import com.example.demo.util.AuthorizationUtil;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-  
-import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
-
-import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
 @RequiredArgsConstructor
@@ -136,18 +133,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 .findByCompanyAndStatus(loginUser, SubscriptionStatus.ACTIVE)
                 .map(sub -> sub.getPlan().getPlanType().name())
                 .orElse("NONE");
-    }
-
-    private User getLoginUser() {
-        try {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.getPrincipal() instanceof User) {
-                return (User) auth.getPrincipal();
-            }
-        } catch (Exception e) {
-            // 인증 정보 없으면 null 반환
-        }
-        return null;
     }
 
     private String getClientIp(HttpServletRequest request) {

@@ -1,6 +1,5 @@
 package com.example.demo.dto;
 
-import com.example.demo.entity.*;
 import java.time.LocalDateTime;
 
 public class CompanyApplicationResponseDto {

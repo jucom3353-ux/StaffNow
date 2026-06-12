@@ -1,19 +1,16 @@
 package com.example.demo.repository;
 
-import com.example.demo.entity.Message;
-import com.example.demo.entity.User;
-import com.example.demo.util.AuthorizationUtil;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
-
 import java.util.List;
 import java.util.Optional;
 
-@Repository
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import com.example.demo.entity.Message;
+import com.example.demo.entity.User;
+
+
 public interface MessageRepository extends JpaRepository<Message, Long> {
 
     // 두 유저 간 대화 조회 (시간순)

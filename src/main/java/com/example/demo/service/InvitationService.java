@@ -30,6 +30,7 @@ public class InvitationService {
     private final JobPostRepository jobPostRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    
 
     @Transactional
     public void sendInvitation(Long jobPostId, Long workerId, User loginUser) {
@@ -103,19 +104,24 @@ public class InvitationService {
 
     @Transactional
     public void acceptInvitation(Long invitationId, User loginUser) {
-        Invitation invitation = invitationRepository.findById(invitationId)
-                .orElseThrow(() -> new CustomException(ErrorCode.INVITATION_NOT_FOUND));
+    Invitation invitation = invitationRepository.findById(invitationId)
+            .orElseThrow(() -> new CustomException(ErrorCode.INVITATION_NOT_FOUND));
 
-        if (!invitation.getWorker().getId().equals(loginUser.getId())) {
+        if (!invitation.getWorker().getId().equals(loginUser.getId()))
             throw new CustomException(ErrorCode.ACCESS_DENIED);
-        }
-        if (invitation.getStatus() != InvitationStatus.PENDING) {
-            throw new CustomException(ErrorCode.INVALID_STATUS_TRANSITION,
-                    "대기 중인 초대만 수락 가능합니다.");
-        }
+        if (invitation.getStatus() != InvitationStatus.PENDING)
+            throw new CustomException(ErrorCode.INVALID_STATUS_TRANSITION, "대기 중인 초대만 수락 가능합니다.");
 
         invitation.setStatus(InvitationStatus.ACCEPTED);
         invitationRepository.save(invitation);
+
+        // 5회마다 gradeScore +0.3
+        long acceptedCount = invitationRepository.countByWorkerAndStatus(loginUser, InvitationStatus.ACCEPTED);
+        if (acceptedCount % 5 == 0) {
+            double newScore = Math.round((loginUser.getGradeScore() + 0.3) * 100.0) / 100.0;
+            loginUser.setGradeScore(newScore);
+            userRepository.save(loginUser);
+        }
     }
 
     @Transactional

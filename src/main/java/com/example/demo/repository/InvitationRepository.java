@@ -7,14 +7,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import com.example.demo.entity.Invitation;
 import com.example.demo.entity.InvitationStatus;
 import com.example.demo.entity.JobPost;
 import com.example.demo.entity.User;
 
-@Repository
+
 public interface InvitationRepository extends JpaRepository<Invitation, Long> {
 
     List<Invitation> findByWorker(User worker);
@@ -29,4 +28,5 @@ public interface InvitationRepository extends JpaRepository<Invitation, Long> {
     @Query("UPDATE Invitation i SET i.status = 'EXPIRED', i.updatedAt = CURRENT_TIMESTAMP WHERE i.status = 'PENDING' AND i.createdAt < :expiredTime")
     void expireOldInvitations(@Param("expiredTime") LocalDateTime expiredTime);
     long countByCompany(User company);
+    long countByWorkerAndStatus(User worker, InvitationStatus status);
 }
