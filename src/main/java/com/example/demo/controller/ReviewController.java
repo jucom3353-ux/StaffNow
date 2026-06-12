@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.dto.ApiResponse;
@@ -110,5 +111,20 @@ public class ReviewController {
         return ResponseEntity.ok(ApiResponse.ok("리뷰 삭제 완료"));
     }
 
-     
+    @Operation(summary = "근무회차 기준 리뷰 조회")
+    @GetMapping("/work-session/{workSessionId}")
+    public ResponseEntity<ApiResponse<?>> getReviewsByWorkSession(
+            @PathVariable Long workSessionId) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                reviewService.getReviewsByWorkSession(workSessionId)));
+    }
+
+    @Operation(summary = "내가 쓴 리뷰 조회 (근무회차 + 대상자)")
+    @GetMapping("/my/written")
+    public ResponseEntity<ApiResponse<?>> getMyWrittenReview(
+            @RequestParam Long workSessionId,
+            @RequestParam(required = false) Long rateeId) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                reviewService.getMyWrittenReview(workSessionId, rateeId, AuthorizationUtil.getLoginUser())));
+    }
 }

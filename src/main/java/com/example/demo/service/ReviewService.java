@@ -178,4 +178,18 @@ public class ReviewService {
                 .orElseThrow(() -> new CustomException(ErrorCode.REVIEW_NOT_FOUND));
         reviewRepository.deleteById(reviewId);
     }
+
+    @Transactional(readOnly = true)
+    public List<ReviewResponseDto> getReviewsByWorkSession(Long workSessionId) {
+        return reviewRepository.findByApplicationWorkSessionId(workSessionId)
+            .stream().map(ReviewResponseDto::new).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public ReviewResponseDto getMyWrittenReview(Long workSessionId, Long rateeId, User loginUser) {
+        return reviewRepository
+            .findByApplicationWorkSessionIdAndWorkerIdAndRateeId(workSessionId, loginUser.getId(), rateeId)
+            .map(ReviewResponseDto::new)
+            .orElse(null);
+    }
 }
