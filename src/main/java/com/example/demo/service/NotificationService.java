@@ -6,6 +6,7 @@ import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.FcmTokenRepository;
 import com.example.demo.repository.NotificationRepository;
+import com.example.demo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -25,10 +26,10 @@ public class NotificationService {
     private final FcmTokenRepository fcmTokenRepository;
     private final FcmService fcmService;
     private final SmsService smsService;
+    private final UserRepository userRepository;
 
     @Transactional
     public void send(User receiver, NotificationType type, String message, Long referenceId) {
-
         Notification notification = new Notification();
         notification.setUser(receiver);
         notification.setType(type);
@@ -46,31 +47,23 @@ public class NotificationService {
                     .stream()
                     .map(t -> t.getToken())
                     .collect(Collectors.toList());
-
             if (!tokens.isEmpty()) {
                 fcmService.sendToTokens(tokens, getTitle(type), message);
             }
         } catch (Exception e) {
-            log.error("FCM 발송 실패: userId={}, error={}",
-                    receiver.getId(), e.getMessage());
+            log.error("FCM 발송 실패: userId={}, error={}", receiver.getId(), e.getMessage());
         }
 
         if (receiver.getPhone() != null && !receiver.getPhone().isBlank()) {
             try {
                 smsService.send(receiver.getPhone(), message);
             } catch (Exception e) {
-                log.error("SMS 발송 실패: userId={}, error={}",
-                        receiver.getId(), e.getMessage());
+                log.error("SMS 발송 실패: userId={}, error={}", receiver.getId(), e.getMessage());
             }
         }
     }
 
-    /**
-     * 팝업 전용 발송 — DB 저장 없이 WebSocket만 발송
-     * 출퇴근 사진 팝업, 새 공고 팝업, 부스트 팝업에 사용
-     */
-    public void sendPopup(User receiver, NotificationType type,
-                          String message, Long referenceId) {
+    public void sendPopup(User receiver, NotificationType type, String message, Long referenceId) {
         Notification notification = new Notification();
         notification.setUser(receiver);
         notification.setType(type);
@@ -132,23 +125,20 @@ public class NotificationService {
             case ADMIN_ALERT -> "관리자 알림";
             case GOAL_ACHIEVED -> "목표 달성";
             case BOOST_ACTIVATED -> "부스트 알림";
+            case ADMIN_MESSAGE -> "관리자 공지";
         };
     }
 
     @Transactional(readOnly = true)
     public List<NotificationResponseDto> getMyNotifications(User loginUser) {
         return notificationRepository.findByUserOrderByCreatedAtDesc(loginUser)
-                .stream()
-                .map(NotificationResponseDto::new)
-                .collect(Collectors.toList());
+                .stream().map(NotificationResponseDto::new).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public List<NotificationResponseDto> getUnreadNotifications(User loginUser) {
         return notificationRepository.findByUserAndIsReadFalse(loginUser)
-                .stream()
-                .map(NotificationResponseDto::new)
-                .collect(Collectors.toList());
+                .stream().map(NotificationResponseDto::new).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -160,24 +150,20 @@ public class NotificationService {
     public void markAsRead(Long notificationId, User loginUser) {
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOTIFICATION_NOT_FOUND));
-
-        if (!notification.getUser().getId().equals(loginUser.getId())) {
+        if (!notification.getUser().getId().equals(loginUser.getId()))
             throw new CustomException(ErrorCode.ACCESS_DENIED);
-        }
-
         notification.setRead(true);
         notificationRepository.save(notification);
     }
 
     @Transactional
     public void markAllAsRead(User loginUser) {
-        List<Notification> unread = notificationRepository
-                .findByUserAndIsReadFalse(loginUser);
+        List<Notification> unread = notificationRepository.findByUserAndIsReadFalse(loginUser);
         unread.forEach(n -> n.setRead(true));
         notificationRepository.saveAll(unread);
     }
-    
-        @Transactional
+
+    @Transactional
     public void deleteNotification(Long notificationId, User loginUser) {
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOTIFICATION_NOT_FOUND));
@@ -199,5 +185,33 @@ public class NotificationService {
     @Transactional
     public void deleteAll(User loginUser) {
         notificationRepository.deleteByUser(loginUser);
+    }
+
+    @Transactional
+    public void broadcast(String title, String body, String target, List<Long> userIds, User loginUser) {
+        if (loginUser.getRole() != Role.ADMIN)
+            throw new CustomException(ErrorCode.ADMIN_ONLY);
+
+        List<User> targets;
+        if ("specific".equals(target) && userIds != null) {
+            targets = userRepository.findAllById(userIds);
+        } else if ("individual".equals(target)) {
+            targets = userRepository.findByRole(Role.INDIVIDUAL);
+        } else if ("company".equals(target)) {
+            targets = userRepository.findByRole(Role.COMPANY);
+        } else {
+            targets = userRepository.findAll();
+        }
+
+        targets.forEach(user ->
+                send(user, NotificationType.ADMIN_MESSAGE, title + "\n" + body, null));
+    }
+
+    @Transactional(readOnly = true)
+    public List<NotificationResponseDto> getAdminMessageHistory(User loginUser) {
+        if (loginUser.getRole() != Role.ADMIN)
+            throw new CustomException(ErrorCode.ADMIN_ONLY);
+        return notificationRepository.findByTypeOrderByCreatedAtDesc(NotificationType.ADMIN_MESSAGE)
+                .stream().map(NotificationResponseDto::new).collect(Collectors.toList());
     }
 }

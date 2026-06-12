@@ -6,6 +6,7 @@ import com.example.demo.entity.*;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.repository.*;
+import com.example.demo.util.AuthorizationUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,7 +23,6 @@ public class NoticeService {
     private final ApplicationRepository applicationRepository;
     private final NotificationService notificationService;
 
-    // 전체 공지사항 조회 (카테고리/키워드 필터)
     @Transactional(readOnly = true)
     public List<NoticeResponseDto> getNotices(NoticeCategory category, String keyword) {
         if (keyword != null && !keyword.isBlank()) {
@@ -37,7 +37,6 @@ public class NoticeService {
                 .stream().map(NoticeResponseDto::new).collect(Collectors.toList());
     }
 
-    // ADMIN 공지만 조회
     @Transactional(readOnly = true)
     public List<NoticeResponseDto> getAdminNotices() {
         return noticeRepository
@@ -45,7 +44,6 @@ public class NoticeService {
                 .stream().map(NoticeResponseDto::new).collect(Collectors.toList());
     }
 
-    // 공고별 기업 공지 조회
     @Transactional(readOnly = true)
     public List<NoticeResponseDto> getNoticesByJobPost(Long jobPostId) {
         return noticeRepository
@@ -53,7 +51,6 @@ public class NoticeService {
                 .stream().map(NoticeResponseDto::new).collect(Collectors.toList());
     }
 
-    // 공지사항 단건 조회 (조회수 증가)
     @Transactional
     public NoticeResponseDto getNotice(Long id) {
         Notice notice = noticeRepository.findById(id)
@@ -63,22 +60,16 @@ public class NoticeService {
         return new NoticeResponseDto(notice);
     }
 
-    // 공지사항 등록
     @Transactional
     public NoticeResponseDto createNotice(NoticeRequestDto requestDto, User loginUser) {
         Role role = loginUser.getRole();
 
-        // 권한 체크
         if (role != Role.ADMIN && role != Role.COMPANY && role != Role.MANAGER) {
             throw new CustomException(ErrorCode.FORBIDDEN);
         }
-
-        // ADMIN_NOTICE는 ADMIN만 작성 가능
         if (requestDto.getNoticeType() == NoticeType.ADMIN_NOTICE && role != Role.ADMIN) {
             throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
-
-        // COMPANY_NOTICE는 COMPANY/MANAGER만, jobPostId 필수
         if (requestDto.getNoticeType() == NoticeType.COMPANY_NOTICE) {
             if (role != Role.COMPANY && role != Role.MANAGER) {
                 throw new CustomException(ErrorCode.FORBIDDEN);
@@ -106,26 +97,19 @@ public class NoticeService {
         }
 
         Notice saved = noticeRepository.save(notice);
-
-        // 알림 발송
         sendNoticeNotification(saved);
-
         return new NoticeResponseDto(saved);
     }
 
-    // 공지사항 수정
     @Transactional
     public NoticeResponseDto updateNotice(Long id, NoticeRequestDto requestDto, User loginUser) {
         Role role = loginUser.getRole();
         Notice notice = noticeRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOTICE_NOT_FOUND));
 
-        // ADMIN_NOTICE 수정은 ADMIN만
         if (notice.getNoticeType() == NoticeType.ADMIN_NOTICE && role != Role.ADMIN) {
             throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
-
-        // COMPANY_NOTICE 수정은 작성자 본인 또는 ADMIN만
         if (notice.getNoticeType() == NoticeType.COMPANY_NOTICE) {
             boolean isAuthor = notice.getAuthor() != null &&
                     notice.getAuthor().getId().equals(loginUser.getId());
@@ -145,19 +129,15 @@ public class NoticeService {
         return new NoticeResponseDto(noticeRepository.save(notice));
     }
 
-    // 공지사항 삭제
     @Transactional
     public void deleteNotice(Long id, User loginUser) {
         Role role = loginUser.getRole();
         Notice notice = noticeRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOTICE_NOT_FOUND));
 
-        // ADMIN_NOTICE 삭제는 ADMIN만
         if (notice.getNoticeType() == NoticeType.ADMIN_NOTICE && role != Role.ADMIN) {
             throw new CustomException(ErrorCode.ADMIN_ONLY);
         }
-
-        // COMPANY_NOTICE 삭제는 작성자 본인 또는 ADMIN만
         if (notice.getNoticeType() == NoticeType.COMPANY_NOTICE) {
             boolean isAuthor = notice.getAuthor() != null &&
                     notice.getAuthor().getId().equals(loginUser.getId());
@@ -169,16 +149,61 @@ public class NoticeService {
         noticeRepository.deleteById(id);
     }
 
-    // 알림 발송 내부 메서드
+    @Transactional(readOnly = true)
+    public List<NoticeResponseDto> getCompanyNotices(User loginUser) {
+        AuthorizationUtil.validateCompanyOrManager(loginUser);
+        User companyUser = AuthorizationUtil.getCompanyUser(loginUser);
+        return noticeRepository.findCompanyNotices(companyUser.getId())
+                .stream().map(NoticeResponseDto::new).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<NoticeResponseDto> getWorkerNotices(User loginUser) {
+        if (loginUser.getRole() != Role.INDIVIDUAL)
+            throw new CustomException(ErrorCode.WORKER_ONLY);
+
+        List<Application> apps = applicationRepository.findByUser(loginUser);
+
+        List<Long> companyIds = apps.stream()
+                .filter(a -> a.getJobPost() != null && a.getJobPost().getUser() != null)
+                .map(a -> a.getJobPost().getUser().getId())
+                .distinct().collect(Collectors.toList());
+
+        List<Long> jobPostIds = apps.stream()
+                .filter(a -> a.getJobPost() != null)
+                .map(a -> a.getJobPost().getId())
+                .distinct().collect(Collectors.toList());
+
+        if (companyIds.isEmpty() && jobPostIds.isEmpty()) {
+            return noticeRepository
+                    .findByNoticeTypeAndIsActiveTrueOrderByIsPinnedDescCreatedAtDesc(NoticeType.ADMIN_NOTICE)
+                    .stream().map(NoticeResponseDto::new).collect(Collectors.toList());
+        }
+
+        if (companyIds.isEmpty()) companyIds = List.of(-1L);
+        if (jobPostIds.isEmpty()) jobPostIds = List.of(-1L);
+
+        return noticeRepository.findWorkerNotices(companyIds, jobPostIds, !jobPostIds.contains(-1L))
+                .stream().map(NoticeResponseDto::new).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void rejectNotice(Long id, String reason, User loginUser) {
+        if (loginUser.getRole() != Role.ADMIN)
+            throw new CustomException(ErrorCode.ADMIN_ONLY);
+        Notice notice = noticeRepository.findById(id)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOTICE_NOT_FOUND));
+        notice.setActive(false);
+        noticeRepository.save(notice);
+    }
+
     private void sendNoticeNotification(Notice notice) {
         String message = "[공지] " + notice.getTitle();
 
-        // ADMIN_NOTICE → 모든 유저 대상 (앱에서 조회 방식으로 처리, 별도 발송 없음)
         if (notice.getNoticeType() == NoticeType.ADMIN_NOTICE) {
             return;
         }
 
-        // COMPANY_NOTICE → 공고 지원자 기반 필터링
         if (notice.getNoticeType() == NoticeType.COMPANY_NOTICE
                 && notice.getJobPost() != null) {
 
@@ -188,13 +213,10 @@ public class NoticeService {
             List<Application> applications;
 
             if (target == NoticeTarget.WORKER) {
-                // 근무 확정자만 (APPROVED 상태)
                 applications = applicationRepository
                         .findByJobPostIdAndStatus(jobPostId, ApplicationStatus.APPROVED);
             } else {
-                // INTERESTED or ALL → 전체 지원자
-                applications = applicationRepository
-                        .findByJobPostId(jobPostId);
+                applications = applicationRepository.findByJobPostId(jobPostId);
             }
 
             for (Application application : applications) {

@@ -1,31 +1,26 @@
 package com.example.demo.jwt;
 
-import com.example.demo.entity.User;
-import com.example.demo.util.AuthorizationUtil;
-import org.springframework.security.core.Authentication;
+import java.io.IOException;
+import java.util.List;
+
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.example.demo.entity.User;
 import com.example.demo.repository.UserRepository;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.security.SignatureException;
-
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-
-import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
-
-import java.io.IOException;
-import java.util.List;
 
 @Component
 public class JwtFilter extends OncePerRequestFilter {
@@ -54,7 +49,10 @@ public class JwtFilter extends OncePerRequestFilter {
         if (path.equals("/early-bird") && method.equals("POST")) return true;
         if (path.equals("/early-bird/count") && method.equals("GET")) return true;
 
-        if (path.startsWith("/notices") && method.equals("GET")) return true;
+        if (path.equals("/notices") && method.equals("GET")) return true;
+        if (path.matches("/notices/\\d+") && method.equals("GET")) return true;
+        if (path.equals("/notices/admin") && method.equals("GET")) return true;
+        if (path.startsWith("/notices/job-post/") && method.equals("GET")) return true;
         if (path.startsWith("/events") && method.equals("GET")) return true;
         if (path.startsWith("/faqs") && method.equals("GET")) return true;
         if (path.startsWith("/banners") && method.equals("GET")) return true;

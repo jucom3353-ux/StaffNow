@@ -8,8 +8,10 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.dto.ApiResponse;
@@ -102,5 +104,27 @@ public class NotificationController {
     public ResponseEntity<ApiResponse<?>> deleteAll() {
         notificationService.deleteAll(AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("전체 삭제 완료"));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Operation(summary = "관리자 공지 브로드캐스트")
+    @PostMapping("/broadcast")
+    public ResponseEntity<ApiResponse<?>> broadcast(@RequestBody Map<String, Object> body) {
+        List<Long> userIds = (List<Long>) body.get("userIds");
+        notificationService.broadcast(
+            (String) body.get("title"),
+            (String) body.get("body"),
+            (String) body.get("target"),
+            userIds,
+            AuthorizationUtil.getLoginUser()
+        );
+        return ResponseEntity.ok(ApiResponse.ok("발송 완료"));
+    }
+
+    @Operation(summary = "관리자 공지 발송 이력")
+    @GetMapping("/admin/history")
+    public ResponseEntity<ApiResponse<?>> getAdminMessageHistory() {
+    return ResponseEntity.ok(ApiResponse.ok(
+            notificationService.getAdminMessageHistory(AuthorizationUtil.getLoginUser())));
     }
 }

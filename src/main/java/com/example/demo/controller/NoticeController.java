@@ -3,6 +3,7 @@ package com.example.demo.controller;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -111,6 +112,29 @@ public class NoticeController {
             @PathVariable Long id) {
         noticeService.deleteNotice(id,  AuthorizationUtil.getLoginUser());
         return ResponseEntity.ok(ApiResponse.ok("공지사항 삭제 완료"));
+    }
+
+     @Operation(summary = "기업용 공지 조회")
+    @GetMapping("/company")
+    public ResponseEntity<ApiResponse<?>> getCompanyNotices() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                noticeService.getCompanyNotices(AuthorizationUtil.getLoginUser())));
+    }
+
+    @Operation(summary = "구직자용 공지 조회")
+    @GetMapping("/worker")
+    public ResponseEntity<ApiResponse<?>> getWorkerNotices() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                noticeService.getWorkerNotices(AuthorizationUtil.getLoginUser())));
+    }
+
+    @Operation(summary = "공지 반려 (관리자)")
+    @PatchMapping("/{id}/reject")
+    public ResponseEntity<ApiResponse<?>> rejectNotice(
+            @PathVariable Long id,
+            @RequestParam(required = false) String reason) {
+        noticeService.rejectNotice(id, reason, AuthorizationUtil.getLoginUser());
+        return ResponseEntity.ok(ApiResponse.ok("공지 반려 완료"));
     }
 
      

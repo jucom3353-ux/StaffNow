@@ -88,4 +88,7 @@ public enum NotificationType {
 
     // 부스트 팝업
     BOOST_ACTIVATED,
+
+    // 관리자 공지 브로드캐스트
+    ADMIN_MESSAGE,
 }
